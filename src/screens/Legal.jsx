@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'motion/react'
+import { m as motion } from 'motion/react'
 import { Lock, ScrollText } from 'lucide-react'
 import { Content, PageHeader } from '../ui/kit'
 import { Item, Stagger } from '../ui/motion'

@@ -1,5 +1,5 @@
 import { LogOut, Moon, Sun } from 'lucide-react'
-import { LayoutGroup, motion } from 'motion/react'
+import { LayoutGroup, m as motion } from 'motion/react'
 import { Link } from '../lib/router'
 import { Avatar, Logo } from './kit'
 

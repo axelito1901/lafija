@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Building2, CalendarCheck, ChevronRight, Flag, Store, Users } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m as motion } from 'motion/react'
 import { Item, Stagger, spring } from '../../ui/motion'
 import { Kpi } from '../../ui/dash'
 import { Cover } from '../../ui/Cover'

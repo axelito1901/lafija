@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m as motion } from 'motion/react'
 import { Item, Stagger, spring } from '../../ui/motion'
 import { ChevronLeft, ChevronRight, CircleCheck, CircleDashed, Clock3, Coins, HandCoins, Lock, Plus, UserX } from 'lucide-react'
 import { useStore } from '../../lib/store'

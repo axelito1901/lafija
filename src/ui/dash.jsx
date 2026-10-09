@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react'
+import { m as motion, useReducedMotion } from 'motion/react'
 import { cn } from '../lib/format'
 import { CountUp, spring } from './motion'
 

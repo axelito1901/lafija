@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m as motion } from 'motion/react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '../lib/format'
 import { Cover } from './Cover'

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
+import { m as motion } from 'motion/react'
 import { celebrate, spring } from '../../ui/motion'
 import { Cover } from '../../ui/Cover'
 import { CalendarPlus, Check, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'

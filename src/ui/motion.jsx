@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { animate, motion, useInView, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
+import { animate, m as motion, useInView, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
 
 export const spring = { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 }
 

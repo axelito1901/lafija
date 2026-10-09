@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m as motion } from 'motion/react'
 import { CalendarDays, HandCoins, Ticket } from 'lucide-react'
 import { CountUp, Item, Stagger } from '../../ui/motion'
 import { Columns, Kpi } from '../../ui/dash'

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, Lightbulb, Umbrella } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m as motion } from 'motion/react'
 import { Cover } from '../../ui/Cover'
 import { Item, Stagger, spring } from '../../ui/motion'
 import { useStore } from '../../lib/store'

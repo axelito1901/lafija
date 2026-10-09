@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, ChevronRight, Clock3, Coins, ShieldCheck, Shuffle, Store, User } from 'lucide-react'
-import { motion } from 'motion/react'
+import { m as motion } from 'motion/react'
 import { Item, Stagger } from '../ui/motion'
 import { DEMO_ACCOUNTS, DEMO_CODE, DEMO_PASSWORD, remote, useStore } from '../lib/store'
 import { homeFor } from '../lib/roles'

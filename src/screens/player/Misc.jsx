@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m as motion } from 'motion/react'
 import { CalendarCheck, CalendarX, Heart, HeartOff, LogOut } from 'lucide-react'
 import { Item, Stagger, spring, CountUp } from '../../ui/motion'
 import { useStore } from '../../lib/store'
