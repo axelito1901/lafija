@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Item, Stagger, spring } from '../../ui/motion'
 import { ChevronLeft, ChevronRight, CircleCheck, CircleDashed, Clock3, Coins, HandCoins, Lock, Plus, UserX } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { dayStatus, effStatus, slotInfo, slotsFor } from '../../lib/domain'
-import { addDays, cn, dayNum, money, monthShort, todayISO } from '../../lib/format'
+import { addDays, cn, dayNum, money, monthShort, todayISO, weekdayShort } from '../../lib/format'
 const weekdayLong = iso => new Intl.DateTimeFormat('es-AR', { weekday: 'long' }).format(new Date(`${iso}T12:00:00`))
 import { navigate, useRoute } from '../../lib/router'
 import { Button, Chip, Empty, IconButton, Input, Sheet, Status, useToast } from '../../ui/kit'
@@ -20,7 +22,11 @@ export default function Agenda() {
   const [menu, setMenu] = useState(null)
   const [showPast, setShowPast] = useState(false)
   const [sheet, setSheet] = useState(null) // {kind:'new'|'block', preset}
+  const [dir, setDir] = useState(1)
+  const strip = useRef(null)
   const now = new Date()
+  const goDay = d => { setDir(d >= date ? 1 : -1); setDate(d) }
+  const accent = b => { const st = effStatus(b); return st === 'pending' || st === 'no_show' ? 'var(--danger)' : b.paidCents >= b.totalCents && b.totalCents > 0 ? 'var(--brand)' : b.paidCents > 0 ? 'var(--info)' : 'var(--warn)' }
 
   const courts = all.filter(c => filter === 'all' || c.id === filter)
   const times = complex ? slotsFor(complex) : []
@@ -62,13 +68,25 @@ export default function Agenda() {
             <h2 className="display text-3xl font-bold uppercase leading-none">{weekdayLong(date)} {dayNum(date)} {monthShort(date)}</h2>
           </div>
           <div className="flex items-center gap-1">
-            <IconButton label="Día anterior" onClick={() => setDate(addDays(date, -1))} className="border border-strong"><ChevronLeft size={22} /></IconButton>
-            <Button variant={date === todayISO() ? 'primary' : 'secondary'} onClick={() => setDate(todayISO())} aria-pressed={date === todayISO()}>Hoy</Button>
-            <IconButton label="Día siguiente" onClick={() => setDate(addDays(date, 1))} className="border border-strong"><ChevronRight size={22} /></IconButton>
-            <DateField value={date} onChange={v => v && setDate(v)} aria-label="Elegir fecha" title="Ir a una fecha" className="!w-11 !px-0 justify-center [&>span:first-child]:hidden" />
+            <IconButton label="Día anterior" onClick={() => goDay(addDays(date, -1))} className="border border-strong"><ChevronLeft size={22} /></IconButton>
+            <Button variant={date === todayISO() ? 'primary' : 'secondary'} onClick={() => goDay(todayISO())} aria-pressed={date === todayISO()}>Hoy</Button>
+            <IconButton label="Día siguiente" onClick={() => goDay(addDays(date, 1))} className="border border-strong"><ChevronRight size={22} /></IconButton>
+            <DateField value={date} onChange={v => v && goDay(v)} aria-label="Elegir fecha" title="Ir a una fecha" className="!w-11 !px-0 justify-center [&>span:first-child]:hidden" />
           </div>
         </div>
         {day && <p className="mt-2 text-muted tnum"><strong className="text-ink">Ocupación {day.pct}%</strong> · {day.bookings.length} {day.bookings.length === 1 ? 'reserva' : 'reservas'} · {day.free} {day.free === 1 ? 'libre' : 'libres'}</p>}
+        <div ref={strip} className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-4 pb-1" role="group" aria-label="Elegir día">
+          {Array.from({ length: 14 }, (_, i) => addDays(todayISO(), i - 1)).map(d => {
+            const p = dayStatus(state, complex, d, now, filter === 'all' ? null : filter).pct, on = d === date
+            return (
+              <button key={d} type="button" aria-pressed={on} onClick={() => goDay(d)} className={cn('relative flex-none w-14 h-[68px] rounded-2xl border flex flex-col items-center justify-center transition-colors overflow-hidden', on ? 'border-transparent text-[var(--brand-ink)]' : 'bg-surface border-line hover:border-strong')}>
+                {on && <motion.span layoutId="agenda-day" className="absolute inset-0 bg-[image:var(--grad-brand)] shadow-[var(--sh-2)]" transition={spring} />}
+                <span className={cn('relative text-xs font-medium', !on && 'text-muted')}>{d === todayISO() ? 'Hoy' : weekdayShort(d)}</span>
+                <span className="relative text-lg font-semibold tnum leading-tight">{dayNum(d)}</span>
+                <span className="absolute bottom-0 left-0 h-1 bg-brand/70" style={{ width: `${p}%`, background: on ? 'rgba(255,255,255,.85)' : undefined }} />
+              </button>)
+          })}
+        </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-3 pb-1" role="group" aria-label="Filtrar cancha">
           <Chip active={filter === 'all'} onClick={() => setFilter('all')}>Todas</Chip>
           {all.map(c => <Chip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>{c.name}</Chip>)}
@@ -79,7 +97,9 @@ export default function Agenda() {
             <Status tone="ok" icon={CircleCheck}>Pagado</Status><Status tone="info" icon={Coins}>Seña</Status><Status tone="warn" icon={HandCoins}>A cobrar</Status><Status tone="danger" icon={Clock3}>Pendiente</Status><Status tone="muted" icon={Lock}>Bloqueado</Status>
           </div>
           {/* Mobile / tablet: lista vertical por cancha */}
-          <div className="lg:hidden mt-4 space-y-6">
+          <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={date + filter} className="lg:hidden mt-4 space-y-6" initial={{ opacity: 0, x: dir * 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: dir * -40 }} transition={{ duration: .2 }}
+            drag="x" dragDirectionLock dragConstraints={{ left: 0, right: 0 }} dragElastic={.25} onDragEnd={(_, i) => { if (i.offset.x < -90) goDay(addDays(date, 1)); else if (i.offset.x > 90) goDay(addDays(date, -1)) }}>
             {courts.map(c => {
               const all2 = times.map(t => ({ t, info: cell(c, t) }))
               const hidden = showPast ? 0 : all2.filter(r => r.info.kind === 'past').length
@@ -89,12 +109,12 @@ export default function Agenda() {
                 <section key={c.id} aria-label={c.name}>
                   <div className="flex items-baseline justify-between mb-2"><h3 className="font-semibold">{c.name}</h3><span className="text-sm text-muted">{booked} reservas · {free} libres</span></div>
                   {c.status !== 'active' && <p className="text-sm text-warn mb-2">Cancha {c.status === 'blocked' ? 'bloqueada' : 'desactivada'}: no recibe reservas.</p>}
-                  <div className="list">
+                  <div className="list !rounded-2xl">
                     {hidden > 0 && <button type="button" className="row !min-h-12 text-muted text-sm" onClick={() => setShowPast(true)}><span className="flex-1">{hidden} {hidden === 1 ? 'horario anterior' : 'horarios anteriores'}</span><span className="text-brand font-semibold">Ver</span></button>}
                     {rows.map(({ t, info }) => {
                       const clickable = ['booked', 'free', 'blocked'].includes(info.kind)
                       return (
-                        <button key={t} type="button" className={cn('row !min-h-14', info.kind === 'blocked' && 'hatch', !clickable && 'cursor-default hover:!bg-transparent')} onClick={() => tap(c, t, info)} disabled={!clickable}>
+                        <button key={t} type="button" style={info.kind === 'booked' ? { boxShadow: `inset 4px 0 0 ${accent(info.booking)}` } : undefined} className={cn('row !min-h-14', info.kind === 'blocked' && 'hatch', info.kind === 'booked' && 'bg-[color-mix(in_srgb,var(--brand)_5%,var(--surface))]', !clickable && 'cursor-default hover:!bg-transparent')} onClick={() => tap(c, t, info)} disabled={!clickable}>
                           <span className={cn('w-12 flex-none font-semibold tnum', info.kind === 'past' && 'text-faint')}>{t}</span>
                           <span className="flex-1 min-w-0">{body(info)}</span>
                           {info.kind === 'free' && <span className="inline-flex items-center gap-1 text-brand text-sm font-semibold flex-none border border-brand rounded-lg px-2.5 min-h-9"><Plus size={15} />Reservar</span>}
@@ -106,19 +126,20 @@ export default function Agenda() {
                 </section>
               )
             })}
-          </div>
+          </motion.div>
+          </AnimatePresence>
 
           {/* Desktop: grilla */}
-          <div className="hidden lg:block mt-4 border border-line rounded-lg overflow-x-auto bg-surface">
+          <div className="hidden lg:block mt-4 border border-line rounded-2xl overflow-x-auto bg-surface shadow-[var(--sh-1)]">
             <div className="agenda-grid" style={{ gridTemplateColumns: `72px repeat(${courts.length}, minmax(180px, 1fr))` }}>
               <div className="p-3" />
               {courts.map(c => <div key={c.id} className="p-3 border-l border-line font-semibold">{c.name}<div className="text-sm font-normal text-muted">{c.sport}{c.status !== 'active' ? ' · inactiva' : ''}</div></div>)}
               {times.map(t => (
                 <div key={t} className="contents">
-                  <div className="agenda-cell !border-l-0 font-semibold tnum text-muted">{t}</div>
+                  <div className={cn('agenda-cell !border-l-0 font-semibold tnum text-muted', date === todayISO() && t.slice(0, 2) === String(now.getHours()).padStart(2, '0') && '!text-brand !bg-brand-soft')}>{t}{date === todayISO() && t.slice(0, 2) === String(now.getHours()).padStart(2, '0') && <span className="block text-[10px] uppercase tracking-wider">ahora</span>}</div>
                   {courts.map(c => {
                     const info = cell(c, t), clickable = ['booked', 'free', 'blocked'].includes(info.kind)
-                    return <button key={c.id} type="button" disabled={!clickable} onClick={() => tap(c, t, info)} className={cn('agenda-cell', info.kind === 'blocked' && 'hatch', info.kind === 'booked' && 'bg-brand-soft/40', !clickable && 'cursor-default')}>{body(info)}</button>
+                    return <button key={c.id} type="button" disabled={!clickable} onClick={() => tap(c, t, info)} style={info.kind === 'booked' ? { boxShadow: `inset 4px 0 0 ${accent(info.booking)}` } : undefined} className={cn('agenda-cell', info.kind === 'blocked' && 'hatch', info.kind === 'booked' && 'bg-[color-mix(in_srgb,var(--brand)_7%,var(--surface))] hover:!bg-brand-soft', info.kind === 'free' && 'group/free', !clickable && 'cursor-default')}>{body(info)}</button>
                   })}
                 </div>
               ))}
@@ -141,8 +162,8 @@ export default function Agenda() {
           )}
         </Sheet>
         <div className="h-20 lg:hidden" aria-hidden="true" />
-        <button type="button" aria-label="Nueva reserva" onClick={() => setSheet({ kind: 'new', preset: { date, courtId: filter !== 'all' ? filter : undefined } })}
-          className="lg:hidden fixed right-4 z-20 bottom-[calc(var(--nav-h)+var(--safe-bottom)+16px)] size-14 rounded-full bg-brand text-[var(--brand-ink)] grid place-items-center shadow-lg active:opacity-85 transition-opacity"><Plus size={28} /></button>
+        <motion.button type="button" aria-label="Nueva reserva" whileTap={{ scale: .88 }} whileHover={{ scale: 1.06 }} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring} onClick={() => setSheet({ kind: 'new', preset: { date, courtId: filter !== 'all' ? filter : undefined } })}
+          className="lg:hidden fixed right-4 z-20 bottom-[calc(var(--nav-h)+var(--safe-bottom)+16px)] size-14 rounded-full bg-[image:var(--grad-brand)] text-[var(--brand-ink)] grid place-items-center shadow-[0_14px_28px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)]"><Plus size={28} /></motion.button>
         {sheet?.kind === 'new' && <NewBookingSheet open onClose={() => setSheet(null)} complex={complex} preset={sheet.preset} />}
         {sheet?.kind === 'block' && <BlockSheet open onClose={() => setSheet(null)} complex={complex} preset={sheet.preset} />}
         {editing && <BookingEditor bookingId={editing} onClose={() => setEditing('')} />}

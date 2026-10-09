@@ -7,6 +7,8 @@ import { cn, dateLong, addDays, dateHeading, dateShort, money, relativeDay, telL
 import { Link, navigate, useRoute } from '../../lib/router'
 import { Avatar, Button, Empty, Field, Input, Section, Segmented, Select, Sheet, Stat, Textarea, useToast } from '../../ui/kit'
 import { BookingRow } from '../../ui/shared'
+import { Item, Stagger, CountUp } from '../../ui/motion'
+import { HeatStrip, Kpi, Ring } from '../../ui/dash'
 import { BlockSheet, BookingEditor, NewBookingSheet, OwnerPage, useOwner } from './common'
 
 /* Lo mínimo para que un complejo se vea completo y confiable. */
@@ -21,9 +23,9 @@ function Checklist({ complex, courts }) {
   const done = items.filter(i => i[1]).length
   if (done === items.length) return null
   return (
-    <section className="mb-8 border border-line rounded-lg bg-surface p-4">
+    <section className="mb-8 border border-line rounded-2xl bg-surface p-4 shadow-[var(--sh-1)]">
       <div className="flex items-baseline justify-between gap-3"><h2 className="text-lg">Completá tu complejo</h2><span className="text-sm text-muted tnum">{done} de {items.length}</span></div>
-      <div className="h-2 rounded-full bg-sunken mt-2 overflow-hidden"><div className="h-full bg-brand rounded-full transition-all" style={{ width: `${(done / items.length) * 100}%` }} /></div>
+      <div className="h-2 rounded-full bg-sunken mt-2 overflow-hidden"><div className="h-full bg-[image:var(--grad-brand)] rounded-full transition-all duration-700" style={{ width: `${(done / items.length) * 100}%` }} /></div>
       <p className="text-sm text-muted mt-2">Los complejos con foto y ubicación reciben muchas más reservas.</p>
       <ul className="mt-3">{items.map(([label, ok, to]) => (
         <li key={label}><Link to={to} className={`flex items-center gap-3 min-h-11 ${ok ? 'text-muted line-through' : 'font-medium'}`}>
@@ -49,6 +51,12 @@ export function OwnerHome() {
   const now = new Date(), today = todayISO()
   const mine = complex ? state.bookings.filter(b => b.complexId === complex.id && !b._busy) : []
   const day = complex ? dayStatus(state, complex, today, now) : null
+  const heat = useMemo(() => { // eslint-disable-line
+    if (!complex) return []
+    const cs = activeCourts(state, complex.id)
+    return slotsFor(complex).map(t => { const n = cs.filter(c => slotInfo(state, complex, c, today, t, now).kind === 'booked').length; return { t, n, of: cs.length, pct: cs.length ? Math.round(n / cs.length * 100) : 0 } })
+  }, [state, complex]) // eslint-disable-line
+  const nowT = `${String(now.getHours()).padStart(2, '0')}:00`
   const live = b => ['pending', 'deposit_paid', 'confirmed'].includes(effStatus(b, now)) && bookingEnd(b) >= now
   const pendingPay = mine.filter(b => effStatus(b, now) === 'pending' && bookingEnd(b) >= now)
   const owedToday = mine.filter(b => b.date === today && ['deposit_paid', 'confirmed'].includes(effStatus(b, now)) && balanceOf(b) > 0)
@@ -73,26 +81,34 @@ export function OwnerHome() {
   return (
     <OwnerPage title={`${greeting()}, ${user.name.split(' ')[0]}`} sub={`Hoy · ${dateLong(today)}`}>
       {complex && day && <>
-        <div className="grid grid-cols-2 lg:grid-cols-4 border border-line rounded-lg bg-surface overflow-hidden">
-          {[['Reservas hoy', day.bookings.length], ['Recaudado hoy', money(day.collected)], ['Ocupación', `${day.pct}%`], ['Disponibles', day.free]].map(([k, v], i) => (
-            <div key={k} className={cn('p-4 min-w-0', i % 2 && 'border-l border-line', i >= 2 && 'border-t lg:border-t-0 border-line', i === 2 && 'lg:border-l')}>
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted">{k}</div>
-              <div className="display text-3xl font-bold tnum mt-1 truncate">{v}</div>
-            </div>))}
-        </div>
+        <Stagger>
+        <Item className="hero p-5 lg:p-6">
+          <div className="flex items-center gap-5">
+            <Ring pct={day.pct}><div><div className="display text-4xl font-bold tnum leading-none"><CountUp value={`${day.pct}%`} /></div><div className="text-xs uppercase tracking-widest opacity-85 mt-1">ocupación</div></div></Ring>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-widest opacity-90 inline-flex items-center gap-2"><span className="live-dot" />Hoy en {complex.name}</p>
+              <p className="display text-2xl lg:text-3xl font-bold leading-tight mt-2">{day.taken} de {day.total} turnos ocupados</p>
+              <p className="opacity-90 mt-1 text-sm">{day.peak ? `Mayor demanda a las ${day.peak.t}` : 'Todavía sin reservas'}{day.next ? <> · <button type="button" className="underline underline-offset-2 font-semibold" onClick={() => { setPreset({ date: today, courtId: day.next.court.id, time: day.next.t }); setSheet('new') }}>próximo libre {day.next.t}</button></> : ' · no quedan libres'}</p>
+            </div>
+          </div>
+        </Item>
 
-        <Section title="Ocupación de hoy" className="!mt-6">
-          <div className="border border-line rounded-lg bg-surface p-4">
-            <div className="flex items-baseline justify-between gap-3"><span className="display text-4xl font-bold tnum">{day.pct}%</span><span className="text-muted text-sm tnum">{day.taken} de {day.total} turnos ocupados</span></div>
-            <div className="h-2.5 rounded-full bg-sunken mt-3 overflow-hidden" role="progressbar" aria-valuenow={day.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Ocupación de hoy"><div className="h-full rounded-full bg-brand transition-all" style={{ width: `${day.pct}%` }} /></div>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4 text-sm">
-              <div><dt className="text-muted">Mayor demanda</dt><dd className="font-semibold tnum">{day.peak ? `${day.peak.t} · ${day.peak.n} de ${day.courts} canchas` : 'Sin reservas aún'}</dd></div>
-              <div><dt className="text-muted">Próximo libre</dt><dd>{day.next ? <button type="button" className="font-semibold text-brand underline underline-offset-2 tnum inline-flex items-center min-h-11 -my-3 text-left" onClick={() => { setPreset({ date: today, courtId: day.next.court.id, time: day.next.t }); setSheet('new') }}>{day.next.t} · {day.next.court.name}</button> : <span className="font-semibold">No quedan</span>}</dd></div>
-              <div><dt className="text-muted">Confirmadas</dt><dd className="font-semibold tnum">{day.confirmed}</dd></div>
-              <div><dt className="text-muted">Pendientes de pago</dt><dd className={cn('font-semibold tnum', day.pending && 'text-danger')}>{day.pending}</dd></div>
-            </dl>
+        <Item className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+          <Kpi icon={CalendarDays} label="Reservas hoy" value={day.bookings.length} />
+          <Kpi icon={HandCoins} label="Recaudado hoy" value={money(day.collected)} />
+          <Kpi icon={CircleCheck} label="Confirmadas" value={day.confirmed} />
+          <Kpi icon={Clock3} label="Pendientes" value={day.pending} tone={day.pending ? 'warn' : 'brand'} />
+        </Item>
+
+        <Item>
+        <Section title="Demanda por horario" className="!mt-6">
+          <div className="border border-line rounded-2xl bg-surface p-4 shadow-[var(--sh-1)]">
+            <HeatStrip rows={heat} nowT={nowT} />
+            <p className="text-sm text-muted mt-3 tnum"><strong className="text-ink">{day.free}</strong> {day.free === 1 ? 'turno disponible' : 'turnos disponibles'} · el borde dorado marca la hora actual</p>
           </div>
         </Section>
+        </Item>
+        </Stagger>
 
         <Section title="Atención">
           <div className="list">
