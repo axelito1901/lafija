@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../../lib/store'
 import { effStatus, isApproved } from '../../lib/domain'
 import { cn, money, monthStart, todayISO } from '../../lib/format'
+import { Item, Stagger, CountUp } from '../../ui/motion'
+import { HBar, Kpi } from '../../ui/dash'
+import { Building2, Landmark, Wallet } from 'lucide-react'
 import { Button, Content, Field, Input, MoneyInput, PageHeader, Segmented, Stat, useToast } from '../../ui/kit'
 
 export const DEFAULT_BUSINESS = { model: 'commission', commissionPercent: 5, monthlyFeeCents: 2500000 }
@@ -29,11 +32,15 @@ export default function Revenue() {
     <>
       <PageHeader back="/admin" title="Ingresos de La Fija" sub="Este mes" />
       <Content className="max-w-[760px] lg:mx-0">
-        <div className="border border-line rounded-lg bg-surface p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <Stat label="A cobrar este mes" value={money(total)} />
-          <Stat label="Reservas por la app" value={money(volume)} />
-          <Stat label="Complejos activos" value={rows.length} />
+        <div className="hero p-5">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-90 inline-flex items-center gap-2"><span className="live-dot" />A cobrar este mes</p>
+          <div className="display text-5xl font-bold tnum mt-2 leading-none"><CountUp value={money(total)} /></div>
+          <p className="mt-3 text-sm opacity-90">{rows.length} {rows.length === 1 ? 'complejo activo' : 'complejos activos'} · {money(volume)} reservado por la app</p>
         </div>
+        <Stagger className="grid grid-cols-2 gap-3 mt-3">
+          <Item><Kpi icon={Wallet} label="Reservas por la app" value={money(volume)} /></Item>
+          <Item><Kpi icon={Building2} label="Complejos activos" value={rows.length} /></Item>
+        </Stagger>
 
         <h2 className="text-lg mt-8 mb-2">Cómo cobra La Fija</h2>
         <Segmented value={f.model} onChange={v => setF({ ...f, model: v })} label="Modelo" options={[{ value: 'free', label: 'Gratis' }, { value: 'commission', label: 'Comisión' }, { value: 'monthly', label: 'Abono mensual' }]} />
@@ -43,10 +50,11 @@ export default function Revenue() {
         <Button className="mt-4" disabled={!dirty} onClick={save}>Guardar modelo</Button>
 
         <h2 className="text-lg mt-10 mb-2">Por complejo</h2>
-        <div className="list">{rows.map(r => (
-          <div key={r.c.id} className="row">
-            <div className="flex-1 min-w-0"><div className="font-semibold truncate">{r.c.name}</div><div className="text-sm text-muted">{r.count} reservas por la app · {money(r.volume)}</div></div>
-            <div className={cn('font-semibold tnum flex-none', !r.fee && 'text-muted')}>{money(r.fee)}</div>
+        <div className="border border-line rounded-2xl bg-surface p-4 shadow-[var(--sh-1)] space-y-3">{rows.map((r, i) => (
+          <div key={r.c.id}>
+            <div className="flex items-baseline justify-between gap-3"><span className="font-semibold truncate">{r.c.name}</span><span className={cn('font-semibold tnum flex-none', !r.fee && 'text-muted')}>{money(r.fee)}</span></div>
+            <div className="text-sm text-muted mb-1">{r.count} reservas por la app · {money(r.volume)}</div>
+            <HBar label="" pct={total ? Math.round(r.fee / total * 100) : 0} i={i} />
           </div>))}</div>
         <p className="hint mt-3">El cobro a los complejos todavía se hace por fuera de la app (transferencia o factura). Esta pantalla te dice cuánto corresponde.</p>
       </Content>

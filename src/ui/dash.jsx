@@ -51,7 +51,7 @@ export function HBar({ label, pct, strong, i = 0 }) {
   const tone = pct >= 70 ? 'var(--grad-brand)' : pct >= 35 ? 'color-mix(in srgb, var(--brand) 55%, var(--sunken))' : 'var(--line-strong)'
   return (
     <div className="flex items-center gap-3 min-h-8">
-      <span className={cn('w-14 flex-none text-sm tnum', strong ? 'font-semibold' : 'text-muted')}>{label}</span>
+      {label && <span className={cn("w-14 flex-none text-sm tnum", strong ? "font-semibold" : "text-muted")}>{label}</span>}
       <span className="flex-1 h-3 rounded-full bg-sunken overflow-hidden">
         <motion.span className="block h-full rounded-full" style={{ background: tone }} initial={{ width: 0 }} whileInView={{ width: `${Math.max(pct, 2)}%` }} viewport={{ once: true }} transition={{ duration: .7, delay: Math.min(i * .02, .5), ease: [.2, .8, .2, 1] }} />
       </span>

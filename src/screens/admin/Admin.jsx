@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { Building2, CalendarCheck, ChevronRight, Flag, Store, Users } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Item, Stagger, spring } from '../../ui/motion'
+import { Kpi } from '../../ui/dash'
+import { Cover } from '../../ui/Cover'
 import { useStore } from '../../lib/store'
 import { notify, cancelBooking, courtsOf, effStatus, getComplex, getCourt, paymentLabel, ratingOf, STATUS, STATUS_ORDER } from '../../lib/domain'
 import { dateLong, money, slotEnd, todayISO } from '../../lib/format'
@@ -22,16 +26,25 @@ export function AdminHome({ theme, onSignOut }) {
     <>
       <PageHeader title="Inicio" sub="Operación de La Fija" />
       <Content>
-        <div className="border border-line rounded-lg bg-surface p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Stat label="Complejos activos" value={`${state.complexes.filter(c => c.active).length}/${state.complexes.length}`} />
-          <Stat label="Usuarios" value={state.users.length} />
-          <Stat label="Reservas hoy" value={todays} />
-          <Stat label="Reseñas reportadas" value={reported} />
-        </div>
-        {pendingCx > 0 && <p className="mt-4"><Link to="/admin/complejos" className="font-semibold text-brand underline underline-offset-4">{pendingCx} {pendingCx === 1 ? 'complejo espera' : 'complejos esperan'} revisión</Link></p>}
-        <p className="mt-4"><Link to="/admin/ingresos" className="font-semibold text-brand underline underline-offset-4">Ver ingresos de La Fija</Link></p>
-        {reported > 0 && <p className="mt-4"><Link to="/admin/resenas" className="font-semibold text-brand underline underline-offset-4">Revisar {reported} {reported === 1 ? 'reseña reportada' : 'reseñas reportadas'}</Link></p>}
-        {state.complexes.some(c => !c.active) && <p className="mt-2 text-muted">Hay complejos desactivados: <Link to="/admin/complejos" className="font-semibold text-brand underline underline-offset-4">verlos</Link>.</p>}
+        <Stagger>
+        <Item className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Kpi icon={Building2} label="Complejos activos" value={`${state.complexes.filter(c => c.active).length}/${state.complexes.length}`} />
+          <Kpi icon={Users} label="Usuarios" value={state.users.length} />
+          <Kpi icon={CalendarCheck} label="Reservas hoy" value={todays} />
+          <Kpi icon={Flag} label="Reseñas reportadas" value={reported} tone={reported ? 'warn' : 'brand'} />
+        </Item>
+        <Item className="mt-6"><h2 className="text-base font-semibold mb-3">Para revisar</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[pendingCx > 0 && { to: '/admin/complejos', icon: Building2, tone: 'warn', t: `${pendingCx} ${pendingCx === 1 ? 'complejo espera' : 'complejos esperan'} aprobación`, s: 'Revisá y publicalos' },
+              reported > 0 && { to: '/admin/resenas', icon: Flag, tone: 'warn', t: `${reported} ${reported === 1 ? 'reseña reportada' : 'reseñas reportadas'}`, s: 'Moderación pendiente' },
+              state.complexes.some(c => !c.active) && { to: '/admin/complejos', icon: Store, tone: 'info', t: 'Hay complejos desactivados', s: 'No reciben reservas nuevas' },
+              { to: '/admin/ingresos', icon: CalendarCheck, tone: 'brand', t: 'Ingresos de La Fija', s: 'Cuánto corresponde cobrar este mes' }].filter(Boolean).map(x => (
+              <Link key={x.t} to={x.to} className="flex items-center gap-3 p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] card-lift">
+                <span className={`size-11 rounded-xl grid place-items-center flex-none ${x.tone === 'warn' ? 'bg-warn-soft text-warn' : 'bg-brand-soft text-brand'}`}><x.icon size={20} aria-hidden="true" /></span>
+                <span className="flex-1 min-w-0"><span className="block font-semibold">{x.t}</span><span className="block text-sm text-muted">{x.s}</span></span><ChevronRight size={18} className="text-faint" />
+              </Link>))}
+          </div></Item>
+        </Stagger>
         <Section title="Últimas reservas" className="mt-8" action={<Link to="/admin/reservas" className="btn btn-link btn-sm">Ver todas</Link>}>
           <div className="list">{recent.map(b => <BookingRow key={b.id} b={b} state={state} who onClick={() => setOpen(b.id)} />)}</div>
         </Section>
@@ -49,6 +62,7 @@ export function AdminComplexes() {
   const { state, update } = useStore()
   const toast = useToast()
   const [open, setOpen] = useState('')
+  const [fil, setFil] = useState('all')
   const c = open && getComplex(state, open)
   const owner = c && state.users.find(u => u.id === c.ownerId)
   const decide = approval => {
@@ -61,15 +75,17 @@ export function AdminComplexes() {
     <>
       <PageHeader title="Complejos" sub={`${state.complexes.length} en la plataforma`} />
       <Content>
-        <div className="list">{state.complexes.map(x => {
-          const o = state.users.find(u => u.id === x.ownerId)
+        <Segmented className="sm:max-w-md mb-4" value={fil} onChange={setFil} label="Estado" options={[{ value: 'all', label: 'Todos' }, { value: 'pending', label: `En revisión${state.complexes.filter(x => x.approval === 'pending').length ? ` (${state.complexes.filter(x => x.approval === 'pending').length})` : ''}` }, { value: 'off', label: 'Desactivados' }]} />
+        <Stagger key={fil} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{state.complexes.filter(x => fil === 'all' || (fil === 'pending' ? x.approval === 'pending' : !x.active)).map(x => {
+          const o = state.users.find(u => u.id === x.ownerId), ap = x.approval || 'approved'
           return (
-            <button key={x.id} type="button" className="row" onClick={() => setOpen(x.id)}>
-              <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{x.name}</span><span className="block text-sm text-muted truncate">{x.city} · {o?.name || 'Sin dueño'} · {courtsOf(state, x.id).length} canchas</span></span>
-              {(x.approval || 'approved') === 'pending' ? <Status tone="warn">En revisión</Status> : x.approval === 'rejected' ? <Status tone="danger">Rechazado</Status> : <Status tone={x.active ? 'ok' : 'danger'}>{x.active ? 'Activo' : 'Desactivado'}</Status>}
-              <ChevronRight size={18} className="text-faint flex-none -mr-1" />
-            </button>)
-        })}</div>
+            <Item as="button" key={x.id} type="button" onClick={() => setOpen(x.id)} whileTap={{ scale: .98 }} className="text-left rounded-2xl overflow-hidden bg-surface border border-line shadow-[var(--sh-1)] card-lift">
+              <span className="relative block"><Cover src={x.coverUrl} seed={x.id} className="aspect-[16/9]" /><span className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <span className={`absolute right-3 top-3 text-xs font-semibold rounded-full px-2.5 py-1 backdrop-blur-md border border-white/25 text-white ${ap === 'pending' ? 'bg-[#b8860b]/80' : ap === 'rejected' || !x.active ? 'bg-[#b0302a]/80' : 'bg-black/40'}`}>{ap === 'pending' ? 'En revisión' : ap === 'rejected' ? 'Rechazado' : x.active ? 'Activo' : 'Desactivado'}</span>
+                <span className="absolute left-3 bottom-3 text-white display text-xl font-bold leading-tight">{x.name}</span></span>
+              <span className="flex items-center gap-2 p-3.5 text-sm"><span className="flex-1 min-w-0 text-muted truncate">{x.city} · {o?.name || 'Sin dueño'}</span><span className="font-semibold flex-none">{courtsOf(state, x.id).length} canchas</span></span>
+            </Item>)
+        })}</Stagger>
       </Content>
       <Sheet open={!!c} onClose={() => setOpen('')} title={c?.name || ''}
         footer={c && ((c.approval || 'approved') === 'pending'
@@ -106,11 +122,11 @@ export function AdminUsers() {
         <Segmented value={role} onChange={setRole} label="Rol" options={[{ value: 'all', label: 'Todos' }, { value: 'player', label: 'Jugadores' }, { value: 'owner', label: 'Dueños' }, { value: 'admin', label: 'Admin' }]} />
         <Input type="search" className="mt-3 sm:max-w-sm" value={text} onChange={e => setText(e.target.value)} placeholder="Buscar por nombre o email" aria-label="Buscar usuario" />
         <div className="mt-4">{list.length === 0 ? <Empty title="No hay usuarios" /> : (
-          <div className="list">{list.map(x => (
-            <button key={x.id} type="button" className="row" onClick={() => setOpen(x.id)}>
+          <Stagger className="list" key={role + text}>{list.map(x => (
+            <Item as="button" key={x.id} type="button" className="row" onClick={() => setOpen(x.id)}>
               <Avatar name={x.name} /><span className="flex-1 min-w-0"><span className="block font-semibold truncate">{x.name}</span><span className="block text-sm text-muted truncate">{ROLE_LABEL[x.role]} · {x.email}</span></span>
               {!x.active && <Status tone="danger">Desactivado</Status>}<ChevronRight size={18} className="text-faint flex-none -mr-1" />
-            </button>))}</div>)}</div>
+            </Item>))}</Stagger>)}</div>
       </Content>
       <Sheet open={!!u} onClose={() => setOpen('')} title={u?.name || ''}>
         {u && <>
@@ -180,8 +196,8 @@ export function AdminReviews() {
       <Content>
         <Segmented className="sm:max-w-sm" value={tab} onChange={setTab} label="Filtro" options={[{ value: 'reported', label: 'Reportadas' }, { value: 'all', label: 'Todas' }]} />
         <div className="mt-4">{list.length === 0 ? <Empty title="Nada para revisar" text="No hay reseñas reportadas." /> : (
-          <div className="list">{list.map(r => (
-            <div key={r.id} className="px-4 py-4">
+          <Stagger className="space-y-3" key={tab}>{list.map(r => (
+            <Item key={r.id} className="p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)]">
               <div className="flex items-center justify-between gap-3"><div className="min-w-0"><span className="font-semibold">{r.playerName}</span><span className="text-muted"> · {getComplex(state, r.complexId)?.name}</span></div><Stars n={r.rating} /></div>
               <p className="mt-1">{r.text || <span className="text-muted">Sin comentario</span>}</p>
               <div className="flex flex-wrap gap-2 mt-3 items-center">
@@ -191,7 +207,7 @@ export function AdminReviews() {
                 <Button size="sm" variant="secondary" onClick={() => patch(r.id, x => { x.hidden = !x.hidden }, r.hidden ? 'Reseña visible.' : 'Reseña oculta.')}>{r.hidden ? 'Mostrar' : 'Ocultar'}</Button>
                 <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: '¿Eliminar la reseña?', message: 'No se puede deshacer.', confirmLabel: 'Eliminar', danger: true })) { update(s => { s.reviews = s.reviews.filter(x => x.id !== r.id) }); toast('Reseña eliminada.') } }}>Eliminar</Button>
               </div>
-            </div>))}</div>)}</div>
+            </Item>))}</Stagger>)}</div>
       </Content>
     </>
   )
