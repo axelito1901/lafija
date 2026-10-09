@@ -6,6 +6,7 @@ import { cn, money, uid } from '../../lib/format'
 import { fileToDataURL } from '../../lib/image'
 import { Button, Chip, Empty, Field, Input, MoneyInput, Segmented, Select, Sheet, Status, Switch, Textarea, useConfirm, useToast } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
+import { Item, Stagger } from '../../ui/motion'
 import { OwnerPage, useOwner } from './common'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
@@ -20,17 +21,14 @@ export default function Courts() {
     <OwnerPage title="Canchas" sub={complex ? `${courts.length} en ${complex.name}` : ''} actions={complex && <Button size="sm" onClick={() => setEdit(blank(complex.id))}><Plus size={16} />Nueva cancha</Button>}>
       {complex && (courts.length === 0
         ? <Empty title="Todavía no cargaste canchas" text="Cada cancha tiene su precio y sus horarios." action={<Button onClick={() => setEdit(blank(complex.id))}><Plus size={18} />Nueva cancha</Button>} />
-        : <div className="list">{courts.map(c => (
-          <button key={c.id} type="button" className="row" onClick={() => setEdit(c)}>
-            <Cover src={c.photo} seed={c.id} className="size-14 rounded-md flex-none" />
-            <span className="flex-1 min-w-0">
-              <span className="block font-semibold truncate">{c.name}</span>
-              <span className="block text-sm text-muted truncate">{[c.sport, c.surface, c.covered && 'Techada'].filter(Boolean).join(' · ')}</span>
-              <Status tone={TONE[c.status]}>{COURT_STATUS[c.status]}</Status>
-            </span>
-            <span className="text-right flex-none"><span className="block font-semibold tnum">{money(c.priceCents)}</span><span className="block text-sm text-muted">por turno</span></span>
-            <ChevronRight size={18} className="text-faint flex-none -mr-1" />
-          </button>))}</div>)}
+        : <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{courts.map((c, i) => (
+          <Item as="button" key={c.id} type="button" whileTap={{ scale: .98 }} onClick={() => setEdit(c)} className="text-left rounded-2xl overflow-hidden bg-surface border border-line shadow-[var(--sh-1)] card-lift">
+            <span className="relative block"><Cover src={c.photo || complex.coverUrl} seed={c.id} className={cn('aspect-[16/9]', c.status !== 'active' && 'grayscale opacity-70')} /><span className="absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
+              <span className="absolute left-4 bottom-3 text-white"><span className="block display text-2xl font-bold leading-none">{c.name}</span><span className="block text-sm opacity-90">{c.sport}</span></span>
+              <span className="absolute right-3 bottom-3 text-white text-right"><span className="block font-semibold tnum text-lg leading-none">{money(c.priceCents)}</span><span className="block text-xs opacity-85">por turno</span></span>
+              {c.status !== 'active' && <span className="absolute left-3 top-3 text-xs font-semibold rounded-full px-2.5 py-1 bg-black/55 text-white backdrop-blur">{COURT_STATUS[c.status]}</span>}</span>
+            <span className="flex items-center gap-3 px-4 py-3 text-sm text-muted"><span className="flex-1 truncate">{[c.surface, c.covered && 'Techada', c.lighting && 'Luz'].filter(Boolean).join(' · ')}</span><span className="text-brand font-semibold flex-none">Editar</span></span>
+          </Item>))}</Stagger>)}
       {edit && <CourtSheet court={edit} onClose={() => setEdit(null)} />}
     </OwnerPage>
   )

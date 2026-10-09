@@ -12,7 +12,7 @@ import { OwnerPage, useOwner } from './common'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
 const Block = ({ title, children, hint }) => (
-  <section className="py-6 border-t border-line first:border-t-0 first:pt-0">
+  <section className="p-5 mb-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)]">
     <h2 className="text-base font-semibold">{title}</h2>
     {hint && <p className="text-sm text-muted mt-0.5">{hint}</p>}
     <div className="mt-4 space-y-4">{children}</div>
@@ -129,7 +129,7 @@ function Form({ complex }) {
         {dirty && <p className="hint">Guardá los cambios para verlos en la vista previa.</p>}
       </Block>
 
-      <div className={cn('fixed inset-x-0 z-20 bg-surface border-t border-line px-4 py-3 flex gap-2 lg:left-64 lg:justify-end transition-transform duration-200', 'bottom-[calc(var(--nav-h)+var(--safe-bottom))] lg:bottom-0', dirty ? 'translate-y-0' : 'translate-y-[calc(100%+var(--nav-h)+var(--safe-bottom)+8px)]')} aria-hidden={!dirty}>
+      <div className={cn('fixed inset-x-0 z-20 bg-[var(--glass)] backdrop-blur-xl border-t border-line px-4 py-3 flex gap-2 lg:left-64 lg:justify-end transition-transform duration-200', 'bottom-[calc(var(--nav-h)+var(--safe-bottom))] lg:bottom-0', dirty ? 'translate-y-0' : 'translate-y-[calc(100%+var(--nav-h)+var(--safe-bottom)+8px)]')} aria-hidden={!dirty}>
         <Button variant="secondary" onClick={() => { setD(structuredClone(complex)); setErr({}) }} tabIndex={dirty ? 0 : -1}>Descartar</Button>
         <Button onClick={save} className="flex-1 lg:flex-none" tabIndex={dirty ? 0 : -1}>Guardar cambios</Button>
       </div>

@@ -28,15 +28,16 @@ export function Promotions() {
     <OwnerPage title="Promociones" actions={complex && <Button size="sm" onClick={() => setEdit(blankPromo(complex.id))}><Plus size={16} />Nueva</Button>}>
       {complex && (list.length === 0
         ? <Empty title="No hay promociones" text="Podés dar un descuento en un horario, un día o para clientes frecuentes." action={<Button onClick={() => setEdit(blankPromo(complex.id))}><Plus size={18} />Nueva promoción</Button>} />
-        : <div className="list">{list.map(p => (
-          <div key={p.id} className="row">
+        : <Stagger className="grid gap-3 sm:grid-cols-2">{list.map(p => (
+          <Item key={p.id} className={cn('flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] transition-opacity', !p.active && 'opacity-70')}>
+            <span className={cn('size-14 rounded-xl grid place-items-center flex-none display text-xl font-bold tnum', p.active ? 'bg-[image:var(--grad-brand)] text-[var(--brand-ink)]' : 'bg-sunken text-muted')}>{p.kind === 'percent' ? `${p.value}%` : <Tags size={22} />}</span>
             <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setEdit(p)}>
               <span className="block font-semibold truncate">{promoLabel(p)}{p.name ? ` · ${p.name}` : ''}</span>
               <span className="block text-sm text-muted truncate">{promoWhen(p)}{p.courtId ? ` · ${courts.find(c => c.id === p.courtId)?.name || ''}` : ''}</span>
               <Status tone={p.active ? 'ok' : 'muted'}>{p.active ? 'Activa' : 'Pausada'}</Status>
             </button>
             <button type="button" role="switch" aria-checked={p.active} aria-label={`Promoción ${p.name || promoLabel(p)} activa`} className="switch" onClick={() => update(s => { const x = s.promotions.find(y => y.id === p.id); x.active = !x.active })} />
-          </div>))}</div>)}
+          </Item>))}</Stagger>)}
       {edit && <PromoSheet promo={edit} courts={courts} onClose={() => setEdit(null)} />}
     </OwnerPage>
   )
@@ -180,7 +181,7 @@ export function More({ theme, onSignOut }) {
   const { mine } = useOwner()
   const [creating, setCreating] = useState(false)
   const Item = ({ to, icon: I, title, note, onClick }) => {
-    const inner = <><I size={22} className="text-muted flex-none" /><span className="flex-1 min-w-0"><span className="block font-semibold">{title}</span>{note && <span className="block text-sm text-muted">{note}</span>}</span><ChevronRight size={18} className="text-faint flex-none" /></>
+    const inner = <><span className="size-10 rounded-xl grid place-items-center flex-none bg-brand-soft text-brand"><I size={20} /></span><span className="flex-1 min-w-0"><span className="block font-semibold">{title}</span>{note && <span className="block text-sm text-muted">{note}</span>}</span><ChevronRight size={18} className="text-faint flex-none" /></>
     return to ? <Link to={to} className="row">{inner}</Link> : <button type="button" className="row" onClick={onClick}>{inner}</button>
   }
   return (

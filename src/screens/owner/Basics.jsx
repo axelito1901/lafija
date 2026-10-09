@@ -111,32 +111,31 @@ export function OwnerHome() {
         </Stagger>
 
         <Section title="Atención">
-          <div className="list">
-            {attention.length === 0
-              ? <div className="row"><span className="size-9 rounded-full grid place-items-center bg-brand-soft text-brand flex-none"><CircleCheck size={18} /></span><span className="font-medium">Todo está en orden</span></div>
-              : attention.map(a => (
-                <button key={a.text} type="button" className="row" onClick={a.go}>
-                  <span className={cn('size-9 rounded-full grid place-items-center flex-none', ATTN_TONE[a.tone])}><a.icon size={18} aria-hidden="true" /></span>
-                  <span className="flex-1 font-medium">{a.text}</span><ChevronRight size={18} className="text-faint flex-none" />
-                </button>))}
-          </div>
+          {attention.length === 0
+            ? <div className="flex items-center gap-3 p-4 rounded-2xl bg-brand-soft text-brand"><span className="size-10 rounded-xl grid place-items-center bg-surface flex-none"><CircleCheck size={20} /></span><span className="font-semibold">Todo está en orden</span></div>
+            : <Stagger className="grid gap-2.5 sm:grid-cols-2">{attention.map(a => (
+              <Item as="button" key={a.text} type="button" whileTap={{ scale: .98 }} className="flex items-center gap-3 text-left p-3.5 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] card-lift" onClick={a.go}>
+                <span className={cn('size-10 rounded-xl grid place-items-center flex-none', ATTN_TONE[a.tone])}><a.icon size={20} aria-hidden="true" /></span>
+                <span className="flex-1 font-medium">{a.text}</span><ChevronRight size={18} className="text-faint flex-none" />
+              </Item>))}</Stagger>}
         </Section>
 
         <Section title="Acciones rápidas">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-            <Button onClick={() => { setPreset({}); setSheet('new') }} data-tour="nueva-reserva"><Plus size={18} />Nueva reserva</Button>
-            <Button variant="secondary" onClick={() => setSheet('block')}><Lock size={16} />Bloquear horario</Button>
-            <Button variant="secondary" onClick={() => navigate('/dueno/agenda')}><CalendarDays size={16} />Ver agenda</Button>
-            <Button variant="secondary" onClick={() => setSheet('remind')}><HandCoins size={16} />Recordar pago</Button>
-          </div>
+          <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {[[Plus, 'Nueva reserva', () => { setPreset({}); setSheet('new') }, true], [Lock, 'Bloquear horario', () => setSheet('block')], [CalendarDays, 'Ver agenda', () => navigate('/dueno/agenda')], [HandCoins, 'Recordar pago', () => setSheet('remind')]].map(([I, l, fn, main]) => (
+              <Item as="button" key={l} type="button" whileTap={{ scale: .95 }} whileHover={{ y: -2 }} onClick={fn} data-tour={main ? 'nueva-reserva' : undefined}
+                className={cn('flex flex-col items-start gap-6 p-4 rounded-2xl text-left font-semibold min-h-28', main ? 'bg-[image:var(--grad-brand)] text-[var(--brand-ink)] shadow-[0_14px_26px_-12px_color-mix(in_srgb,var(--brand)_80%,transparent)]' : 'bg-surface border border-line shadow-[var(--sh-1)]')}>
+                <span className={cn('size-10 rounded-xl grid place-items-center', main ? 'bg-white/20' : 'bg-brand-soft text-brand')}><I size={20} aria-hidden="true" /></span>{l}
+              </Item>))}
+          </Stagger>
         </Section>
 
         <div className="mt-8"><Checklist complex={complex} courts={state.courts.filter(c => c.complexId === complex.id)} /></div>
 
         {requests.length > 0 && (
           <Section title={`Pedidos de turno fijo (${requests.length})`} className="!mt-0 scroll-mt-20"><div id="turnos-fijos" />
-            <div className="list">{requests.map(r => (
-              <div key={r.id} className="px-4 py-3">
+            <div className="space-y-3">{requests.map(r => (
+              <div key={r.id} className="p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)]">
                 <div className="font-semibold">{r.playerName}</div>
                 <div className="text-sm text-muted">Todos los {WEEKDAYS[r.weekday]} a las {r.time} · {state.courts.find(c => c.id === r.courtId)?.name} · {r.weeks} semanas</div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
@@ -250,8 +249,8 @@ export function OwnerClients() {
         <Input type="search" value={text} onChange={e => setText(e.target.value)} placeholder="Buscar por nombre o celular" aria-label="Buscar cliente" className="sm:max-w-sm" />
         <div className="mt-4">
           {list.length === 0 ? <Empty title={t ? 'No encontramos ese cliente' : 'Todavía no hay clientes'} text={t ? 'Probá con otro nombre o celular.' : 'Se arman solos con cada reserva que recibís o cargás.'} /> : (
-            <div className="list">{list.map(x => (
-              <button key={x.key} type="button" className="row" onClick={() => openClient(x)}>
+            <Stagger className="list" step={.025}>{list.map(x => (
+              <Item as="button" key={x.key} type="button" className="row" onClick={() => openClient(x)}>
                 <span className="relative flex-none"><Avatar name={x.name} />{x.frequent && <Star size={16} className="absolute -right-1 -bottom-1 fill-current text-warn bg-surface rounded-full" aria-label="Cliente frecuente" />}</span>
                 <span className="flex-1 min-w-0">
                   <span className="block font-semibold truncate">{x.name}{x.frequent && <span className="sr-only"> (frecuente)</span>}</span>
@@ -259,7 +258,7 @@ export function OwnerClients() {
                 </span>
                 <span className="text-right flex-none"><span className="block font-semibold tnum">{money(x.spent)}</span><span className="block text-xs text-muted">generados</span></span>
                 <ChevronRight size={18} className="text-faint flex-none -mr-1" />
-              </button>))}</div>)}
+              </Item>))}</Stagger>)}
         </div>
         <Sheet open={!!c} onClose={() => setOpen(null)} title="" wide>
           {c && <>
@@ -268,7 +267,7 @@ export function OwnerClients() {
               <div className="min-w-0"><p className="display text-2xl font-bold leading-tight truncate">{c.name}</p>
                 <p className="text-sm text-muted truncate">{c.frequent ? '★ Cliente frecuente · ' : ''}{[c.phone, user?.email].filter(Boolean).join(' · ') || 'Sin contacto'}</p></div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-4 border-y border-line py-4 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-4 mt-2 [&>div]:p-3 [&>div]:rounded-2xl [&>div]:bg-sunken">
               <Stat label="Reservas" value={c.total} />
               <Stat label="Jugadas" value={c.completed} />
               <Stat label="Generado" value={money(c.spent)} />

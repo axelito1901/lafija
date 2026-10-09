@@ -3,7 +3,7 @@ import { CheckCheck, ChevronRight, CircleCheck, CircleX, Clock3, Coins, Heart, S
 import { complexFromPrice, complexTags, courtsOf, effStatus, getComplex, getCourt, paymentLabel, ratingOf, STATUS } from '../lib/domain'
 import { cn, dateShort, dayNum, distanceKm, kmLabel, money, monthShort, relativeDay, slotEnd, todayISO, weekdayShort } from '../lib/format'
 import { Link } from '../lib/router'
-import { Button, Rating, Status } from './kit'
+import { Avatar, Button, Rating, Status } from './kit'
 import { Cover } from './Cover'
 
 /* Datos derivados de un complejo para listas, tarjetas y mapa */
@@ -94,7 +94,8 @@ export function BookingRow({ b, state, onClick, who = false, showDate = true }) 
   const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
   const when = `${showDate ? `${relativeDay(b.date)} · ` : ''}${b.time}`
   return (
-    <button type="button" className="row" onClick={onClick}>
+    <button type="button" className="row" onClick={onClick} style={{ boxShadow: `inset 4px 0 0 ${ACCENT[effStatus(b)]}` }}>
+      {who && <Avatar name={b.playerName} size={40} />}
       <div className="flex-1 min-w-0">
         <div className="font-semibold truncate">{who ? b.playerName : complex?.name}</div>
         <div className="text-sm text-muted truncate tnum">{when} · {court?.name || 'Cancha'}</div>
