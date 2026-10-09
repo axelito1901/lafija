@@ -63,6 +63,7 @@ export function OwnerHome() {
   const toRemind = mine.filter(b => live(b) && balanceOf(b) > 0 && b.date <= addDays(today, 7) && b.phone).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
   const blocked = complex ? state.courts.filter(c => c.complexId === complex.id && c.status === 'blocked') : []
   const newOnes = (state.notifications || []).filter(n => n.userId === user.id && n.type === 'booking_new' && !n.read && (!n.complexId || n.complexId === complex?.id))
+  const unanswered = complex ? state.reviews.filter(r => r.complexId === complex.id && !r.hidden && !r.reply) : []
   const requests = complex ? (state.fixedRequests || []).filter(r => r.complexId === complex.id && r.status === 'pending') : []
   const tomorrow = mine.filter(b => b.date === addDays(today, 1) && ['deposit_paid', 'confirmed'].includes(effStatus(b, now))).sort((a, b) => a.time.localeCompare(b.time))
   const upcoming = mine.filter(live).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 5)
@@ -75,6 +76,7 @@ export function OwnerHome() {
     owedToday.length && { tone: 'warn', icon: HandCoins, text: `${owedToday.length} ${owedToday.length === 1 ? 'turno' : 'turnos'} de hoy con saldo por cobrar`, go: () => navigate('/dueno/agenda') },
     blocked.length && { tone: 'warn', icon: Lock, text: `${blocked.length} ${blocked.length === 1 ? 'cancha bloqueada' : 'canchas bloqueadas'}`, go: () => navigate('/dueno/canchas') },
     requests.length && { tone: 'ok', icon: Repeat2, text: `${requests.length} ${requests.length === 1 ? 'pedido' : 'pedidos'} de turno fijo`, go: () => document.getElementById('turnos-fijos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) },
+    unanswered.length && { tone: 'warn', icon: Star, text: `${unanswered.length} ${unanswered.length === 1 ? 'reseña' : 'reseñas'} sin responder`, go: () => navigate('/dueno/resenas') },
     newOnes.length && { tone: 'ok', icon: CalendarPlus, text: `${newOnes.length} ${newOnes.length === 1 ? 'reserva nueva' : 'reservas nuevas'}`, go: () => { update(s => s.notifications.forEach(n => { if (newOnes.some(x => x.id === n.id)) n.read = true })); navigate('/dueno/reservas') } },
   ].filter(Boolean)
 

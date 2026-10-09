@@ -70,22 +70,25 @@ export function untilLabel(b, now = new Date()) {
 const ACCENT = { pending: 'var(--warn)', deposit_paid: 'var(--info)', confirmed: 'var(--brand)', completed: 'var(--faint)', cancelled: 'var(--danger)', no_show: 'var(--danger)' }
 
 /* Tarjeta de reserva del jugador: foto del complejo, hora grande y estado. */
-export function BookingCard({ b, state, onClick }) {
+export function BookingCard({ b, state, onClick, actions }) {
   const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
   const st = effStatus(b), live = ['pending', 'deposit_paid', 'confirmed'].includes(st)
   return (
-    <button type="button" onClick={onClick} className="w-full text-left flex items-stretch rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] overflow-hidden card-lift active:scale-[.985] transition-transform" style={{ boxShadow: `inset 4px 0 0 ${ACCENT[st]}, var(--sh-1)` }}>
+    <div className="rounded-2xl bg-surface border border-line overflow-hidden card-lift" style={{ boxShadow: `inset 4px 0 0 ${ACCENT[st]}, var(--sh-1)` }}>
+    <button type="button" onClick={onClick} className="w-full text-left flex items-stretch active:opacity-90 transition-opacity">
       <Cover src={complex?.coverUrl} seed={complex?.id || b.id} className="w-24 flex-none ml-1" />
       <span className="flex-1 min-w-0 p-3.5">
         <span className="flex items-baseline justify-between gap-2">
           <span className="display text-2xl font-bold tnum leading-none">{b.time}</span>
           {live ? <span className="text-xs font-semibold text-brand bg-brand-soft rounded-full px-2.5 py-1 whitespace-nowrap">{untilLabel(b)}</span> : null}
         </span>
-        <span className="block text-sm text-muted mt-1">{relativeDay(b.date)} · {dateShort(b.date)}</span>
+        <span className="block text-sm text-muted mt-1">{/\d/.test(relativeDay(b.date)) ? relativeDay(b.date) : `${relativeDay(b.date)} · ${dateShort(b.date)}`}</span>
         <span className="block font-semibold truncate mt-1.5">{complex?.name}</span>
         <span className="flex items-center justify-between gap-2 mt-0.5"><span className="text-sm text-muted truncate">{court?.name} · {court?.sport}</span><BookingStatus booking={b} /></span>
       </span>
     </button>
+    {actions && <div className="flex items-center gap-2 px-3.5 py-2.5 border-t border-line bg-[color-mix(in_srgb,var(--sunken)_55%,transparent)]">{actions}</div>}
+    </div>
   )
 }
 

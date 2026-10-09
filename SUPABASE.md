@@ -12,6 +12,7 @@ Tiempo estimado: 20 minutos. Es gratis para empezar.
 2. Copiá todo el contenido de `supabase/migrations/0001_la_fija.sql`, pegalo y tocá **Run**. Tiene que decir *Success*.
 3. Repetí con `supabase/migrations/0002_client_notes.sql` (notas de clientes). Si ya tenías la base de la v4.0, corré solo esta.
 4. Repetí con `supabase/migrations/0003_photos.sql` (fotos). Crea el espacio de almacenamiento `photos`: las fotos de complejos y canchas se guardan como archivos y la base solo guarda el link. Si no la corrés, la app igual funciona, pero las fotos se guardan dentro de la base y la hacen más lenta.
+5. Repetí con `supabase/migrations/0004_after_match.sql` (después del partido): avisa para calificar 30 minutos después de jugar y para volver a jugar a los 3 días, agrega etiquetas a las reseñas y avisa al dueño de cada reseña nueva. Necesita la extensión `pg_cron` (Database → Extensions); si no la activás, avisa y el resto funciona. Con los avisos push configurados (`PUSH.md`) llegan también con la app cerrada.
 
 ## 3. Conectar la app
 1. **Project Settings → API**: copiá la **Project URL** y la clave **anon public**.

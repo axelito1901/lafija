@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { m as motion } from 'motion/react'
 import { celebrate, spring } from '../../ui/motion'
 import { Cover } from '../../ui/Cover'
-import { CalendarPlus, Check, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'
+import { CalendarPlus, Check, Heart, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
-import { WEEKDAYS, requestFixed, weekdayOf, PLAYERS, perPerson, applyPayment, balanceOf, bookingStart, cancelBooking, cancelPolicyText, depositFor, effStatus, getComplex, getCourt, paymentLabel, placeBooking, quote, refundFor, STATUS } from '../../lib/domain'
-import { addDays, cn, dateLong, mapsLink, money, slotEnd, telLink, todayISO, waLink } from '../../lib/format'
+import { WEEKDAYS, requestFixed, weekdayOf, PLAYERS, perPerson, applyPayment, balanceOf, bookingStart, cancelBooking, cancelPolicyText, depositFor, effStatus, favsOf, toggleFav, REVIEW_TAGS, RATING_WORDS, addReview, rebookLink, playedBookings, reviewOf, bookingEnd, getComplex, getCourt, paymentLabel, placeBooking, quote, refundFor, STATUS } from '../../lib/domain'
+import { addDays, cn, dateLong, mapsLink, money, relativeDay, slotEnd, telLink, todayISO, waLink } from '../../lib/format'
 import { downloadICS } from '../../lib/calendar'
 import { providerLabel, startPayment } from '../../lib/payments'
 import { navigate } from '../../lib/router'
@@ -219,7 +219,7 @@ export function BookingDetail({ bookingId, onClose, onReview }) {
       <div className="mt-4 space-y-2">
         {upcoming && st === 'deposit_paid' && rest > 0 && <Button className="w-full" variant="secondary" loading={busy === 'full'} disabled={!!busy} onClick={() => doPay('full')}>{busy === 'full' ? 'Procesando pago…' : `Pagar total · ${money(rest)}`}</Button>}
         {st === 'completed' && !reviewed && <Button className="w-full" onClick={() => onReview(b)}><Star size={16} />Dejar reseña</Button>}
-        {['completed', 'cancelled', 'no_show'].includes(st) && <Button className="w-full" variant="secondary" onClick={() => { onClose(); navigate(`/complejo/${complex.slug}/reservar?cancha=${court.id}`) }}>Volver a reservar</Button>}
+        {['completed', 'cancelled', 'no_show'].includes(st) && <Button className="w-full" variant="secondary" onClick={() => { onClose(); navigate(rebookLink(state, b)) }}><Repeat size={16} />Volver a jugar</Button>}
         {upcoming && !b.seriesId && !fixedReq && <Button className="w-full" variant="secondary" onClick={() => setFixed(true)}><Repeat size={16} />Pedir este horario todas las semanas</Button>}
         {fixedReq && <p className="text-sm text-center py-2">{fixedReq.status === 'pending' ? 'Pediste este horario fijo. Esperando respuesta del complejo.' : fixedReq.status === 'approved' ? `Turno fijo aprobado: ${fixedReq.created} reservas.` : 'El complejo no aceptó el turno fijo.'}</p>}
         {b.seriesId && <p className="text-sm text-muted text-center py-1">Es parte de tu turno fijo semanal.</p>}
@@ -257,31 +257,78 @@ export function FixedSheet({ booking, onClose }) {
 }
 
 /* ---------- Reseña ---------- */
-export function ReviewSheet({ booking, onClose }) {
+export function ReviewSheet({ booking, onClose, initialRating = 0 }) {
   const { state, update, user } = useStore()
   const toast = useToast()
-  const [rating, setRating] = useState(0)
+  const [rating, setRating] = useState(initialRating)
   const [text, setText] = useState('')
+  const [tags, setTags] = useState([])
   const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
   if (!booking) return null
   const complex = getComplex(state, booking.complexId)
+  const pool = rating >= 4 ? REVIEW_TAGS.good : rating > 0 && rating <= 2 ? REVIEW_TAGS.bad : [...REVIEW_TAGS.good.slice(0, 3), ...REVIEW_TAGS.bad.slice(0, 3)]
+  const pick = n => { setRating(n); setError(''); setTags(t => t.filter(x => (n >= 4 ? REVIEW_TAGS.good : n <= 2 ? REVIEW_TAGS.bad : [...REVIEW_TAGS.good, ...REVIEW_TAGS.bad]).includes(x))) }
   const send = () => {
     if (!rating) { setError('Elegí una cantidad de estrellas.'); return }
-    update(s => { s.reviews.push({ id: `rv-${Date.now()}`, complexId: booking.complexId, bookingId: booking.id, playerId: user.id, playerName: user.name.split(' ').map((w, i) => i ? w[0] + '.' : w).join(' '), rating, text: text.trim(), createdAt: new Date().toISOString(), hidden: false, reported: false }) })
-    toast('Gracias por tu reseña.'); onClose()
+    update(s => { addReview(s, { booking, user, rating, text, tags }) })
+    setDone(true); if (rating >= 4) celebrate()
+  }
+  if (done) {
+    const link = rebookLink(state, booking)
+    return (
+      <Sheet open onClose={onClose} title="" footer={<><Button variant="secondary" onClick={onClose}>Listo</Button><Button onClick={() => { onClose(); navigate(link) }}><Repeat size={18} />Volver a jugar</Button></>}>
+        <div className="text-center py-4">
+          <motion.span initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 14 }} className="mx-auto grid place-items-center size-20 rounded-full bg-[image:var(--grad-brand)] text-[var(--on-grad)]"><Star size={38} className="fill-current" /></motion.span>
+          <p className="display text-3xl font-bold mt-4">¡Gracias!</p>
+          <p className="text-muted mt-1 max-w-xs mx-auto">Tu opinión ayuda a otros jugadores y a {complex.name} a mejorar.</p>
+          {rating >= 4 && !favsOf(state, user.id).includes(booking.complexId) && <Button variant="secondary" className="mt-4" onClick={() => { update(s => toggleFav(s, user.id, booking.complexId)); toast('Guardado en favoritos.') }}><Heart size={16} />Guardar {complex.name} en favoritos</Button>}
+          <p className="mt-5 font-medium">¿Armamos el próximo partido?</p>
+        </div>
+      </Sheet>
+    )
   }
   return (
     <Sheet open onClose={onClose} title={`¿Cómo estuvo ${complex.name}?`}
       footer={<><Button variant="secondary" onClick={onClose}>Ahora no</Button><Button onClick={send}>Enviar reseña</Button></>}>
       <div className="flex gap-1 justify-center py-2" role="radiogroup" aria-label="Calificación">
         {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`} onClick={() => { setRating(n); setError('') }} className="icon-btn !size-14">
+          <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`} onClick={() => pick(n)} className="icon-btn !size-14">
             <motion.span className="block" animate={{ scale: n <= rating ? [1, 1.35, 1] : 1 }} transition={{ duration: .3 }}><Star size={34} className={n <= rating ? 'fill-current text-warn' : 'text-strong'} /></motion.span>
           </button>
         ))}
       </div>
+      <p className="text-center font-semibold h-6 text-brand" aria-live="polite">{RATING_WORDS[rating]}</p>
       {error && <p className="err text-center" role="alert">{error}</p>}
-      <Field label="Comentario (opcional)" className="mt-3"><Textarea value={text} maxLength={400} onChange={e => setText(e.target.value)} placeholder="Contá cómo estuvo la cancha, la atención, el horario…" /></Field>
+      <div className="mt-3"><span className="label">¿Qué destacás? <span className="text-muted font-normal">(opcional)</span></span>
+        <div className="flex flex-wrap gap-2">{pool.map(t => <button key={t} type="button" aria-pressed={tags.includes(t)} className="chip" onClick={() => setTags(x => x.includes(t) ? x.filter(y => y !== t) : [...x, t])}>{t}</button>)}</div></div>
+      <Field label="Comentario (opcional)" className="mt-4"><Textarea value={text} maxLength={400} onChange={e => setText(e.target.value)} placeholder="Contá cómo estuvo la cancha, la atención, el horario…" /></Field>
     </Sheet>
+  )
+}
+
+/* Tarjeta "¿Cómo estuvo el partido?": aparece después de jugar. Un toque en las estrellas ya abre la reseña. */
+const skipped = () => { try { return JSON.parse(localStorage.getItem('lafija-rate-skip') || '[]') } catch { return [] } }
+export function RateCard({ onRate }) {
+  const { state, user } = useStore()
+  const [gone, setGone] = useState(skipped)
+  const now = new Date()
+  const b = playedBookings(state, user.id, now).find(x => !reviewOf(state, x.id) && !gone.includes(x.id) && now - bookingEnd(x) < 7 * 86400000)
+  if (!b) return null
+  const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
+  const skip = () => { const next = [...gone, b.id]; try { localStorage.setItem('lafija-rate-skip', JSON.stringify(next)) } catch { /* sin guardar */ } setGone(next) }
+  return (
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={spring} aria-label="Calificá tu último partido" className="rounded-2xl bg-surface border border-line shadow-[var(--sh-2)] p-4 relative overflow-hidden">
+      <span className="absolute inset-y-0 left-0 w-1.5 bg-[image:var(--grad-brand)]" aria-hidden="true" />
+      <p className="text-xs font-semibold uppercase tracking-widest text-brand">Tu último partido</p>
+      <p className="display text-xl font-bold leading-tight mt-1">¿Cómo estuvo {complex?.name}?</p>
+      <p className="text-sm text-muted">{court?.name} · {relativeDay(b.date)} · {b.time}</p>
+      <div className="flex gap-1 mt-2 -ml-2" role="group" aria-label="Calificar">{[1, 2, 3, 4, 5].map(n => (
+        <button key={n} type="button" aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`} className="icon-btn !size-12 active:scale-90" onClick={() => onRate(b, n)}><Star size={30} className="text-strong hover:text-warn hover:fill-current transition-colors" /></button>))}</div>
+      <div className="flex items-center gap-2 mt-1">
+        <Button size="sm" variant="secondary" onClick={() => navigate(rebookLink(state, b))}><Repeat size={16} />Volver a jugar</Button>
+        <Button size="sm" variant="ghost" onClick={skip}>Ahora no</Button>
+      </div>
+    </motion.section>
   )
 }

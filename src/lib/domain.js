@@ -444,3 +444,65 @@ export function nextTimes(state, complex, date, n = 5, now = new Date()) {
   }
   return out
 }
+
+/* ---------- Después del partido ---------- */
+export const REVIEW_TAGS = {
+  good: ['Cancha en buen estado', 'Buena iluminación', 'Atención excelente', 'Todo limpio', 'Precio justo', 'Empezamos a horario'],
+  bad: ['Cancha en mal estado', 'Poca luz', 'Mala atención', 'Vestuarios sucios', 'Precio alto', 'Demoras'],
+}
+export const RATING_WORDS = ['', 'Malo', 'Regular', 'Bien', 'Muy bien', '¡Excelente!']
+
+export const reviewOf = (state, bookingId) => (state.reviews || []).find(r => r.bookingId === bookingId)
+export const playedBookings = (state, userId, now = new Date()) =>
+  state.bookings.filter(b => b.playerId === userId && effStatus(b, now) === 'completed').sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
+
+/* Próxima fecha libre del mismo horario y cancha (el mismo día de la semana), para "volver a jugar" con un toque. */
+export function rebookTarget(state, b, now = new Date()) {
+  const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
+  if (!complex || !court || court.status !== 'active') return { complex, court, date: null, free: false }
+  let d = addDays(todayISO(), 1)
+  while (new Date(`${d}T12:00:00`).getDay() !== new Date(`${b.date}T12:00:00`).getDay()) d = addDays(d, 1)
+  for (let i = 0; i < 4; i++, d = addDays(d, 7)) if (slotInfo(state, complex, court, d, b.time, now).kind === 'free') return { complex, court, date: d, free: true }
+  return { complex, court, date: null, free: false }
+}
+export function rebookLink(state, b) {
+  const t = rebookTarget(state, b)
+  if (!t.complex) return '/buscar'
+  return t.free ? `/complejo/${t.complex.slug}/reservar?fecha=${t.date}&cancha=${t.court.id}&hora=${b.time}` : `/complejo/${t.complex.slug}/reservar${t.court ? `?cancha=${t.court.id}` : ''}`
+}
+
+/* Avisos automáticos (modo demo): 30 minutos después del partido pedimos la calificación y,
+   a los 3 días, invitamos a volver a jugar. Con Supabase lo hace la base (migración 0004).
+   Con dry = true solo dice si hay algo para enviar. */
+export function postMatchNotices(state, now = new Date(), dry = false) {
+  if (state.app?.demoMode === false) return 0
+  let n = 0
+  for (const b of state.bookings) {
+    if (!b.playerId || b._busy || effStatus(b, now) !== 'completed') continue
+    const end = bookingEnd(b), since = now - end, complex = getComplex(state, b.complexId)
+    if (!complex) continue
+    if (!b.rateNoticeAt && since >= 30 * 60000 && since <= 72 * 3600000 && !reviewOf(state, b.id)) {
+      n++; if (dry) continue
+      b.rateNoticeAt = now.toISOString()
+      notify(state, { userId: b.playerId, type: 'rate', title: '¿Cómo estuvo el partido?', text: `Calificá ${complex.name}: son 10 segundos y ayudás a otros jugadores.`, bookingId: b.id, complexId: b.complexId, link: `/reservas?calificar=${b.id}` })
+    }
+    if (!b.rebookNoticeAt && since >= 3 * 86400000 && since <= 10 * 86400000) {
+      const later = state.bookings.some(x => x.playerId === b.playerId && x.complexId === b.complexId && isUpcoming(x, now))
+      if (later) { if (!dry) b.rebookNoticeAt = now.toISOString(); continue }
+      n++; if (dry) continue
+      b.rebookNoticeAt = now.toISOString()
+      const t = rebookTarget(state, b, now)
+      notify(state, { userId: b.playerId, type: 'rebook', title: '¿Jugamos de nuevo?', text: t.free ? `El ${new Intl.DateTimeFormat('es-AR', { weekday: 'long' }).format(new Date(`${t.date}T12:00:00`))} a las ${b.time} está libre en ${complex.name}.` : `Reservá otra vez en ${complex.name}.`, bookingId: b.id, complexId: b.complexId, link: rebookLink(state, b) })
+    }
+  }
+  return n
+}
+
+/* Reseña nueva: se guarda y se avisa al dueño. */
+export function addReview(state, { booking, user, rating, text, tags }) {
+  const complex = getComplex(state, booking.complexId)
+  const review = { id: uid('rv'), complexId: booking.complexId, bookingId: booking.id, playerId: user.id, playerName: user.name.split(' ').map((w, i) => i ? w[0] + '.' : w).join(' '), rating, text: (text || '').trim(), tags: tags || [], createdAt: new Date().toISOString(), hidden: false, reported: false }
+  state.reviews.push(review)
+  notify(state, { userId: complex?.ownerId, type: 'review_new', title: `Nueva reseña: ${'★'.repeat(rating)}`, text: `${review.playerName} calificó ${complex?.name}${review.text ? `: “${review.text.slice(0, 80)}”` : '.'}`, bookingId: booking.id, complexId: booking.complexId, link: '/dueno/resenas' })
+  return review
+}

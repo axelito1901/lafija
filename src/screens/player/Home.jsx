@@ -8,7 +8,7 @@ import { Link, navigate } from '../../lib/router'
 import { Button, Content, Empty, PageHeader, Section } from '../../ui/kit'
 import { complexView } from '../../ui/shared'
 import { Item, Stagger } from '../../ui/motion'
-import { BookingDetail, ReviewSheet } from './flow'
+import { BookingDetail, RateCard, ReviewSheet } from './flow'
 
 /* Entrada de partido: lo primero que ve el jugador si tiene una reserva. */
 function Ticket({ b, onOpen }) {
@@ -46,6 +46,7 @@ export default function PlayerHome() {
   const { origin } = useOrigin()
   const [open, setOpen] = useState('')
   const [review, setReview] = useState(null)
+  const [stars, setStars] = useState(0)
   const now = new Date(), today = todayISO()
 
   const [day, setDay] = useState(today)
@@ -67,6 +68,7 @@ export default function PlayerHome() {
       <PageHeader logo />
       <Content className="max-w-[640px] lg:mx-0"><Stagger>
         <Item><p className="display text-3xl font-bold mb-4">Hola, {user.name.split(' ')[0]} <span className="inline-block origin-[70%_70%] animate-[wave_2.2s_ease-in-out_1]">👋</span></p></Item>
+        <Item className="empty:hidden mb-5"><RateCard onRate={(b, n) => { setStars(n); setReview(b) }} /></Item>
         {next && <Item className="mb-6"><Ticket b={next} onOpen={() => setOpen(next.id)} /></Item>}
 
         <section aria-labelledby="cuando">
@@ -107,7 +109,7 @@ export default function PlayerHome() {
         )}
       </Stagger></Content>
       {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
-      {review && <ReviewSheet booking={review} onClose={() => setReview(null)} />}
+      {review && <ReviewSheet booking={review} initialRating={stars} onClose={() => { setReview(null); setStars(0) }} />}
     </>
   )
 }

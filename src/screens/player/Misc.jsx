@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, m as motion } from 'motion/react'
 import { CalendarCheck, CalendarX, Heart, HeartOff, LogOut } from 'lucide-react'
 import { Item, Stagger, spring, CountUp } from '../../ui/motion'
 import { useStore } from '../../lib/store'
-import { nextTimes, effStatus, favsOf, freeCount, isUpcoming, leaveWaitlist, publicComplexes, toggleFav } from '../../lib/domain'
+import { nextTimes, effStatus, rebookLink, reviewOf, favsOf, freeCount, isUpcoming, leaveWaitlist, publicComplexes, toggleFav } from '../../lib/domain'
 import { relativeDay, todayISO } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { navigate } from '../../lib/router'
@@ -11,15 +11,27 @@ import { useBigText } from '../../lib/theme'
 import { enablePush, pushPermission } from '../../lib/push'
 import { Button, Content, Empty, Field, Input, PageHeader, Section, Segmented, Switch, useToast } from '../../ui/kit'
 import { BookingCard, ComplexCard, complexView } from '../../ui/shared'
-import { BookingDetail, ReviewSheet } from './flow'
+import { BookingDetail, RateCard, ReviewSheet } from './flow'
+import { Star } from 'lucide-react'
+import { useRoute } from '../../lib/router'
 
 export function PlayerBookings() {
   const { state, user, update } = useStore()
   const [tab, setTab] = useState('next')
   const [open, setOpen] = useState('')
   const [review, setReview] = useState(null)
+  const [stars, setStars] = useState(0)
+  const { query } = useRoute()
   const now = new Date()
   const mine = state.bookings.filter(b => b.playerId === user.id)
+  // Llegó desde el aviso "¿Cómo estuvo el partido?": abrir la reseña directamente.
+  useEffect(() => {
+    if (!query.calificar) return
+    const b = state.bookings.find(x => x.id === query.calificar && x.playerId === user.id)
+    if (b && !reviewOf(state, b.id)) setReview(b)
+    else if (b) { setTab('past'); setOpen(b.id) }
+    navigate('/reservas', { replace: true })
+  }, [query.calificar]) // eslint-disable-line
   const next = mine.filter(b => isUpcoming(b, now)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
   const past = mine.filter(b => !isUpcoming(b, now)).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
   const list = tab === 'next' ? next : past
@@ -28,6 +40,7 @@ export function PlayerBookings() {
     <>
       <PageHeader title="Mis reservas" />
       <Content className="max-w-[720px] lg:mx-0">
+        {tab === 'next' && <div className="mb-4"><RateCard onRate={(b, n) => { setStars(n); setReview(b) }} /></div>}
         <Segmented scrollTop value={tab} onChange={setTab} label="Reservas" options={[{ value: 'next', label: `Próximas (${next.length})` }, { value: 'past', label: `Anteriores (${past.length})` }]} />
         {tab === 'next' && waits.length > 0 && (
           <section className="mt-5">
@@ -49,11 +62,16 @@ export function PlayerBookings() {
         <div className="mt-4">
           {list.length === 0
             ? <Empty icon={tab === 'next' ? CalendarX : CalendarCheck} title={tab === 'next' ? 'No tenés reservas próximas' : 'Todavía no jugaste'} text={tab === 'next' ? 'Buscá una cancha y reservá un horario.' : ''} action={tab === 'next' && <Button onClick={() => navigate('/buscar')}>Buscar cancha</Button>} />
-            : <Stagger key={tab} className="space-y-3">{list.map(b => <Item key={b.id}><BookingCard b={b} state={state} onClick={() => setOpen(b.id)} /></Item>)}</Stagger>}
+            : <Stagger key={tab} className="space-y-3">{list.map(b => {
+              const done = tab === 'past' && effStatus(b, now) === 'completed', rv = done && reviewOf(state, b.id)
+              return <Item key={b.id}><BookingCard b={b} state={state} onClick={() => setOpen(b.id)} actions={done && <>
+                {rv ? <span className="inline-flex items-center gap-1 text-sm font-semibold text-muted flex-1"><Star size={16} className="fill-[var(--gold)] text-[var(--gold)]" />Calificaste {rv.rating}/5</span> : <Button size="sm" variant="secondary" onClick={() => { setStars(0); setReview(b) }}><Star size={16} />Calificar</Button>}
+                <Button size="sm" className={rv ? '' : 'ml-auto'} onClick={() => navigate(rebookLink(state, b))}>Volver a jugar</Button></>} /></Item>
+            })}</Stagger>}
         </div>
       </Content>
       {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
-      {review && <ReviewSheet booking={review} onClose={() => setReview(null)} />}
+      {review && <ReviewSheet booking={review} initialRating={stars} onClose={() => { setReview(null); setStars(0) }} />}
     </>
   )
 }

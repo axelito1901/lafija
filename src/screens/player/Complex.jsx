@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { Heart, MapPin, MessageCircle, Phone } from 'lucide-react'
 import { useStore } from '../../lib/store'
-import { cancelPolicyText, complexTags, courtsOf, favsOf, freeSlots, getComplex, promoLabel, ratingOf, slotInfo, slotsFor, toggleFav, quote } from '../../lib/domain'
+import { REVIEW_TAGS, cancelPolicyText, complexTags, courtsOf, favsOf, freeSlots, getComplex, promoLabel, ratingOf, slotInfo, slotsFor, toggleFav, quote } from '../../lib/domain'
 import { isApproved } from '../../lib/domain'
 import { addDays, cn, dateHeading, mapsLink, money, telLink, todayISO, waLink } from '../../lib/format'
 import { navigate, useRoute } from '../../lib/router'
@@ -36,6 +36,7 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
   const fav = user && favsOf(state, user.id).includes(complex.id)
   const rating = ratingOf(state, complex.id)
   const reviews = state.reviews.filter(r => r.complexId === complex.id && !r.hidden).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const topTags = Object.entries(reviews.flatMap(r => r.tags || []).reduce((m, t) => ({ ...m, [t]: (m[t] || 0) + 1 }), {})).filter(([t]) => REVIEW_TAGS.good.includes(t)).sort((a, b) => b[1] - a[1]).slice(0, 4)
   const slots = court ? slotsFor(complex).map(t => ({ t, free: slotInfo(state, complex, court, date, t, now).kind === 'free' })) : []
   const freeTotal = slots.filter(s => s.free).length
   const fromPrice = courts.filter(c => c.status === 'active').reduce((m, c) => Math.min(m, c.priceCents), Infinity)
@@ -102,11 +103,13 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
           </section>
 
           <Section title={`Reseñas${rating.count ? ` (${rating.count})` : ''}`} className="lg:col-start-1 !mt-0">
+            {topTags.length > 0 && <div className="mb-3"><p className="text-sm text-muted mb-1.5">Lo que más destacan</p><div className="flex flex-wrap gap-2">{topTags.map(([t, k]) => <span key={t} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold bg-brand-soft text-brand">{t}<span className="tnum opacity-70">{k}</span></span>)}</div></div>}
             {reviews.length === 0 ? <p className="text-muted">Todavía no hay reseñas.</p> : (
               <ul className="list">
                 {reviews.slice(0, allReviews ? 50 : 3).map(r => (
                   <li key={r.id} className="px-4 py-3">
                     <div className="flex items-center justify-between gap-3"><span className="font-medium">{r.playerName}</span><Stars n={r.rating} /></div>
+                    {r.tags?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{r.tags.map(t => <span key={t} className="text-xs font-medium rounded-full px-2.5 py-1 bg-brand-soft text-brand">{t}</span>)}</div>}
                     {r.text && <p className="text-sm mt-1">{r.text}</p>}
                     {r.reply && <div className="mt-2 pl-3 border-l-2 border-brand"><p className="text-sm font-semibold">Respuesta del complejo</p><p className="text-sm">{r.reply.text}</p></div>}
                   </li>

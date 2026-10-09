@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, BellRing, CalendarCheck, CalendarPlus, CalendarX, Clock, Repeat, Store, Wallet, BadgeCheck } from 'lucide-react'
+import { Bell, BellRing, MessageSquareReply, RotateCcw, Star, CalendarCheck, CalendarPlus, CalendarX, Clock, Repeat, Store, Wallet, BadgeCheck } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { effStatus, getComplex, getCourt, isUpcoming, bookingStart } from '../lib/domain'
 import { addDays, cn, todayISO } from '../lib/format'
@@ -20,6 +20,10 @@ const TYPES = {
   complex_review: { icon: Store, tone: 'bg-warn-soft text-warn' },
   complex_ok: { icon: Store, tone: 'bg-brand-soft text-brand' },
   complex_no: { icon: Store, tone: 'bg-danger-soft text-danger' },
+  rate: { icon: Star, tone: 'bg-warn-soft text-warn' },
+  rebook: { icon: RotateCcw, tone: 'bg-brand-soft text-brand' },
+  review_new: { icon: Star, tone: 'bg-warn-soft text-warn' },
+  review_reply: { icon: MessageSquareReply, tone: 'bg-brand-soft text-brand' },
 }
 
 const ago = iso => {

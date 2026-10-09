@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../../lib/store'
-import { ratingOf } from '../../lib/domain'
+import { notify, ratingOf } from '../../lib/domain'
 import { dateShort } from '../../lib/format'
 import { Star } from 'lucide-react'
 import { Item, Stagger } from '../../ui/motion'
@@ -16,7 +16,7 @@ export default function OwnerReviews() {
   const list = complex ? state.reviews.filter(r => r.complexId === complex.id && !r.hidden).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
   const r0 = complex ? ratingOf(state, complex.id) : { avg: 0, count: 0 }
   const save = () => {
-    update(s => { const r = s.reviews.find(x => x.id === edit.id); if (text.trim()) r.reply = { text: text.trim(), at: new Date().toISOString() }; else delete r.reply })
+    update(s => { const r = s.reviews.find(x => x.id === edit.id); if (text.trim()) { r.reply = { text: text.trim(), at: new Date().toISOString() }; notify(s, { userId: r.playerId, type: 'review_reply', title: 'El complejo te respondió', text: `${complex?.name || 'El complejo'} respondió tu reseña.`, complexId: r.complexId, link: `/complejo/${complex?.slug}` }) } else delete r.reply })
     toast(text.trim() ? 'Respuesta publicada.' : 'Respuesta eliminada.'); setEdit(null)
   }
   return (
@@ -31,6 +31,7 @@ export default function OwnerReviews() {
           <Item key={r.id} className="p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)]">
             <div className="flex items-center justify-between gap-3"><span className="font-semibold">{r.playerName}</span><Stars n={r.rating} /></div>
             <p className="text-sm text-muted">{dateShort(r.createdAt.slice(0, 10))}</p>
+            {r.tags?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{r.tags.map(t => <span key={t} className="text-xs font-medium rounded-full px-2.5 py-1 bg-sunken text-muted">{t}</span>)}</div>}
             {r.text && <p className="mt-1">{r.text}</p>}
             {r.reply && <div className="mt-3 pl-3 border-l-2 border-brand"><p className="text-sm font-semibold">Tu respuesta</p><p className="text-sm">{r.reply.text}</p></div>}
             <Button size="sm" variant="secondary" className="mt-3" onClick={() => { setEdit(r); setText(r.reply?.text || '') }}>{r.reply ? 'Editar respuesta' : 'Responder'}</Button>
