@@ -145,7 +145,8 @@ export default function App() {
 
   const signOut = async () => { await auth.signOut(); navigate('/ingresar', { replace: true }) }
 
-  if (loading || !state) return <Splash />
+  if (loading) return <Splash />
+  if (!state) return <div className="min-h-dvh grid place-items-center px-4"><div className="max-w-sm w-full"><div className="text-center mb-2"><Logo className="justify-center" /></div><ErrorState title="No pudimos conectarnos" text="Revisá tu conexión a internet e intentá de nuevo." onRetry={() => window.location.reload()} /></div></div>
   if (path === '/ingresar') return user ? <Splash /> : <Login />
   if (!user) return isPublic ? <div className="min-h-dvh">{isLegal ? (path === '/terminos' ? <Terms /> : <Privacy />) : match('/complejo/:id/reservar', path) ? <Wizard id={match('/complejo/:id/reservar', path).id} inShell={false} /> : <ComplexPage id={match('/complejo/:id', path).id} inShell={false} />}</div> : <Splash />
   if (!isPublic && area !== user.role) return <Splash />

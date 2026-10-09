@@ -3,7 +3,7 @@ import { Eye, ImagePlus, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { CANCEL_HOURS, PAY_WINDOW, REFUND_LABEL, SERVICES, SLOT_OPTIONS, cancelPolicyText } from '../../lib/domain'
 import { cn } from '../../lib/format'
-import { fileToDataURL } from '../../lib/image'
+import { photoFromFile } from '../../lib/image'
 import { navigate } from '../../lib/router'
 import { Button, Chip, Field, Input, MoneyInput, Segmented, Select, Switch, Textarea, useToast } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
@@ -25,7 +25,7 @@ export default function Settings() {
 }
 
 function Form({ complex }) {
-  const { update } = useStore()
+  const { update, user } = useStore()
   const toast = useToast()
   const [d, setD] = useState(() => structuredClone(complex))
   const [err, setErr] = useState({})
@@ -41,8 +41,8 @@ function Form({ complex }) {
     if (!files.length) return
     setBusy(kind)
     try {
-      if (kind === 'cover') set('coverUrl')(await fileToDataURL(files[0], 1400))
-      else { const room = 6 - d.gallery.length; const imgs = await Promise.all(files.slice(0, room).map(f => fileToDataURL(f, 1000))); setD(x => ({ ...x, gallery: [...x.gallery, ...imgs] })) }
+      if (kind === 'cover') set('coverUrl')(await photoFromFile(files[0], { max: 1400, userId: user?.id }))
+      else { const room = 6 - d.gallery.length; const imgs = await Promise.all(files.slice(0, room).map(f => photoFromFile(f, { max: 1000, userId: user?.id }))); setD(x => ({ ...x, gallery: [...x.gallery, ...imgs] })) }
     } catch (x) { toast(x.message, 'error') } finally { setBusy('') }
   }
 

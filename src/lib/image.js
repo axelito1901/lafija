@@ -19,3 +19,18 @@ export function fileToDataURL(file, max = 1200, quality = 0.82) {
     reader.readAsDataURL(file)
   })
 }
+
+/* Foto lista para guardar. Con Supabase se sube al almacenamiento y se guarda solo el link;
+   sin Supabase (modo demo) o si la subida falla, se guarda dentro de los datos como antes. */
+export async function photoFromFile(file, { max = 1200, userId } = {}) {
+  const dataUrl = await fileToDataURL(file, max)
+  const { supabase } = await import('./supabase')
+  if (!supabase || !userId) return dataUrl
+  try {
+    const blob = await (await fetch(dataUrl)).blob()
+    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+    const { error } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
+    if (error) throw error
+    return supabase.storage.from('photos').getPublicUrl(path).data.publicUrl
+  } catch { return dataUrl }
+}

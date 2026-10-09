@@ -3,7 +3,7 @@ import { ChevronRight, ImagePlus, Plus, Trash2 } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { COURT_FEATURES, COURT_STATUS, SPORTS, SURFACES, courtsOf, effStatus, bookingEnd } from '../../lib/domain'
 import { cn, money, uid } from '../../lib/format'
-import { fileToDataURL } from '../../lib/image'
+import { photoFromFile } from '../../lib/image'
 import { Button, Chip, Empty, Field, Input, MoneyInput, Segmented, Select, Sheet, Status, Switch, Textarea, useConfirm, useToast } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
 import { Item, Stagger } from '../../ui/motion'
@@ -35,7 +35,7 @@ export default function Courts() {
 }
 
 function CourtSheet({ court, onClose }) {
-  const { state, update } = useStore()
+  const { state, update, user } = useStore()
   const toast = useToast()
   const confirm = useConfirm()
   const file = useRef(null)
@@ -71,7 +71,7 @@ function CourtSheet({ court, onClose }) {
     const file0 = e.target.files?.[0]; e.target.value = ''
     if (!file0) return
     setBusy(true)
-    try { set('photo')(await fileToDataURL(file0, 900)) } catch (x) { toast(x.message, 'error') } finally { setBusy(false) }
+    try { set('photo')(await photoFromFile(file0, { max: 900, userId: user?.id })) } catch (x) { toast(x.message, 'error') } finally { setBusy(false) }
   }
 
   return (
