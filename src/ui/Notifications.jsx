@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, BellRing, Flag, MessageSquareReply, RotateCcw, Star, CalendarCheck, CalendarPlus, CalendarX, Clock, Repeat, Store, Wallet, BadgeCheck } from 'lucide-react'
+import { Bell, BellRing, Flag, MessageSquareReply, RotateCcw, Star, CalendarCheck, CalendarPlus, CalendarX, Clock, Repeat, Store, Wallet, BadgeCheck, ChartColumn } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { effStatus, getComplex, getCourt, isUpcoming, bookingStart } from '../lib/domain'
 import { addDays, cn, todayISO } from '../lib/format'
@@ -24,6 +24,7 @@ const TYPES = {
   report_resolved: { icon: BadgeCheck, tone: 'bg-brand-soft text-brand' },
   rate: { icon: Star, tone: 'bg-warn-soft text-warn' },
   rebook: { icon: RotateCcw, tone: 'bg-brand-soft text-brand' },
+  weekly: { icon: ChartColumn, tone: 'bg-brand-soft text-brand' },
   review_new: { icon: Star, tone: 'bg-warn-soft text-warn' },
   review_reply: { icon: MessageSquareReply, tone: 'bg-brand-soft text-brand' },
 }

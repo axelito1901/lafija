@@ -14,6 +14,7 @@ Tiempo estimado: 20 minutos. Es gratis para empezar.
 4. Repetí con `supabase/migrations/0003_photos.sql` (fotos). Crea el espacio de almacenamiento `photos`: las fotos de complejos y canchas se guardan como archivos y la base solo guarda el link. Si no la corrés, la app igual funciona, pero las fotos se guardan dentro de la base y la hacen más lenta.
 5. Repetí con `supabase/migrations/0004_after_match.sql` (después del partido): avisa para calificar 30 minutos después de jugar y para volver a jugar a los 3 días, agrega etiquetas a las reseñas y avisa al dueño de cada reseña nueva. Necesita la extensión `pg_cron` (Database → Extensions); si no la activás, avisa y el resto funciona. Con los avisos push configurados (`PUSH.md`) llegan también con la app cerrada.
 6. Repetí con `supabase/migrations/0005_trust.sql` (calidad y confianza): la insignia **Verificado** (solo la ponés vos desde Administrador → Complejos) y los reportes de problemas de los jugadores.
+7. Repetí con `supabase/migrations/0006_automatic.sql` (avisos automáticos): recordatorio al jugador 24 hs y 2 hs antes, lista de espera con fila (el primero tiene 10 minutos de ventaja) y resumen semanal para el dueño los lunes. Usa pg_cron (Database → Extensions) y corre solo cada 10 minutos.
 
 ## 3. Conectar la app
 1. **Project Settings → API**: copiá la **Project URL** y la clave **anon public**.

@@ -340,16 +340,37 @@ export function joinWaitlist(state, { complexId, courtId, date, time, player }) 
 export const leaveWaitlist = (state, id) => { state.waitlist = (state.waitlist || []).filter(w => w.id !== id) }
 export const waitingFor = (state, courtId, date, time) => (state.waitlist || []).filter(w => w.courtId === courtId && w.date === date && w.time === time && !w.notifiedAt)
 
-/* Cuando se libera un horario, avisa a todos los que esperaban (el primero que reserva, se lo queda). */
+/* Cuando se libera un horario, el primero de la fila lo sabe enseguida y tiene PRIORIDAD_MIN minutos de ventaja;
+   si pasa ese tiempo y sigue libre, se avisa al resto (ver advanceWaitlist). */
+export const WAIT_PRIORITY_MIN = 10
 function freeWaitlist(state, b) {
   if (state.app?.demoMode === false) return // con Supabase lo hace la base
   const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
-  for (const w of waitingFor(state, b.courtId, b.date, b.time)) {
-    if (w.playerId === b.playerId) continue
-    w.notifiedAt = new Date().toISOString()
-    notify(state, { userId: w.playerId, type: 'waitlist', title: 'Se liberó un horario', text: `${complex.name} · ${court.name} · ${relativeDay(b.date)} ${b.time}. Reservalo antes que otro.`, complexId: b.complexId, date: b.date,
+  const line = waitingFor(state, b.courtId, b.date, b.time).filter(w => w.playerId !== b.playerId).sort((a, c) => a.createdAt.localeCompare(c.createdAt))
+  const now = new Date().toISOString()
+  line.forEach((w, i) => {
+    w.freedAt = now
+    if (i > 0) return
+    w.notifiedAt = now
+    notify(state, { userId: w.playerId, type: 'waitlist', title: 'Se liberó tu horario', text: `${complex.name} · ${court.name} · ${relativeDay(b.date)} ${b.time}. Sos el primero en la fila: tenés ${WAIT_PRIORITY_MIN} minutos antes que avisemos al resto.`, complexId: b.complexId, date: b.date,
       link: `/complejo/${complex.slug}/reservar?fecha=${b.date}&cancha=${b.courtId}&hora=${b.time}` })
+  })
+}
+/* Pasada la ventaja, si el horario sigue libre se avisa a los demás; si ya se ocupó, se los saca de la espera sin ruido. */
+export function advanceWaitlist(state, now = new Date(), dry = false) {
+  if (state.app?.demoMode === false) return 0
+  let n = 0
+  for (const w of state.waitlist || []) {
+    if (w.notifiedAt || !w.freedAt || now - new Date(w.freedAt) < WAIT_PRIORITY_MIN * 60000) continue
+    const taken = state.bookings.some(b => b.courtId === w.courtId && b.date === w.date && b.time === w.time && ['pending', 'deposit_paid', 'confirmed', 'completed'].includes(b.status))
+    n++; if (dry) continue
+    w.notifiedAt = now.toISOString()
+    if (taken) continue
+    const complex = getComplex(state, w.complexId), court = getCourt(state, w.courtId)
+    if (complex && court) notify(state, { userId: w.playerId, type: 'waitlist', title: 'Se liberó un horario', text: `${complex.name} · ${court.name} · ${relativeDay(w.date)} ${w.time}. Reservalo antes que otro.`, complexId: w.complexId, date: w.date,
+      link: `/complejo/${complex.slug}/reservar?fecha=${w.date}&cancha=${w.courtId}&hora=${w.time}` })
   }
+  return n
 }
 
 /* ---------- Estadísticas del dueño (últimos N días) ---------- */
@@ -582,4 +603,64 @@ export function playerStats(state, userId, now = new Date()) {
     reviews: (state.reviews || []).filter(r => r.playerId === userId).length, hours: played.reduce((t, b) => t + (b.durationMin || 60) / 60, 0),
   }
   return { ...s, badges: BADGES.map(b => ({ ...b, earned: b.ok(s) })) }
+}
+
+/* ---------- Recordatorios automáticos ---------- */
+/* "Mañana jugás" (24 hs antes) y "Salí para la cancha" (2 hs antes). Se marcan en la reserva para no repetirse. */
+export function reminderNotices(state, now = new Date(), dry = false) {
+  if (state.app?.demoMode === false) return 0
+  let n = 0
+  for (const b of state.bookings) {
+    if (!b.playerId || b._busy || !['confirmed', 'deposit_paid'].includes(effStatus(b, now))) continue
+    const left = (bookingStart(b) - now) / 3600000
+    if (left <= 0 || left > 24) continue
+    const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
+    if (!complex || !court) continue
+    const rest = balanceOf(b), debt = rest > 0 ? ` Resta pagar ${money(rest)} en la cancha.` : ''
+    const base = { userId: b.playerId, type: 'reminder', bookingId: b.id, complexId: b.complexId, date: b.date, link: '/reservas' }
+    if (left <= 2) {
+      if (b.remindHourAt) continue
+      n++; if (dry) continue
+      b.remindHourAt = b.remindDayAt = now.toISOString()
+      notify(state, { ...base, title: 'Tu partido es en un rato', text: `${complex.name} · ${court.name} · hoy a las ${b.time}.${debt} ¡Ya andá saliendo!` })
+    } else if (left > 3 && !b.remindDayAt) {
+      n++; if (dry) continue
+      b.remindDayAt = now.toISOString()
+      notify(state, { ...base, title: `${b.date === todayISO() ? 'Hoy' : 'Mañana'} jugás`, text: `${complex.name} · ${court.name} · ${b.time}.${debt} Si no podés ir, cancelá con tiempo para que otro lo aproveche.` })
+    }
+  }
+  return n
+}
+
+/* ---------- Resumen semanal para el dueño ---------- */
+const mondayOf = iso => addDays(iso, -((weekdayOf(iso) + 6) % 7))
+const DAY_NAME = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+export function weeklySummary(state, complex) {
+  const st = ownerStats(state, complex, 7)
+  const parts = [`${st.bookingsN} ${st.bookingsN === 1 ? 'reserva' : 'reservas'}`, `${money(st.income)} cobrados`, `${st.occupancy}% de ocupación`]
+  const best = st.strongDays[0], worst = st.weakDays[0]
+  const tips = []
+  if (st.bookingsN && best && best.pct > 0) tips.push(`Tu mejor día fue el ${DAY_NAME[best.d]}.`)
+  if (worst && best && worst.d !== best.d && worst.pct < 50) tips.push(`El ${DAY_NAME[worst.d]} estuvo flojo: probá una promo.`)
+  if (st.noShows) tips.push(`${st.noShows} ${st.noShows === 1 ? 'persona no vino' : 'personas no vinieron'}.`)
+  return { st, title: `Tu semana en ${complex.name}`, text: `${parts.join(' · ')}.${tips.length ? ' ' + tips.join(' ') : ''}` }
+}
+/* Los lunes (desde las 8) cada dueño recibe el resumen de la semana anterior. Se identifica por la fecha del lunes. */
+export function weeklyNotices(state, now = new Date(), dry = false) {
+  if (state.app?.demoMode === false || now.getHours() < 8 || now.getDay() !== 1) return 0
+  const monday = mondayOf(todayISO())
+  let n = 0
+  for (const c of state.complexes) {
+    if (!c.ownerId || !c.active || (state.notifications || []).some(x => x.userId === c.ownerId && x.type === 'weekly' && x.date === monday && x.complexId === c.id)) continue
+    if (!state.bookings.some(b => b.complexId === c.id && !b._busy)) continue
+    n++; if (dry) continue
+    const w = weeklySummary(state, c)
+    notify(state, { userId: c.ownerId, type: 'weekly', title: w.title, text: w.text, complexId: c.id, date: monday, link: '/dueno/estadisticas' })
+  }
+  return n
+}
+
+/* Todo lo automático de la demo (con Supabase lo hace el cron de la base). */
+export function autoNotices(state, now = new Date(), dry = false) {
+  return postMatchNotices(state, now, dry) + reminderNotices(state, now, dry) + advanceWaitlist(state, now, dry) + weeklyNotices(state, now, dry)
 }

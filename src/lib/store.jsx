@@ -3,7 +3,7 @@ import { DEMO_KEY, SESSION_KEY, readDemo, resetDemo, writeDemo } from './demoSto
 import { isSupabaseConfigured, supabase } from './supabase'
 import { loadPublicState, loadRemoteState, signIn as remoteSignIn, signOut as remoteSignOut, signUp as remoteSignUp, syncRemoteDiff } from './remoteStore'
 import { uid } from './format'
-import { postMatchNotices } from './domain'
+import { autoNotices } from './domain'
 
 /*
   Capa de datos y sesión.
@@ -78,10 +78,10 @@ export function StoreProvider({ children }) {
   }, [])
   useEffect(() => { const t = setInterval(() => setTick(x => x + 1), 30000); return () => clearInterval(t) }, [])
 
-  /* Demo: después del partido avisamos para calificar y, días más tarde, para volver a jugar. */
+  /* Demo: avisos automáticos (recordatorios, lista de espera, resumen semanal, después del partido). */
   useEffect(() => {
     if (remote || !ref.current) return
-    if (postMatchNotices(ref.current, new Date(), true)) update(s => { postMatchNotices(s) })
+    if (autoNotices(ref.current, new Date(), true)) update(s => { autoNotices(s) })
   }, [tick, state?.bookings?.length]) // eslint-disable-line
 
   // Con Supabase: cuando la base crea un aviso para este usuario, se recarga el estado (llega en vivo).
