@@ -6,7 +6,7 @@ import { isApproved } from '../../lib/domain'
 import { addDays, cn, dateHeading, mapsLink, money, telLink, todayISO, waLink } from '../../lib/format'
 import { navigate, useRoute } from '../../lib/router'
 import { Button, Content, Empty, IconButton, PageHeader, Rating, Section, Skeleton, Stars } from '../../ui/kit'
-import { Cover } from '../../ui/Cover'
+import { Gallery } from '../../ui/Gallery'
 const MiniMap = lazy(() => import('../../ui/MapView').then(m => ({ default: m.MiniMap })))
 import { DateStrip } from '../../ui/shared'
 import { BookSheet, ConfirmedSheet } from './flow'
@@ -60,8 +60,7 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
       <Content className={cn(canBook && 'pb-28 lg:pb-6')}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-y-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-x-10">
           <div className="lg:col-start-1">
-            <Cover src={complex.coverUrl} seed={complex.id} alt={`Foto de ${complex.name}`} className="aspect-[16/9] rounded-lg -mx-4 sm:mx-0 !rounded-none sm:!rounded-lg" />
-            {complex.gallery?.length > 0 && <div className="grid grid-cols-3 gap-2 mt-2">{complex.gallery.slice(0, 3).map((g, i) => <Cover key={i} src={g} className="aspect-[4/3] rounded-lg" />)}</div>}
+            <Gallery photos={[complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)} seed={complex.id} alt={`Foto de ${complex.name}`} className="aspect-[4/3] sm:aspect-[16/9] -mx-4 sm:mx-0 sm:rounded-3xl overflow-hidden shadow-[var(--sh-2)]" />
             <div className="mt-4 flex items-start justify-between gap-3">
               <h2 className="text-3xl leading-tight min-w-0">{complex.name}</h2>
               <Rating value={rating.avg} count={rating.count} className="mt-2 flex-none" />

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { CheckCheck, ChevronRight, CircleCheck, CircleX, Clock3, Coins, Heart, UserX } from 'lucide-react'
+import { CheckCheck, ChevronRight, CircleCheck, CircleX, Clock3, Coins, Heart, Star, UserX } from 'lucide-react'
 import { complexFromPrice, complexTags, courtsOf, effStatus, getComplex, getCourt, paymentLabel, ratingOf, STATUS } from '../lib/domain'
 import { cn, dateShort, dayNum, distanceKm, kmLabel, money, monthShort, relativeDay, slotEnd, todayISO, weekdayShort } from '../lib/format'
 import { Link } from '../lib/router'
@@ -23,18 +23,23 @@ export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date }) 
   return (
     <article id={id} className={cn('tile', selected && '!border-brand ring-1 ring-brand')}>
       <div className="relative">
-        <Link to={`/complejo/${c.slug}`} tabIndex={-1} aria-hidden="true"><Cover src={c.coverUrl} seed={c.id} className="aspect-[2/1]" /></Link>
+        <Link to={`/complejo/${c.slug}`} tabIndex={-1} aria-hidden="true" className="block relative overflow-hidden group/cover">
+          <Cover src={c.coverUrl} seed={c.id} className="aspect-[16/9] [&>img]:transition-transform [&>img]:duration-700 group-hover/cover:[&>img]:scale-110" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        </Link>
+        {c.fromPrice != null && <span className="absolute left-3 bottom-3 text-white font-semibold tnum text-sm bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1">Desde {money(c.fromPrice)}</span>}
+        {c.ratingCount > 0 && <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 text-white text-sm font-semibold bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-2.5 py-1"><Star size={13} className="fill-[var(--gold)] text-[var(--gold)]" />{c.rating.toFixed(1).replace('.', ',')}</span>}
         {onFav && (
           <button type="button" onClick={onFav} aria-pressed={fav} aria-label={fav ? `Quitar ${c.name} de favoritos` : `Guardar ${c.name} en favoritos`}
-            className="absolute top-2 right-2 grid place-items-center w-11 h-11 rounded-full bg-surface/90 border border-line">
-            <Heart size={20} className={fav ? 'fill-current text-danger' : 'text-ink'} />
+            className="absolute top-2 right-2 grid place-items-center w-11 h-11 rounded-full bg-black/35 backdrop-blur-md border border-white/25 active:scale-90 transition-transform">
+            <Heart size={20} className={fav ? 'fill-current text-[#ff6b6b] pop-in' : 'text-white'} />
           </button>
         )}
       </div>
       <div className="flex flex-col flex-1 p-4">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-semibold text-base leading-snug"><Link to={`/complejo/${c.slug}`} className="inline-flex items-center min-h-11 -my-2.5">{c.name}</Link></h3>
-          <Rating value={c.rating} count={c.ratingCount} className="flex-none mt-px" />
+          
         </div>
         <p className="text-sm text-muted truncate mt-0.5">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</p>
         <p className="text-sm truncate mt-1">{(c.tags || 'Sin canchas activas').split(' · ').filter(t => t.startsWith('Fútbol')).join(' · ') || c.tags}</p>
@@ -44,8 +49,7 @@ export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date }) 
             <div className="flex flex-wrap gap-1.5">{slots.slice(0, 4).map(s => <Link key={s.t} to={`/complejo/${c.slug}/reservar?fecha=${date}&cancha=${s.courtId}&hora=${s.t}`} className="chip !min-h-10 !px-3 tnum">{s.t}</Link>)}</div>
           </div>) : <p className="text-sm text-muted mt-2">Sin horarios libres ese día</p>)
           : free != null && <p className={cn('text-sm mt-1', free ? 'text-brand font-medium' : 'text-muted')}>{free ? `${free} ${free === 1 ? 'horario libre' : 'horarios libres'}` : 'Sin horarios libres'}</p>}
-        <div className="mt-auto pt-4">
-          {c.fromPrice != null ? <><div className="text-sm text-muted">Desde</div><div className="font-semibold tnum whitespace-nowrap">{money(c.fromPrice)} <span className="font-normal text-muted text-sm">/ hora</span></div></> : <div className="text-sm text-muted">Sin precio cargado</div>}
+        <div className="mt-auto pt-3">
           <Button as={Link} to={`/complejo/${c.slug}/reservar${date ? `?fecha=${date}` : ''}`} variant="secondary" className="w-full mt-3">Reservar</Button>
         </div>
       </div>

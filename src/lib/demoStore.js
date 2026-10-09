@@ -1,7 +1,7 @@
 import { addDays, fromISO, todayISO, uid } from './format'
 import { depositFor, priceFor, slotsFor } from './domain'
 
-export const DEMO_KEY = 'lafija-demo-v16'
+export const DEMO_KEY = 'lafija-demo-v17'
 export const SESSION_KEY = 'lafija-session'
 const VERSION = 16
 
@@ -22,8 +22,10 @@ const users = () => [
   { id: 'u-admin', role: 'admin', name: 'Equipo La Fija', phone: '+5491100000000', email: 'admin@lafija.demo', active: true, createdAt: now() },
 ]
 
+const demo = n => `${import.meta.env.BASE_URL}demo/cancha-${n}.svg`
+const COVERS = { 'complex-1': [3, 5, 1], 'complex-2': [1, 6, 8], 'complex-3': [4, 2, 7], 'complex-4': [2, 7, 3], 'complex-5': [8, 6, 1], 'complex-6': [5, 4, 2], 'complex-7': [6, 8, 1] }
 const complex = (o) => ({
-  active: true, public: true, approval: 'approved', coverUrl: '', gallery: [], services: [], whatsapp: o.phone, createdAt: now(),
+  active: true, public: true, approval: 'approved', coverUrl: demo((COVERS[o.id] || [1])[0]), gallery: (COVERS[o.id] || []).slice(1).map(demo), services: [], whatsapp: o.phone, createdAt: now(),
   hours: { open: '10:00', close: '00:00', slotMinutes: 60 }, booking: { ...BOOKING_CFG }, ...o,
 })
 const court = (o) => ({ status: 'active', covered: false, lighting: true, priceRules: [], description: '', features: [], photo: '', ...o })

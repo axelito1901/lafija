@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronRight, Lightbulb, Umbrella } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Cover } from '../../ui/Cover'
+import { Item, Stagger, spring } from '../../ui/motion'
 import { useStore } from '../../lib/store'
 import { joinWaitlist, leaveWaitlist, perPerson, activeCourts, freeCount, freeSlots, getComplex, priceFor, publicComplexes, quote, slotInfo, slotsFor, SPORTS } from '../../lib/domain'
 import { isApproved } from '../../lib/domain'
@@ -18,10 +21,18 @@ const PARTS = [['Mañana', t => t < '12:00'], ['Tarde', t => t >= '12:00' && t <
 function Progress({ step }) {
   return (
     <div className="mb-6" aria-label={`Paso ${step + 1} de 4`}>
-      <div className="flex gap-1.5" aria-hidden="true">{STEPS.map((_, i) => <span key={i} className={cn('h-1.5 flex-1 rounded-full transition-colors', i <= step ? 'bg-brand' : 'bg-strong')} />)}</div>
-      <p className="text-sm text-muted mt-2">Paso {step + 1} de 4 · {STEPS[step]}</p>
+      <div className="flex gap-1.5" aria-hidden="true">{STEPS.map((_, i) => (
+        <span key={i} className="relative h-1.5 flex-1 rounded-full bg-strong overflow-hidden">
+          <motion.span className="absolute inset-0 rounded-full bg-[image:var(--grad-brand)] origin-left" initial={false} animate={{ scaleX: i <= step ? 1 : 0 }} transition={{ type: 'spring', stiffness: 260, damping: 30 }} />
+        </span>))}</div>
+      <p className="text-sm text-muted mt-2">Paso {step + 1} de 4 · <span className="font-semibold text-ink">{STEPS[step]}</span></p>
     </div>
   )
+}
+
+/* Cada paso entra deslizando desde la derecha (o la izquierda al volver). */
+function StepView({ k, dir, children }) {
+  return <motion.div key={k} initial={{ opacity: 0, x: dir * 36 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: dir * -24 }} transition={{ duration: .26, ease: [.2, .8, .2, 1] }}>{children}</motion.div>
 }
 
 /* Reserva guiada: una pregunta por pantalla. */
@@ -39,8 +50,10 @@ export default function Wizard({ id, inShell = true }) {
   const [book, setBook] = useState(false)
   const [doneId, setDoneId] = useState('')
   const [wait, setWait] = useState('')
+  const [dir, setDir] = useState(1)
+  const prev = useRef(step)
   const now = new Date()
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [step])
+  useEffect(() => { setDir(step >= prev.current ? 1 : -1); prev.current = step; window.scrollTo({ top: 0, behavior: 'instant' }) }, [step])
 
   if (!complex || !complex.active || !complex.public || !isApproved(complex)) return <><PageHeader back="history" title="Reservar" /><Content><Empty title="Este complejo no está disponible" action={<Button onClick={() => navigate('/buscar')}>Buscar otra cancha</Button>} /></Content></>
   const court = courts.find(c => c.id === courtId)
@@ -63,49 +76,58 @@ export default function Wizard({ id, inShell = true }) {
         </div>
       </header>
       <Content className={cn('max-w-[640px]', valid && 'pb-32')}>
+        <div className="flex items-center gap-3 mb-5 p-2 pr-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)]">
+          <Cover src={complex.coverUrl} seed={complex.id} className="size-14 rounded-xl flex-none" />
+          <div className="min-w-0"><p className="font-semibold truncate leading-tight">{complex.name}</p><p className="text-sm text-muted truncate">{complex.city}</p></div>
+        </div>
         <Progress step={book ? 3 : step} />
-
-        {step === 0 && <>
+        <AnimatePresence mode="wait" initial={false}>
+        {step === 0 && <StepView k="d" dir={dir}>
           <h1 className="text-2xl font-semibold tracking-tight mb-4">¿Qué día querés jugar?</h1>
-          <div className="list">
+          <Stagger className="grid grid-cols-2 gap-3">
             {days.map(d => {
               const n = freeCount(state, complex, d, now)
+              const [wd, rest] = dateLong(d).split(', ')
               return (
-                <button key={d} type="button" className="row !min-h-16" disabled={!n} onClick={() => pickDate(d)} aria-pressed={date === d}>
-                  <span className="flex-1 min-w-0"><span className="block font-semibold text-lg">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : dateLong(d).split(',')[0]}</span>
-                    <span className="block text-sm text-muted">{d <= addDays(today, 1) ? `${dateLong(d).split(', ')[0]} ${dateLong(d).split(', ')[1]}` : dateLong(d).split(', ')[1]}</span></span>
-                  <span className={cn('text-sm flex-none', n ? 'text-brand font-semibold' : 'text-muted')}>{n ? `${n} libres` : 'Sin horarios'}</span>
-                  {n > 0 && <ChevronRight size={20} className="text-faint flex-none" />}
-                </button>
+                <Item key={d} as="button" type="button" disabled={!n} onClick={() => pickDate(d)} aria-pressed={date === d} whileTap={{ scale: .96 }}
+                  className={cn('text-left p-4 rounded-2xl border bg-surface shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:opacity-45 disabled:shadow-none enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand', d === today && 'col-span-2 bg-[image:var(--grad-brand)] !border-transparent text-[var(--brand-ink)]')}>
+                  <span className="block display text-2xl font-bold leading-tight">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : wd}</span>
+                  <span className={cn('block text-sm', d === today ? 'opacity-85' : 'text-muted')}>{rest}</span>
+                  <span className={cn('mt-3 inline-flex items-center gap-1 text-sm font-semibold', d === today ? '' : n ? 'text-brand' : 'text-muted')}>{n ? `${n} libres` : 'Sin horarios'}{n > 0 && <ChevronRight size={16} />}</span>
+                </Item>
               )
             })}
-          </div>
+          </Stagger>
           <div className="mt-5"><span className="label">¿Otro día?</span><DateField min={today} value={date && !days.includes(date) ? date : ''} placeholder="Elegir en el calendario" onChange={v => v && pickDate(v)} /></div>
-        </>}
+        </StepView>}
 
-        {step === 1 && <>
+        {step === 1 && <StepView k="c" dir={dir}>
           <h1 className="text-2xl font-semibold tracking-tight">¿En qué cancha?</h1>
           <p className="text-muted mt-1 mb-4">{relativeDay(date)} · {dateLong(date).split(', ')[1]}</p>
-          <div className="space-y-2">
-            {courts.map(c => {
+          <Stagger className="space-y-3">
+            {courts.map((c, idx) => {
               const n = freeSlots(state, complex, c, date, now).length
+              const photos = [complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)
               return (
-                <button key={c.id} type="button" disabled={!n} onClick={() => { setCourtId(c.id); setTime(''); setStep(2) }}
-                  className={cn('w-full text-left flex items-center gap-3 p-4 rounded-lg border bg-surface min-h-20 transition-colors disabled:opacity-50', courtId === c.id ? 'border-brand' : 'border-strong hover:bg-sunken')}>
-                  <span className="flex-1 min-w-0">
-                    <span className="block font-semibold text-lg">{c.name}</span>
-                    <span className="block text-muted">{[c.sport, c.surface, c.covered && 'Techada'].filter(Boolean).join(' · ')}</span>
-                    <span className={cn('block text-sm', n ? 'text-brand font-medium' : 'text-muted')}>{n ? `${n} horarios libres` : 'Sin horarios este día'}</span>
+                <Item key={c.id} as="button" type="button" disabled={!n} whileTap={{ scale: .98 }} onClick={() => { setCourtId(c.id); setTime(''); setStep(2) }}
+                  className={cn('w-full text-left rounded-2xl border bg-surface overflow-hidden shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:opacity-50 enabled:hover:shadow-[var(--sh-2)]', courtId === c.id ? 'border-brand' : 'border-line')}>
+                  <span className="relative block">
+                    <Cover src={c.photo || photos[idx % Math.max(photos.length, 1)]} seed={c.id} className="aspect-[21/9]" />
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <span className="absolute left-4 bottom-3 text-white"><span className="block display text-2xl font-bold leading-none">{c.name}</span><span className="block text-sm opacity-90">{c.sport}</span></span>
+                    <span className="absolute right-3 bottom-3 text-white text-right"><span className="block font-semibold tnum text-lg leading-none">{money(c.priceCents)}</span><span className="block text-xs opacity-85">por turno</span></span>
                   </span>
-                  <span className="text-right flex-none"><span className="block font-semibold tnum">{money(c.priceCents)}</span><span className="block text-sm text-muted">por turno</span></span>
-                  {n > 0 && <ChevronRight size={20} className="text-faint flex-none" />}
-                </button>
+                  <span className="flex items-center gap-3 px-4 py-3 text-sm">
+                    <span className="flex-1 min-w-0 text-muted truncate inline-flex items-center gap-3">{c.surface}{c.covered && <span className="inline-flex items-center gap-1"><Umbrella size={14} />Techada</span>}{c.lighting && <span className="inline-flex items-center gap-1"><Lightbulb size={14} />Luz</span>}</span>
+                    <span className={cn('font-semibold flex-none', n ? 'text-brand' : 'text-muted')}>{n ? `${n} libres` : 'Sin horarios'}</span>
+                  </span>
+                </Item>
               )
             })}
-          </div>
-        </>}
+          </Stagger>
+        </StepView>}
 
-        {step === 2 && court && <>
+        {step === 2 && court && <StepView k="h" dir={dir}>
           <h1 className="text-2xl font-semibold tracking-tight">¿A qué hora?</h1>
           <p className="text-muted mt-1 mb-4">{relativeDay(date)} · {court.name} · {court.sport}</p>
           {freeSlots(state, complex, court, date, now).length === 0
@@ -116,40 +138,41 @@ export default function Wizard({ id, inShell = true }) {
               return (
                 <section key={label} className="mb-5">
                   <h2 className="font-semibold mb-2">{label}</h2>
-                  <div className="grid grid-cols-3 gap-2">
+                  <Stagger className="grid grid-cols-3 gap-2" step={.02}>
                     {list.map(t => {
                       const kind = slotInfo(state, complex, court, date, t, now).kind, free = kind === 'free', taken = kind === 'booked'
                       const waiting = user && (state.waitlist || []).some(w => w.playerId === user.id && w.courtId === court.id && w.date === date && w.time === t && !w.notifiedAt)
                       if (taken) return (
-                        <button key={t} type="button" onClick={() => setWait(t)} aria-label={`${t}, ocupado. ${waiting ? 'Te avisamos si se libera' : 'Tocá para que te avisemos si se libera'}`}
-                          className="rounded-lg border border-dashed border-strong min-h-16 flex flex-col items-center justify-center text-muted hover:bg-sunken transition-colors">
+                        <Item as="button" key={t} type="button" onClick={() => setWait(t)} aria-label={`${t}, ocupado. ${waiting ? 'Te avisamos si se libera' : 'Tocá para que te avisemos si se libera'}`}
+                          className="rounded-xl border border-dashed border-strong min-h-16 flex flex-col items-center justify-center text-muted hover:bg-sunken transition-colors">
                           <span className="text-lg font-semibold tnum opacity-60">{t}</span>
                           <span className={cn('text-xs', waiting && 'text-warn font-semibold')}>{waiting ? 'Te avisamos' : 'Ocupado · avisarme'}</span>
-                        </button>)
+                        </Item>)
                       return (
-                        <button key={t} type="button" disabled={!free} aria-pressed={time === t} onClick={() => setTime(t)} aria-label={`${t}${free ? `, ${money(quote(state, court, date, t, user?.id).totalCents)}` : ', ocupado'}`}
-                          className={cn('rounded-lg border min-h-16 flex flex-col items-center justify-center transition-colors disabled:opacity-35 disabled:cursor-not-allowed',
-                            time === t ? 'bg-brand border-brand text-[var(--brand-ink)]' : 'bg-surface border-strong hover:bg-sunken')}>
+                        <Item as="button" key={t} type="button" disabled={!free} aria-pressed={time === t} whileTap={{ scale: .94 }} onClick={() => setTime(t)} aria-label={`${t}${free ? `, ${money(quote(state, court, date, t, user?.id).totalCents)}` : ', ocupado'}`}
+                          className={cn('rounded-xl border min-h-16 flex flex-col items-center justify-center transition-[background-color,box-shadow,transform] duration-200 disabled:opacity-35 disabled:cursor-not-allowed',
+                            time === t ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--brand-ink)] shadow-[0_10px_20px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)] scale-[1.04]' : 'bg-surface border-strong hover:bg-sunken')}>
                           <span className="text-lg font-semibold tnum">{t}</span>
                           <span className={cn('text-xs tnum', time !== t && 'text-muted')}>{free ? money(quote(state, court, date, t, user?.id).totalCents) : 'Ocupado'}{free && quote(state, court, date, t, user?.id).discountCents > 0 ? ' · promo' : ''}</span>
-                        </button>
+                        </Item>
                       )
                     })}
-                  </div>
+                  </Stagger>
                 </section>
               )
             })}
-        </>}
+        </StepView>}
+        </AnimatePresence>
       </Content>
 
-      {step === 2 && valid && (
-        <div className={cn('fixed inset-x-0 z-20 bg-surface border-t border-line', inShell ? 'bottom-[calc(var(--nav-h)+var(--safe-bottom))] lg:bottom-0 lg:left-64' : 'bottom-0 pb-[var(--safe-bottom)]')}>
+      <AnimatePresence>{step === 2 && valid && (
+        <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} transition={spring} className={cn('fixed inset-x-0 z-20 bg-[var(--glass)] backdrop-blur-xl border-t border-line', inShell ? 'bottom-[calc(var(--nav-h)+var(--safe-bottom))] lg:bottom-0 lg:left-64' : 'bottom-0 pb-[var(--safe-bottom)]')}>
           <div className="max-w-[640px] mx-auto px-4 py-3 flex items-center gap-3">
             <div className="min-w-0 flex-1"><div className="font-semibold tnum">{money(q.totalCents)}{perPerson(court, q.totalCents) && <span className="text-sm font-normal text-muted"> · {money(perPerson(court, q.totalCents))} c/u</span>}</div><div className="text-sm text-muted truncate">{court.name} · {relativeDay(date)} · {time}</div></div>
             <Button size="lg" onClick={go}>{user ? 'Continuar' : 'Ingresar para seguir'}</Button>
           </div>
-        </div>
-      )}
+        </motion.div>
+      )}</AnimatePresence>
       {wait && <WaitSheet complex={complex} court={court} date={date} time={wait} onClose={() => setWait('')} />}
       <BookSheet open={book} onClose={() => setBook(false)} complex={complex} court={court} date={date} time={time} onDone={bid => { setBook(false); setDoneId(bid) }} />
       {doneId && <ConfirmedSheet bookingId={doneId} onClose={() => { setDoneId(''); navigate('/reservas') }} />}

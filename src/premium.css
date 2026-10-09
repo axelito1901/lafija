@@ -93,3 +93,17 @@ a.row:active, button.row:active { background: var(--sunken); }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .hero::after, .live-dot { animation: none; } }
 @keyframes wave { 0%, 60%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(16deg); } 20%, 40% { transform: rotate(-10deg); } 50% { transform: rotate(8deg); } }
+
+/* Mapa premium */
+.dark .leaflet-tile-pane { filter: none; }
+.pin-pop { animation: pin-pop 520ms cubic-bezier(.2,.9,.3,1.5) both; transform-origin: 50% 100%; }
+.pin.on { transform: scale(1.14) translateY(-2px); z-index: 5; box-shadow: 0 10px 22px -6px color-mix(in srgb, var(--brand) 80%, transparent); }
+@keyframes pin-pop { from { transform: scale(0) translateY(10px); opacity: 0; } }
+.pin-me { animation: me-pulse 2.2s infinite; }
+@keyframes me-pulse { 70% { box-shadow: 0 0 0 14px rgba(44,90,154,0); } 100% { box-shadow: 0 0 0 0 rgba(44,90,154,0); } }
+.leaflet-container { border-radius: inherit; }
+.leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; box-shadow: var(--sh-3); overflow: hidden; }
+.leaflet-popup-content { margin: 12px; }
+.leaflet-bar { border: 0 !important; box-shadow: var(--sh-2) !important; border-radius: 14px !important; overflow: hidden; }
+.leaflet-bar a { background: var(--glass) !important; color: var(--ink) !important; backdrop-filter: blur(10px); border-color: var(--line) !important; width: 40px !important; height: 40px !important; line-height: 40px !important; }
+.leaflet-control-attribution { background: var(--glass) !important; color: var(--muted) !important; border-radius: 8px 0 0 0; font-size: 10px; } .leaflet-control-attribution a { color: var(--muted) !important; }

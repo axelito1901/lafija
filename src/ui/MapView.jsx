@@ -1,18 +1,31 @@
 import { useEffect, useState } from 'react'
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import { divIcon } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { LocateFixed, LoaderCircle } from 'lucide-react'
+import { LocateFixed, LoaderCircle, Star } from 'lucide-react'
+import { Cover } from './Cover'
 import { money } from '../lib/format'
 import { getLocation } from '../lib/geo'
 import { Button, useToast } from './kit'
 
 import { DEFAULT_CENTER } from '../lib/geo'
 export { DEFAULT_CENTER }
-const TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+const TILES = { light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' }
+const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
-const pinIcon = (label, on) => divIcon({ className: '', html: `<div class="pin${on ? ' on' : ''}">${label}</div>`, iconSize: [0, 0], iconAnchor: [0, 0], popupAnchor: [0, -38] })
+/* Mapa claro u oscuro según el tema de la app. */
+function useDark() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
+  useEffect(() => {
+    const mo = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')))
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => mo.disconnect()
+  }, [])
+  return dark
+}
+const Tiles = ({ maxZoom = 19, attribution }) => { const d = useDark(); return <TileLayer key={d ? 'd' : 'l'} url={d ? TILES.dark : TILES.light} attribution={attribution} maxZoom={maxZoom} subdomains="abcd" /> }
+
+const pinIcon = (label, on) => divIcon({ className: '', html: `<div class="pin pin-pop${on ? ' on' : ''}">${label}</div>`, iconSize: [0, 0], iconAnchor: [0, 0], popupAnchor: [0, -38] })
 const meIcon = divIcon({ className: '', html: '<div class="pin-me"></div>', iconSize: [0, 0] })
 
 /* Encuadra los puntos y se vuelve a encuadrar cuando el contenedor cambia de tamaño
@@ -57,17 +70,21 @@ export function ComplexMap({ complexes, selectedId, onSelect, onOpen, userPos, o
   const center = userPos || pts[0] || DEFAULT_CENTER
   return (
     <div className={`map-box ${className}`}>
-      <MapContainer center={[center.lat, center.lng]} zoom={13} scrollWheelZoom={false} className="h-full w-full" style={{ minHeight: 240 }}>
-        <TileLayer url={TILES} attribution={ATTR} maxZoom={19} />
+      <MapContainer center={[center.lat, center.lng]} zoom={13} scrollWheelZoom={false} zoomControl={false} className="h-full w-full" style={{ minHeight: 240 }}>
+        <Tiles attribution={ATTR} />
+        <ZoomControl position="bottomright" />
         <Viewport points={pts} focus={null} />
         {userPos && <Marker position={[userPos.lat, userPos.lng]} icon={meIcon} interactive={false} />}
         {pts.map(c => (
           <Marker key={c.id} position={[c.lat, c.lng]} icon={iconFor(c, selectedId === c.id)} eventHandlers={{ click: () => onSelect?.(c.id) }}>
-            <Popup closeButton={false} autoPanPadding={[16, 16]}>
-              <div className="flex flex-col gap-2">
-                <div><div className="font-semibold text-base leading-tight">{c.name}</div><div className="text-sm text-muted">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</div></div>
-                {c.tags && <div className="text-sm">{c.tags}</div>}
-                <Button size="sm" onClick={() => onOpen(c)}>Ver horarios</Button>
+            <Popup closeButton={false} autoPanPadding={[16, 16]} minWidth={220} maxWidth={240}>
+              <div className="-m-3 overflow-hidden rounded-2xl">
+                <div className="relative"><Cover src={c.coverUrl} seed={c.id} className="aspect-[16/9]" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  {c.ratingCount > 0 && <span className="absolute right-2 top-2 inline-flex items-center gap-1 text-white text-xs font-semibold bg-black/45 rounded-full px-2 py-0.5"><Star size={11} className="fill-[var(--gold)] text-[var(--gold)]" />{c.rating.toFixed(1).replace('.', ',')}</span>}</div>
+                <div className="p-3 flex flex-col gap-2">
+                  <div><div className="font-semibold text-base leading-tight">{c.name}</div><div className="text-sm text-muted">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}{c.fromPrice != null ? ` · desde ${money(c.fromPrice)}` : ''}</div></div>
+                  <Button size="sm" onClick={() => onOpen(c)}>Ver horarios</Button>
+                </div>
               </div>
             </Popup>
           </Marker>
@@ -93,7 +110,7 @@ export function PositionPicker({ value, onChange, className = '' }) {
   return (
     <div className={`map-box ${className}`}>
       <MapContainer center={[pos.lat, pos.lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full" style={{ minHeight: 200 }}>
-        <TileLayer url={TILES} attribution={ATTR} maxZoom={19} />
+        <Tiles attribution={ATTR} />
         <Viewport points={[]} focus={value?.lat != null ? value : null} />
         <ClickToSet onPick={onChange} />
         {value?.lat != null && <Marker position={[value.lat, value.lng]} icon={dot} draggable eventHandlers={{ dragend: e => { const p = e.target.getLatLng(); onChange({ lat: p.lat, lng: p.lng }) } }} />}
@@ -107,7 +124,7 @@ export function MiniMap({ lat, lng, href, className = '' }) {
   return (
     <a href={href} target="_blank" rel="noreferrer" className={`map-box block overflow-hidden rounded-lg border border-line ${className}`} aria-label="Ver en el mapa y cómo llegar">
       <MapContainer center={[lat, lng]} zoom={15} className="h-full w-full pointer-events-none" style={{ minHeight: 160 }} dragging={false} scrollWheelZoom={false} doubleClickZoom={false} touchZoom={false} boxZoom={false} keyboard={false} zoomControl={false} attributionControl={false}>
-        <TileLayer url={TILES} maxZoom={19} />
+        <Tiles />
         <Marker position={[lat, lng]} icon={divIcon({ className: '', html: '<div class="pin-me" style="background:var(--brand);width:22px;height:22px"></div>', iconSize: [0, 0] })} />
       </MapContainer>
       <span className="absolute bottom-2 right-2 z-[400] bg-surface border border-line rounded-lg px-3 min-h-9 inline-flex items-center text-sm font-semibold">Cómo llegar</span>
