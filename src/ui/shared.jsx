@@ -5,6 +5,7 @@ import { cn, dateShort, dayNum, distanceKm, kmLabel, money, monthShort, relative
 import { Link } from '../lib/router'
 import { Avatar, Button, Rating, Status } from './kit'
 import { Cover } from './Cover'
+import { VerifiedBadge } from './trust'
 
 /* Datos derivados de un complejo para listas, tarjetas y mapa */
 export function complexView(state, c, origin) {
@@ -38,7 +39,7 @@ export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date }) 
       </div>
       <div className="flex flex-col flex-1 p-4">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-semibold text-base leading-snug"><Link to={`/complejo/${c.slug}`} className="inline-flex items-center min-h-11 -my-2.5">{c.name}</Link></h3>
+          <h3 className="font-semibold text-base leading-snug"><Link to={`/complejo/${c.slug}`} className="inline-flex items-center gap-1.5 min-h-11 -my-2.5">{c.name}{c.verified && <VerifiedBadge label={false} />}</Link></h3>
           
         </div>
         <p className="text-sm text-muted truncate mt-0.5">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</p>

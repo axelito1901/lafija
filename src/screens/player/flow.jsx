@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { m as motion } from 'motion/react'
 import { celebrate, spring } from '../../ui/motion'
 import { Cover } from '../../ui/Cover'
-import { CalendarPlus, Check, Heart, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'
+import { WeatherChip } from '../../ui/trust'
+import { CalendarPlus, Check, Flag, Heart, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
-import { WEEKDAYS, requestFixed, weekdayOf, PLAYERS, perPerson, applyPayment, balanceOf, bookingStart, cancelBooking, cancelPolicyText, depositFor, effStatus, favsOf, toggleFav, REVIEW_TAGS, RATING_WORDS, addReview, rebookLink, playedBookings, reviewOf, bookingEnd, getComplex, getCourt, paymentLabel, placeBooking, quote, refundFor, STATUS } from '../../lib/domain'
+import { WEEKDAYS, requestFixed, weekdayOf, PLAYERS, perPerson, applyPayment, balanceOf, bookingStart, cancelBooking, cancelPolicyText, depositFor, effStatus, favsOf, toggleFav, REVIEW_TAGS, RATING_WORDS, addReview, addReport, reportOf, REPORT_KINDS, rebookLink, playedBookings, reviewOf, bookingEnd, getComplex, getCourt, paymentLabel, placeBooking, quote, refundFor, STATUS } from '../../lib/domain'
 import { addDays, cn, dateLong, mapsLink, money, relativeDay, slotEnd, telLink, todayISO, waLink } from '../../lib/format'
 import { downloadICS } from '../../lib/calendar'
 import { providerLabel, startPayment } from '../../lib/payments'
@@ -86,6 +87,7 @@ export function BookSheet({ open, onClose, complex, court, date, time, onDone })
         {perPerson(court, q.totalCents) && <Line k={`Cada uno (${PLAYERS[court.sport]} jugadores)`}>{money(perPerson(court, q.totalCents))}</Line>}
       </dl>
 
+      <WeatherChip complex={complex} court={court} date={date} time={time} className="mt-3" />
       <fieldset className="mt-5">
         <legend className="label">¿Cómo querés pagar?</legend>
         <div className="space-y-2">
@@ -166,6 +168,7 @@ export function BookingDetail({ bookingId, onClose, onReview }) {
   const [invite, setInvite] = useState(false)
   const [result, setResult] = useState(null)
   const [fixed, setFixed] = useState(false)
+  const [report, setReport] = useState(false)
   const b = state.bookings.find(x => x.id === bookingId)
   if (result) return <ResultSheet {...result} onClose={onClose} />
   if (!b) return null
@@ -174,6 +177,7 @@ export function BookingDetail({ bookingId, onClose, onReview }) {
   const upcoming = ['pending', 'deposit_paid', 'confirmed'].includes(st) && bookingStart(b) > new Date()
   const reviewed = state.reviews.some(r => r.bookingId === b.id)
   const rest = balanceOf(b)
+  const rep = reportOf(state, b.id)
   const fixedReq = (state.fixedRequests || []).filter(r => r.bookingId === b.id).pop()
 
   const doPay = async kind => {
@@ -226,8 +230,12 @@ export function BookingDetail({ bookingId, onClose, onReview }) {
         {upcoming && <Button className="w-full" variant="danger" onClick={doCancel}>Cancelar reserva</Button>}
       </div>
       {upcoming && <p className="text-sm text-muted mt-3">{cancelPolicyText(complex)}</p>}
+      {(['deposit_paid', 'confirmed', 'completed'].includes(st) || upcoming) && Date.now() - bookingEnd(b) < 7 * 86400000 && (rep
+        ? <div className={cn('mt-4 rounded-xl p-3 text-sm', rep.status === 'resolved' ? 'bg-brand-soft text-brand' : 'bg-warn-soft text-warn')}><p className="font-semibold">{rep.status === 'resolved' ? 'Tu reporte fue respondido' : 'Avisaste un problema · en revisión'}</p><p className="opacity-90">{REPORT_KINDS[rep.kind]}{rep.response ? ` — “${rep.response}”` : ''}</p></div>
+        : <button type="button" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink min-h-11" onClick={() => setReport(true)}><Flag size={16} />Avisar de un problema</button>)}
     </Sheet>
     {fixed && <FixedSheet booking={b} onClose={() => setFixed(false)} />}
+    {report && <ReportSheet booking={b} onClose={() => setReport(false)} />}
     {invite && <MessageSheet bookingId={b.id} kinds={['invitacion', 'equipos']} initial={invite} toPhone="" title="Compartir reserva" onClose={() => setInvite(false)} />}
     </>
   )
@@ -330,5 +338,31 @@ export function RateCard({ onRate }) {
         <Button size="sm" variant="ghost" onClick={skip}>Ahora no</Button>
       </div>
     </motion.section>
+  )
+}
+
+/* ---------- Avisar de un problema ---------- */
+export function ReportSheet({ booking, onClose }) {
+  const { state, update, user } = useStore()
+  const toast = useToast()
+  const [kind, setKind] = useState('')
+  const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const complex = getComplex(state, booking.complexId)
+  const send = () => {
+    if (!kind) { setError('Elegí qué pasó.'); return }
+    update(s => { addReport(s, { booking, user, kind, text }) })
+    toast('Listo. Le avisamos a ' + complex.name + ' y al equipo de La Fija.'); onClose()
+  }
+  return (
+    <Sheet open onClose={onClose} title="Avisar de un problema" footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={send}>Enviar aviso</Button></>}>
+      <p className="text-muted">Contanos qué pasó con tu reserva en <strong className="text-ink">{complex.name}</strong>. Lo ve el complejo y el equipo de La Fija, y te respondemos por acá.</p>
+      <div className="mt-4 space-y-2" role="radiogroup" aria-label="Qué pasó">
+        {Object.entries(REPORT_KINDS).map(([k, label]) => (
+          <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => { setKind(k); setError('') }} className={cn('w-full text-left rounded-2xl border-2 px-4 min-h-14 font-medium transition-all', kind === k ? 'border-brand bg-brand-soft' : 'border-line hover:border-strong')}>{label}</button>))}
+      </div>
+      {error && <p className="err" role="alert">{error}</p>}
+      <Field label="Detalles (opcional)" className="mt-4"><Textarea value={text} maxLength={400} onChange={e => setText(e.target.value)} placeholder="Contanos un poco más para ayudarte mejor…" /></Field>
+    </Sheet>
   )
 }

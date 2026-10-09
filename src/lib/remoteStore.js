@@ -15,11 +15,12 @@ const busyPrefix = 'busy-'
 /* ---------- Filas → estado ---------- */
 const M = {
   profile: r => ({ id: r.id, role: r.role, name: r.name, phone: r.phone, email: r.email, active: r.active, acceptedTermsAt: r.accepted_terms_at, createdAt: r.created_at }),
-  complex: r => ({ id: r.id, ownerId: r.owner_id, name: r.name, slug: r.slug, city: r.city, address: r.address, lat: r.lat, lng: r.lng, phone: r.phone, whatsapp: r.whatsapp, description: r.description, services: r.services || [], coverUrl: r.cover_url, gallery: r.gallery || [], hours: r.hours, booking: r.booking, active: r.active, public: r.public, approval: r.approval, createdAt: r.created_at }),
+  complex: r => ({ id: r.id, ownerId: r.owner_id, name: r.name, slug: r.slug, city: r.city, address: r.address, lat: r.lat, lng: r.lng, phone: r.phone, whatsapp: r.whatsapp, description: r.description, services: r.services || [], coverUrl: r.cover_url, gallery: r.gallery || [], verified: !!r.verified, hours: r.hours, booking: r.booking, active: r.active, public: r.public, approval: r.approval, createdAt: r.created_at }),
   court: r => ({ id: r.id, complexId: r.complex_id, name: r.name, sport: r.sport, surface: r.surface, covered: r.covered, lighting: r.lighting, priceCents: Number(r.price_cents), priceRules: r.price_rules || [], description: r.description, features: r.features || [], photo: r.photo, status: r.status }),
   booking: r => ({ id: r.id, complexId: r.complex_id, courtId: r.court_id, playerId: r.player_id, playerName: r.player_name, phone: r.phone, date: r.booking_date, time: r.booking_time, durationMin: r.duration_min, baseCents: Number(r.base_cents), discountCents: Number(r.discount_cents), promoName: r.promo_name, totalCents: Number(r.total_cents), depositCents: Number(r.deposit_cents), paidCents: Number(r.paid_cents), refundCents: Number(r.refund_cents), paymentMode: r.payment_mode, paymentStatus: r.payment_status, payMethod: r.pay_method, status: r.status, source: r.source, note: r.note, seriesId: r.series_id, reminderAt: r.reminder_at, lineup: r.lineup, expiresAt: r.expires_at, cancelledAt: r.cancelled_at, cancelledBy: r.cancelled_by, createdAt: r.created_at }),
   block: r => ({ id: r.id, complexId: r.complex_id, courtId: r.court_id, date: r.block_date, time: r.block_time, reason: r.reason }),
   promotion: r => ({ id: r.id, complexId: r.complex_id, name: r.name, kind: r.kind, value: Number(r.value), courtId: r.court_id || '', timeFrom: r.time_from, timeTo: r.time_to, dateFrom: r.date_from || '', dateTo: r.date_to || '', onlyToday: r.only_today, frequentOnly: r.frequent_only, minBookings: r.min_bookings, active: r.active }),
+  report: r => ({ id: r.id, bookingId: r.booking_id, complexId: r.complex_id, playerId: r.player_id, playerName: r.player_name, kind: r.kind, text: r.text, status: r.status, response: r.response, createdAt: r.created_at, resolvedAt: r.resolved_at }),
   review: r => ({ id: r.id, complexId: r.complex_id, bookingId: r.booking_id, playerId: r.player_id, playerName: r.player_name, rating: r.rating, text: r.text, tags: r.tags || [], hidden: r.hidden, reported: r.reported, reply: r.reply, createdAt: r.created_at }),
   wait: r => ({ id: r.id, complexId: r.complex_id, courtId: r.court_id, date: r.slot_date, time: r.slot_time, playerId: r.player_id, playerName: r.player_name, phone: r.phone, notifiedAt: r.notified_at, createdAt: r.created_at }),
   fixed: r => ({ id: r.id, bookingId: r.booking_id, complexId: r.complex_id, courtId: r.court_id, playerId: r.player_id, playerName: r.player_name, phone: r.phone, weekday: r.weekday, time: r.slot_time, weeks: r.weeks, startDate: r.start_date, status: r.status, created: r.created, skipped: r.skipped || [], decidedAt: r.decided_at, createdAt: r.created_at }),
@@ -28,11 +29,12 @@ const M = {
 
 /* ---------- Estado → filas ---------- */
 const R = {
-  complex: c => ({ id: c.id, owner_id: c.ownerId, name: c.name, slug: c.slug, city: c.city || '', address: c.address || '', lat: c.lat ?? null, lng: c.lng ?? null, phone: c.phone || '', whatsapp: c.whatsapp || '', description: c.description || '', services: c.services || [], cover_url: c.coverUrl || '', gallery: c.gallery || [], hours: c.hours, booking: c.booking, active: c.active !== false, public: c.public !== false, approval: c.approval || 'pending' }),
+  complex: c => ({ id: c.id, owner_id: c.ownerId, name: c.name, slug: c.slug, city: c.city || '', address: c.address || '', lat: c.lat ?? null, lng: c.lng ?? null, phone: c.phone || '', whatsapp: c.whatsapp || '', description: c.description || '', services: c.services || [], cover_url: c.coverUrl || '', gallery: c.gallery || [], verified: !!c.verified, hours: c.hours, booking: c.booking, active: c.active !== false, public: c.public !== false, approval: c.approval || 'pending' }),
   court: c => ({ id: c.id, complex_id: c.complexId, name: c.name, sport: c.sport, surface: c.surface, covered: !!c.covered, lighting: c.lighting !== false, price_cents: c.priceCents || 0, price_rules: c.priceRules || [], description: c.description || '', features: c.features || [], photo: c.photo || '', status: c.status || 'active' }),
   booking: b => ({ id: b.id, complex_id: b.complexId, court_id: b.courtId, player_id: b.playerId || null, player_name: b.playerName || '', phone: b.phone || '', booking_date: b.date, booking_time: b.time, duration_min: b.durationMin || 60, base_cents: b.baseCents || 0, discount_cents: b.discountCents || 0, promo_name: b.promoName || '', total_cents: b.totalCents || 0, deposit_cents: b.depositCents || 0, paid_cents: b.paidCents || 0, refund_cents: b.refundCents || 0, payment_mode: b.paymentMode || 'deposit', payment_status: b.paymentStatus || 'pending', pay_method: b.payMethod || '', status: b.status, source: b.source || 'app', note: b.note || '', series_id: b.seriesId || null, reminder_at: b.reminderAt || null, lineup: b.lineup || null, expires_at: b.expiresAt || null, cancelled_at: b.cancelledAt || null, cancelled_by: b.cancelledBy || null }),
   block: b => ({ id: b.id, complex_id: b.complexId, court_id: b.courtId, block_date: b.date, block_time: b.time, reason: b.reason || '' }),
   promotion: p => ({ id: p.id, complex_id: p.complexId, name: p.name || '', kind: p.kind, value: p.value || 0, court_id: nz(p.courtId), time_from: p.timeFrom || '', time_to: p.timeTo || '', date_from: nz(p.dateFrom), date_to: nz(p.dateTo), only_today: !!p.onlyToday, frequent_only: !!p.frequentOnly, min_bookings: p.minBookings || 5, active: p.active !== false }),
+  report: r => ({ id: r.id, booking_id: r.bookingId || null, complex_id: r.complexId, player_id: r.playerId, player_name: r.playerName || '', kind: r.kind, text: r.text || '', status: r.status, response: r.response || '' }),
   review: r => ({ id: r.id, complex_id: r.complexId, booking_id: r.bookingId || null, player_id: r.playerId || null, player_name: r.playerName || '', rating: r.rating, text: r.text || '', tags: r.tags || [], hidden: !!r.hidden, reported: !!r.reported, reply: r.reply || null }),
   wait: w => ({ id: w.id, complex_id: w.complexId, court_id: w.courtId, slot_date: w.date, slot_time: w.time, player_id: w.playerId, player_name: w.playerName || '', phone: w.phone || '' }),
   fixed: f => ({ id: f.id, booking_id: f.bookingId || null, complex_id: f.complexId, court_id: f.courtId, player_id: f.playerId, player_name: f.playerName || '', phone: f.phone || '', weekday: f.weekday, slot_time: f.time, weeks: f.weeks, start_date: f.startDate, status: f.status, created: f.created || 0, skipped: f.skipped || [], decided_at: f.decidedAt || null }),
@@ -59,7 +61,7 @@ async function busyFor(complexes, mine = []) {
 const base = extra => ({
   app: { version: 'remote', demoMode: false },
   users: [], complexes: [], courts: [], bookings: [], blocks: [], promotions: [], reviews: [],
-  favorites: [], waitlist: [], fixedRequests: [], notifications: [], settings: {}, ...extra,
+  favorites: [], waitlist: [], fixedRequests: [], reports: [], notifications: [], settings: {}, ...extra,
 })
 
 /** Estado para visitantes sin sesión (ficha pública de un complejo). */
@@ -79,7 +81,7 @@ export async function loadRemoteState(authUser) {
     ;[profile] = await run(supabase.from('profiles').insert({ id: authUser.id, name: authUser.user_metadata?.name || '', phone: authUser.phone || authUser.user_metadata?.phone || '', email: authUser.email || '' }).select('*'))
   }
   const me = M.profile(profile)
-  const [complexes, courts, bookings, blocks, promotions, reviews, favs, waits, fixed, notes, settings, users, cnotes] = await Promise.all([
+  const [complexes, courts, bookings, blocks, promotions, reviews, favs, waits, fixed, notes, settings, users, cnotes, reports] = await Promise.all([
     run(supabase.from('complexes').select('*').order('created_at')),
     run(supabase.from('courts').select('*').order('created_at')),
     run(supabase.from('bookings').select('*').gte('booking_date', addDays(todayISO(), me.role === 'player' ? -180 : -120))),
@@ -93,6 +95,7 @@ export async function loadRemoteState(authUser) {
     run(supabase.from('app_settings').select('*')),
     me.role === 'admin' ? run(supabase.from('profiles').select('*').order('created_at', { ascending: false })) : Promise.resolve([profile]),
     me.role === 'player' ? Promise.resolve([]) : run(supabase.from('client_notes').select('*')).catch(() => []),
+    run(supabase.from('reports').select('*').order('created_at', { ascending: false })).catch(() => []),
   ])
   const cx = complexes.map(M.complex)
   const mine = bookings.map(M.booking)
@@ -102,7 +105,7 @@ export async function loadRemoteState(authUser) {
     users: users.map(M.profile),
     complexes: cx, courts: courts.map(M.court), bookings: [...mine, ...busy],
     blocks: blocks.map(M.block), promotions: promotions.map(M.promotion), reviews: reviews.map(M.review),
-    favorites: favs.map(f => f.complex_id), waitlist: waits.map(M.wait), fixedRequests: fixed.map(M.fixed),
+    reports: reports.map(M.report), favorites: favs.map(f => f.complex_id), waitlist: waits.map(M.wait), fixedRequests: fixed.map(M.fixed),
     notifications: notes.map(M.notification),
     settings: Object.fromEntries(settings.map(s => [s.key, s.value])),
     clientNotes: Object.fromEntries(cnotes.map(n => [`${n.complex_id}|${n.client_key}`, n.note])),
@@ -141,6 +144,7 @@ export async function syncRemoteDiff(prev, next) {
   await syncTable('court_blocks', prev.blocks, next.blocks, R.block)
   await syncTable('promotions', prev.promotions, next.promotions, R.promotion)
   await syncTable('reviews', prev.reviews, next.reviews, R.review, { del: me.role === 'admin' })
+  await syncTable('reports', prev.reports, next.reports, R.report, { del: false })
   await syncTable('waitlist', prev.waitlist, next.waitlist, R.wait, { keep: w => w.playerId === me.id })
   await syncTable('fixed_requests', prev.fixedRequests, next.fixedRequests, R.fixed, { del: false })
   // Favoritos

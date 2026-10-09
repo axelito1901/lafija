@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, m as motion } from 'motion/react'
-import { CalendarCheck, CalendarX, Heart, HeartOff, LogOut } from 'lucide-react'
+import { CalendarCheck, CalendarX, Clock, Compass, Crown, Flame, Goal, Heart, HeartOff, Lock, LogOut, Moon, Shirt, Star as StarI, Sun, Trophy } from 'lucide-react'
+import { cn } from '../../lib/format'
 import { Item, Stagger, spring, CountUp } from '../../ui/motion'
 import { useStore } from '../../lib/store'
-import { nextTimes, effStatus, rebookLink, reviewOf, favsOf, freeCount, isUpcoming, leaveWaitlist, publicComplexes, toggleFav } from '../../lib/domain'
+import { playerStats, nextTimes, effStatus, rebookLink, reviewOf, favsOf, freeCount, isUpcoming, leaveWaitlist, publicComplexes, toggleFav } from '../../lib/domain'
 import { relativeDay, todayISO } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { navigate } from '../../lib/router'
@@ -96,6 +97,8 @@ export function PlayerFavorites() {
   )
 }
 
+const BADGE_ICON = { goal: Goal, shirt: Shirt, trophy: Trophy, crown: Crown, flame: Flame, moon: Moon, sun: Sun, compass: Compass, star: StarI }
+
 export function Account({ theme, onSignOut }) {
   const { state, user, update } = useStore()
   const [big, setBig] = useBigText()
@@ -103,6 +106,8 @@ export function Account({ theme, onSignOut }) {
   const [pushMsg, setPushMsg] = useState(pushPermission() === 'unsupported' ? 'Este navegador no permite avisos (en iPhone, agregá La Fija a la pantalla de inicio).' : pushPermission() === 'denied' ? 'Los avisos están bloqueados en la configuración del navegador.' : '')
   const toast = useToast()
   const [f, setF] = useState({ name: user.name, phone: user.phone || '' })
+  const stats = playerStats(state, user.id)
+  const [badge, setBadge] = useState(null)
   const [err, setErr] = useState({})
   const dirty = f.name !== user.name || f.phone !== (user.phone || '')
   const save = e => {
@@ -120,10 +125,23 @@ export function Account({ theme, onSignOut }) {
           <span className="size-16 rounded-2xl grid place-items-center bg-white/20 backdrop-blur display text-2xl font-bold flex-none">{user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</span>
           <div className="min-w-0 flex-1"><p className="display text-2xl font-bold leading-tight truncate">{user.name}</p><p className="text-sm opacity-90 truncate">{user.email}</p></div>
         </Item>
-        <Item className="grid grid-cols-3 gap-3 mt-3 mb-8">
-          {[[CalendarCheck, 'Reservas', state.bookings.filter(b => b.playerId === user.id && effStatus(b) !== 'cancelled').length], [CalendarCheck, 'Jugadas', state.bookings.filter(b => b.playerId === user.id && effStatus(b) === 'completed').length], [Heart, 'Favoritas', favsOf(state, user.id).length]].map(([I, k, v]) => (
+        {user.role === 'player' ? <>
+        <Item className="grid grid-cols-3 gap-3 mt-3">
+          {[[CalendarCheck, 'Partidos', stats.played], [Flame, 'Racha (sem.)', stats.thisStreak], [Clock, 'Horas', Math.round(stats.hours)]].map(([I, k, v]) => (
             <div key={k} className="rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-3 text-center"><I size={18} className="mx-auto text-brand" aria-hidden="true" /><div className="display text-2xl font-bold tnum mt-1"><CountUp value={v} /></div><div className="text-xs text-muted">{k}</div></div>))}
         </Item>
+        {stats.favoriteComplex && <Item className="mt-3 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-3.5 flex items-center gap-3"><span className="size-10 rounded-xl grid place-items-center bg-brand-soft text-brand flex-none"><Heart size={20} aria-hidden="true" /></span><div className="min-w-0"><p className="text-xs text-muted">Tu cancha de siempre</p><p className="font-semibold truncate">{stats.favoriteComplex.name} <span className="text-muted font-normal">· {stats.favoriteCount} {stats.favoriteCount === 1 ? 'partido' : 'partidos'}</span></p></div></Item>}
+        <Item className="mt-6 mb-8">
+          <div className="flex items-baseline justify-between mb-2"><h2 className="text-base font-semibold">Logros</h2><span className="text-sm text-muted tnum">{stats.badges.filter(x => x.earned).length} de {stats.badges.length}</span></div>
+          <div className="grid grid-cols-3 gap-2.5">{stats.badges.map((x, i) => { const I = BADGE_ICON[x.icon]; return (
+            <motion.button key={x.id} type="button" onClick={() => setBadge(x)} whileTap={{ scale: .94 }} initial={{ opacity: 0, scale: .85 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...spring, delay: i * .04 }}
+              className={cn('rounded-2xl p-3 text-center border', x.earned ? 'bg-surface border-line shadow-[var(--sh-1)]' : 'bg-sunken border-transparent')} aria-label={`${x.title}: ${x.text}${x.earned ? '' : ' (sin conseguir)'}`}>
+              <span className={cn('mx-auto size-12 rounded-2xl grid place-items-center', x.earned ? 'bg-[image:var(--grad-brand)] text-[var(--on-grad)] shadow-[0_8px_16px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)]' : 'bg-surface text-faint')}>{x.earned ? <I size={24} aria-hidden="true" /> : <Lock size={20} aria-hidden="true" />}</span>
+              <span className={cn('block text-sm font-semibold mt-2 leading-tight', !x.earned && 'text-muted')}>{x.title}</span>
+            </motion.button>) })}</div>
+          {badge && <p className="mt-3 rounded-xl bg-brand-soft text-brand text-sm font-medium px-3 py-2" role="status">{badge.earned ? '🏅 ' : '🔒 '}{badge.title}: {badge.text}</p>}
+        </Item>
+        </> : <div className="mb-8" />}
         </Stagger>
         <form onSubmit={save} className="space-y-4" noValidate>
           <Field label="Nombre y apellido" error={err.name}><Input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} autoComplete="name" /></Field>

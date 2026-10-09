@@ -1,6 +1,6 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { PageFade } from './ui/motion'
-import { CalendarCheck, CalendarDays, ClipboardList, CircleUser, Ellipsis, Heart, House, LayoutGrid, Search as SearchIcon, Store, Tags, Users, Wallet, Building2, UserRound, Star, BarChart3 } from 'lucide-react'
+import { CalendarCheck, CalendarDays, ClipboardList, CircleUser, Ellipsis, Heart, House, LayoutGrid, Search as SearchIcon, Store, Tags, Users, Wallet, Building2, UserRound, Star, BarChart3, Flag } from 'lucide-react'
 import { useStore } from './lib/store'
 import { useTheme } from './lib/theme'
 import { homeFor } from './lib/roles'
@@ -27,7 +27,7 @@ const Search = L(() => import('./screens/player/Search'))
 const OwnerHome = L(owner, 'OwnerHome'), OwnerBookings = L(owner, 'OwnerBookings'), OwnerClients = L(owner, 'OwnerClients')
 const Agenda = L(owner, 'Agenda'), Courts = L(owner, 'Courts'), Finance = L(owner, 'Finance'), More = L(owner, 'More'), Promotions = L(owner, 'Promotions')
 const Settings = L(owner, 'Settings'), OwnerReviews = L(owner, 'OwnerReviews'), Stats = L(owner, 'Stats'), OwnerPreview = L(owner, 'OwnerPreview')
-const AdminHome = L(admin, 'AdminHome'), AdminComplexes = L(admin, 'AdminComplexes'), AdminUsers = L(admin, 'AdminUsers'), AdminBookings = L(admin, 'AdminBookings'), AdminReviews = L(admin, 'AdminReviews'), Revenue = L(admin, 'Revenue')
+const AdminHome = L(admin, 'AdminHome'), AdminComplexes = L(admin, 'AdminComplexes'), AdminUsers = L(admin, 'AdminUsers'), AdminBookings = L(admin, 'AdminBookings'), AdminReviews = L(admin, 'AdminReviews'), AdminReports = L(admin, 'AdminReports'), Revenue = L(admin, 'Revenue')
 
 const PageSkeleton = () => (
   <div className="px-4 md:px-6 lg:px-8 py-6 max-w-[1120px] mx-auto space-y-4" aria-busy="true" aria-label="Cargando">
@@ -45,7 +45,7 @@ const NAV = {
   },
   admin: {
     mobile: [{ to: '/admin', label: 'Inicio', icon: House, exact: true }, { to: '/admin/complejos', label: 'Complejos', icon: Building2 }, { to: '/admin/usuarios', label: 'Usuarios', icon: Users }, { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/admin/resenas', label: 'Reseñas', icon: Star }],
-    desktop: [{ to: '/admin', label: 'Inicio', icon: House, exact: true }, { to: '/admin/complejos', label: 'Complejos', icon: Building2 }, { to: '/admin/usuarios', label: 'Usuarios', icon: Users }, { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/admin/resenas', label: 'Reseñas', icon: Star }, { to: '/admin/ingresos', label: 'Ingresos', icon: Wallet }],
+    desktop: [{ to: '/admin', label: 'Inicio', icon: House, exact: true }, { to: '/admin/complejos', label: 'Complejos', icon: Building2 }, { to: '/admin/usuarios', label: 'Usuarios', icon: Users }, { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/admin/resenas', label: 'Reseñas', icon: Star }, { to: '/admin/ingresos', label: 'Ingresos', icon: Wallet }, { to: '/admin/reportes', label: 'Problemas', icon: Flag }],
   },
 }
 for (const k of Object.keys(NAV)) NAV[k].desktop ||= NAV[k].mobile
@@ -99,6 +99,7 @@ function renderRoute(role, path, theme, signOut) {
       case '/admin/usuarios': return <AdminUsers />
       case '/admin/reservas': return <AdminBookings />
       case '/admin/resenas': return <AdminReviews />
+      case '/admin/reportes': return <AdminReports />
       case '/admin/ingresos': return <Revenue />
     }
   }

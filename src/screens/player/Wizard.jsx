@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, Lightbulb, Umbrella } from 'lucide-react'
 import { AnimatePresence, m as motion } from 'motion/react'
 import { Cover } from '../../ui/Cover'
+import { WeatherChip } from '../../ui/trust'
 import { Item, Stagger, spring } from '../../ui/motion'
 import { useStore } from '../../lib/store'
 import { joinWaitlist, leaveWaitlist, perPerson, activeCourts, freeCount, freeSlots, getComplex, priceFor, publicComplexes, quote, slotInfo, slotsFor, SPORTS } from '../../lib/domain'
@@ -129,7 +130,8 @@ export default function Wizard({ id, inShell = true }) {
 
         {step === 2 && court && <StepView k="h" dir={dir}>
           <h1 className="text-2xl font-semibold tracking-tight">¿A qué hora?</h1>
-          <p className="text-muted mt-1 mb-4">{relativeDay(date)} · {court.name} · {court.sport}</p>
+          <p className="text-muted mt-1 mb-2">{relativeDay(date)} · {court.name} · {court.sport}</p>
+          <WeatherChip complex={complex} court={court} date={date} time={time || '19:00'} className="mb-4" />
           {freeSlots(state, complex, court, date, now).length === 0
             ? <Empty title="No quedan horarios" text="Probá con otro día u otra cancha." action={<Button variant="secondary" onClick={() => setStep(0)}>Elegir otro día</Button>} />
             : PARTS.map(([label, test]) => {

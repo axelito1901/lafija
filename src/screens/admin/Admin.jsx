@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Building2, CalendarCheck, ChevronRight, Flag, Store, Users } from 'lucide-react'
+import { BadgeCheck, Building2, CalendarCheck, ChevronRight, Flag, Store, Users } from 'lucide-react'
 import { AnimatePresence, m as motion } from 'motion/react'
 import { Item, Stagger, spring } from '../../ui/motion'
 import { Kpi } from '../../ui/dash'
 import { Cover } from '../../ui/Cover'
 import { useStore } from '../../lib/store'
-import { notify, cancelBooking, courtsOf, effStatus, getComplex, getCourt, paymentLabel, ratingOf, STATUS, STATUS_ORDER } from '../../lib/domain'
+import { notify, REPORT_KINDS, resolveReport, verifyChecks, cancelBooking, courtsOf, effStatus, getComplex, getCourt, paymentLabel, ratingOf, STATUS, STATUS_ORDER } from '../../lib/domain'
 import { dateLong, money, slotEnd, todayISO } from '../../lib/format'
 import { Link } from '../../lib/router'
 import { ROLE_LABEL } from '../../lib/roles'
@@ -21,6 +21,7 @@ export function AdminHome({ theme, onSignOut }) {
   const todays = state.bookings.filter(b => b.date === today && effStatus(b) !== 'cancelled').length
   const reported = state.reviews.filter(r => r.reported && !r.hidden).length
   const pendingCx = state.complexes.filter(c => c.approval === 'pending').length
+  const openReports = (state.reports || []).filter(r => r.status === 'open').length
   const recent = [...state.bookings].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6)
   return (
     <>
@@ -36,6 +37,7 @@ export function AdminHome({ theme, onSignOut }) {
         <Item className="mt-6"><h2 className="text-base font-semibold mb-3">Para revisar</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {[pendingCx > 0 && { to: '/admin/complejos', icon: Building2, tone: 'warn', t: `${pendingCx} ${pendingCx === 1 ? 'complejo espera' : 'complejos esperan'} aprobación`, s: 'Revisá y publicalos' },
+              openReports > 0 && { to: '/admin/reportes', icon: Flag, tone: 'warn', t: `${openReports} ${openReports === 1 ? 'problema reportado' : 'problemas reportados'} por jugadores`, s: 'Esperando respuesta del complejo' },
               reported > 0 && { to: '/admin/resenas', icon: Flag, tone: 'warn', t: `${reported} ${reported === 1 ? 'reseña reportada' : 'reseñas reportadas'}`, s: 'Moderación pendiente' },
               state.complexes.some(c => !c.active) && { to: '/admin/complejos', icon: Store, tone: 'info', t: 'Hay complejos desactivados', s: 'No reciben reservas nuevas' },
               { to: '/admin/ingresos', icon: CalendarCheck, tone: 'brand', t: 'Ingresos de La Fija', s: 'Cuánto corresponde cobrar este mes' }].filter(Boolean).map(x => (
@@ -97,8 +99,14 @@ export function AdminComplexes() {
             <Info k="Dirección">{c.address}</Info><Info k="Canchas">{courtsOf(state, c.id).length}</Info>
             <Info k="Reservas">{state.bookings.filter(b => b.complexId === c.id).length}</Info>
             <Info k="Reseñas">{ratingOf(state, c.id).count ? `${ratingOf(state, c.id).avg.toFixed(1).replace('.', ',')} (${ratingOf(state, c.id).count})` : 'Sin reseñas'}</Info>
+            <Info k="Verificación">{c.verified ? <Status tone="ok">Verificado</Status> : <Status tone="muted">Sin verificar</Status>}</Info>
             <Info k="Estado">{(c.approval || 'approved') === 'pending' ? <Status tone="warn">En revisión</Status> : <Status tone={c.active ? 'ok' : 'danger'}>{c.active ? 'Activo' : 'Desactivado'}</Status>}</Info>
           </dl>
+          <div className="mt-4 rounded-2xl border border-line p-4">
+            <div className="flex items-center gap-2 font-semibold"><BadgeCheck size={18} className="text-brand" />Verificación</div>
+            <ul className="mt-2 space-y-1.5 text-sm">{verifyChecks(state, c).map(([l, ok]) => <li key={l} className={ok ? '' : 'text-danger'}>{ok ? '✓' : '✕'} {l}</li>)}</ul>
+            <Switch label="Complejo verificado" hint="Muestra la insignia a los jugadores. Ponela solo si lo revisaste." checked={!!c.verified} onChange={v => { update(s2 => { s2.complexes.find(y => y.id === c.id).verified = v }); toast(v ? 'Complejo verificado.' : 'Se quitó la verificación.') }} />
+          </div>
           <p className="hint">Un complejo desactivado deja de aparecer en búsquedas y no recibe reservas nuevas. Las reservas existentes se conservan.</p>
         </>}
       </Sheet>
@@ -208,6 +216,34 @@ export function AdminReviews() {
                 <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: '¿Eliminar la reseña?', message: 'No se puede deshacer.', confirmLabel: 'Eliminar', danger: true })) { update(s => { s.reviews = s.reviews.filter(x => x.id !== r.id) }); toast('Reseña eliminada.') } }}>Eliminar</Button>
               </div>
             </Item>))}</Stagger>)}</div>
+      </Content>
+    </>
+  )
+}
+
+export function AdminReports() {
+  const { state } = useStore()
+  const toast = useToast()
+  const { update } = useStore()
+  const [tab, setTab] = useState('open')
+  const [reply, setReply] = useState({})
+  const list = (state.reports || []).filter(r => r.status === tab).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return (
+    <>
+      <PageHeader back="/admin" title="Problemas reportados" sub="Avisos de jugadores sobre sus reservas" />
+      <Content className="max-w-[760px] lg:mx-0">
+        <Segmented className="sm:max-w-sm" value={tab} onChange={setTab} label="Estado" options={[{ value: 'open', label: `Abiertos (${(state.reports || []).filter(r => r.status === 'open').length})` }, { value: 'resolved', label: 'Resueltos' }]} />
+        <div className="mt-4 space-y-3">{list.length === 0 ? <Empty icon={Flag} title={tab === 'open' ? 'No hay problemas abiertos' : 'Todavía no hay reportes resueltos'} text="Cuando un jugador avise un problema, aparece acá." /> : list.map(r => {
+          const c = getComplex(state, r.complexId), b = state.bookings.find(x => x.id === r.bookingId)
+          return (
+            <div key={r.id} className="p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)]">
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{REPORT_KINDS[r.kind]}</p><p className="text-sm text-muted">{r.playerName} · {c?.name}{b ? ` · ${b.date.split('-').reverse().slice(0, 2).join('/')} ${b.time}` : ''}</p></div><Status tone={r.status === 'open' ? 'warn' : 'ok'}>{r.status === 'open' ? 'Abierto' : 'Resuelto'}</Status></div>
+              {r.text && <p className="mt-2">“{r.text}”</p>}
+              {r.status === 'resolved' && r.response && <p className="mt-2 pl-3 border-l-2 border-brand text-sm"><strong>Respuesta:</strong> {r.response}</p>}
+              {r.status === 'open' && <div className="mt-3"><Input value={reply[r.id] || ''} onChange={e => setReply({ ...reply, [r.id]: e.target.value })} placeholder="Respuesta para el jugador (opcional)" aria-label="Respuesta" />
+                <Button size="sm" className="mt-2" onClick={() => { update(s => resolveReport(s, r.id, reply[r.id])); toast('Reporte resuelto. Le avisamos al jugador.') }}>Marcar como resuelto</Button></div>}
+            </div>)
+        })}</div>
       </Content>
     </>
   )

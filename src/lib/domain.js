@@ -506,3 +506,74 @@ export function addReview(state, { booking, user, rating, text, tags }) {
   notify(state, { userId: complex?.ownerId, type: 'review_new', title: `Nueva reseña: ${'★'.repeat(rating)}`, text: `${review.playerName} calificó ${complex?.name}${review.text ? `: “${review.text.slice(0, 80)}”` : '.'}`, bookingId: booking.id, complexId: booking.complexId, link: '/dueno/resenas' })
   return review
 }
+
+/* ---------- Confianza y verificación ---------- */
+/* Lo que revisa La Fija antes de poner la insignia "Verificado". */
+export function verifyChecks(state, c) {
+  const cs = state.courts.filter(x => x.complexId === c.id)
+  return [
+    ['Foto de portada', !!c.coverUrl], ['Dirección y ubicación en el mapa', !!(c.address?.trim() && c.lat != null)],
+    ['Descripción del complejo', (c.description || '').trim().length >= 20], ['Al menos una cancha con precio', cs.some(x => x.priceCents > 0)],
+    ['Teléfono o WhatsApp de contacto', !!(c.whatsapp || c.phone)], ['Horarios de atención cargados', !!(c.hours?.open && c.hours?.close)],
+  ]
+}
+/* Datos reales de cómo se porta el complejo: se calculan de las reservas y reseñas, no los carga nadie. */
+export function trustOf(state, complexId, now = new Date()) {
+  const c = getComplex(state, complexId)
+  const bs = state.bookings.filter(b => b.complexId === complexId && !b._busy && b.source !== 'busy')
+  const played = bs.filter(b => effStatus(b, now) === 'completed').length
+  const booked = bs.filter(b => b.cancelledBy || ['completed', 'confirmed', 'deposit_paid', 'no_show'].includes(effStatus(b, now))).length
+  const byComplex = bs.filter(b => effStatus(b, now) === 'cancelled' && b.cancelledBy === 'owner').length
+  const rs = (state.reviews || []).filter(r => r.complexId === complexId && !r.hidden)
+  const answered = rs.filter(r => r.reply).length
+  return { verified: !!c?.verified, played, byComplex, cancelPct: booked ? Math.round(byComplex / booked * 100) : 0, reviews: rs.length, answeredPct: rs.length ? Math.round(answered / rs.length * 100) : null }
+}
+
+/* ---------- Problemas con una reserva ---------- */
+export const REPORT_KINDS = { closed: 'Estaba cerrado o no abrieron', price: 'Me cobraron distinto', state: 'La cancha estaba en mal estado', late: 'Nos hicieron esperar', other: 'Otro problema' }
+export const reportOf = (state, bookingId) => (state.reports || []).filter(r => r.bookingId === bookingId).pop()
+export function addReport(state, { booking, user, kind, text }) {
+  const complex = getComplex(state, booking.complexId)
+  const r = { id: uid('rp'), bookingId: booking.id, complexId: booking.complexId, playerId: user.id, playerName: user.name, kind, text: (text || '').trim(), status: 'open', response: '', createdAt: new Date().toISOString() }
+  ;(state.reports ||= []).push(r)
+  const msg = `${user.name.split(' ')[0]} avisó: ${REPORT_KINDS[kind].toLowerCase()} (${complex?.name} · ${when(booking)}).`
+  notify(state, { userId: complex?.ownerId, type: 'report', title: 'Un jugador avisó un problema', text: msg, bookingId: booking.id, complexId: booking.complexId, link: '/dueno/reservas' })
+  for (const a of state.users.filter(u => u.role === 'admin')) notify(state, { userId: a.id, type: 'report', title: 'Nuevo reporte de un jugador', text: msg, bookingId: booking.id, complexId: booking.complexId, link: '/admin/reportes' })
+  return r
+}
+export function resolveReport(state, id, response) {
+  const r = (state.reports || []).find(x => x.id === id)
+  if (!r) return
+  r.status = 'resolved'; r.response = (response || '').trim(); r.resolvedAt = new Date().toISOString()
+  notify(state, { userId: r.playerId, type: 'report_resolved', title: 'Respondieron tu reporte', text: r.response || 'El problema que avisaste quedó resuelto.', bookingId: r.bookingId, complexId: r.complexId, link: '/reservas' })
+}
+
+/* ---------- Perfil del jugador ---------- */
+const mondayKey = iso => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10) }
+export const BADGES = [
+  { id: 'first', icon: 'goal', title: 'Debut', text: 'Jugaste tu primer partido', ok: s => s.played >= 1 },
+  { id: 'p5', icon: 'shirt', title: 'Habitual', text: '5 partidos jugados', ok: s => s.played >= 5 },
+  { id: 'p10', icon: 'trophy', title: 'De la casa', text: '10 partidos jugados', ok: s => s.played >= 10 },
+  { id: 'p25', icon: 'crown', title: 'Leyenda', text: '25 partidos jugados', ok: s => s.played >= 25 },
+  { id: 'streak', icon: 'flame', title: 'En racha', text: '3 semanas seguidas jugando', ok: s => s.bestStreak >= 3 },
+  { id: 'night', icon: 'moon', title: 'Nocturno', text: '3 partidos después de las 21', ok: s => s.nights >= 3 },
+  { id: 'early', icon: 'sun', title: 'Madrugador', text: '3 partidos antes de las 12', ok: s => s.mornings >= 3 },
+  { id: 'explorer', icon: 'compass', title: 'Explorador', text: 'Jugaste en 3 complejos distintos', ok: s => s.complexes >= 3 },
+  { id: 'critic', icon: 'star', title: 'Crítico', text: 'Dejaste 3 reseñas', ok: s => s.reviews >= 3 },
+]
+export function playerStats(state, userId, now = new Date()) {
+  const played = playedBookings(state, userId, now)
+  const weeks = [...new Set(played.map(b => mondayKey(b.date)))].sort()
+  let best = 0, run = 0, prev = null
+  for (const w of weeks) { run = prev && Math.round((new Date(w) - new Date(prev)) / 604800000) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = w }
+  const count = {}; for (const b of played) count[b.complexId] = (count[b.complexId] || 0) + 1
+  const fav = Object.entries(count).sort((a, b) => b[1] - a[1])[0]
+  const s = {
+    played: played.length, spent: played.reduce((t, b) => t + (b.paidCents || 0), 0), bestStreak: best,
+    thisStreak: weeks.length && Math.round((new Date(mondayKey(todayISO())) - new Date(weeks[weeks.length - 1])) / 604800000) <= 1 ? run : 0,
+    nights: played.filter(b => b.time >= '21:00').length, mornings: played.filter(b => b.time < '12:00').length,
+    complexes: Object.keys(count).length, favoriteComplex: fav ? getComplex(state, fav[0]) : null, favoriteCount: fav?.[1] || 0,
+    reviews: (state.reviews || []).filter(r => r.playerId === userId).length, hours: played.reduce((t, b) => t + (b.durationMin || 60) / 60, 0),
+  }
+  return { ...s, badges: BADGES.map(b => ({ ...b, earned: b.ok(s) })) }
+}

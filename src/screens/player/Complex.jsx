@@ -7,6 +7,7 @@ import { addDays, cn, dateHeading, mapsLink, money, telLink, todayISO, waLink } 
 import { navigate, useRoute } from '../../lib/router'
 import { Button, Content, Empty, IconButton, PageHeader, Rating, Section, Skeleton, Stars } from '../../ui/kit'
 import { Gallery } from '../../ui/Gallery'
+import { TrustPanel, VerifiedBadge } from '../../ui/trust'
 const MiniMap = lazy(() => import('../../ui/MapView').then(m => ({ default: m.MiniMap })))
 import { DateStrip } from '../../ui/shared'
 import { BookSheet, ConfirmedSheet } from './flow'
@@ -63,9 +64,10 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
           <div className="lg:col-start-1">
             <Gallery photos={[complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)} seed={complex.id} alt={`Foto de ${complex.name}`} className="aspect-[4/3] sm:aspect-[16/9] -mx-4 sm:mx-0 sm:rounded-3xl overflow-hidden shadow-[var(--sh-2)]" />
             <div className="mt-4 flex items-start justify-between gap-3">
-              <h2 className="text-3xl leading-tight min-w-0">{complex.name}</h2>
+              <h2 className="text-3xl leading-tight min-w-0 flex items-center gap-2">{complex.name}{complex.verified && <VerifiedBadge label={false} className="[&>svg]:size-6" />}</h2>
               <Rating value={rating.avg} count={rating.count} className="mt-2 flex-none" />
             </div>
+            <TrustPanel state={state} complex={complex} className="mt-4" />
             <a href={mapsLink(complex)} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 text-muted mt-1 hover:text-ink"><MapPin size={18} className="mt-0.5 flex-none" /><span><span className="underline underline-offset-4 decoration-line">{complex.address}</span></span></a>
             {complex.lat != null && <Suspense fallback={<Skeleton className="h-40 mt-4" />}><MiniMap lat={complex.lat} lng={complex.lng} href={mapsLink(complex)} className="h-40 mt-4" /></Suspense>}
             <div className="grid grid-cols-2 gap-2 mt-4">

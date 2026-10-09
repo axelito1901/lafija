@@ -1,8 +1,8 @@
 import { useState, useSyncExternalStore } from 'react'
-import { Check, ChevronDown, HandCoins, MessageCircle, Mic, Phone, Plus, Repeat2 } from 'lucide-react'
+import { Check, ChevronDown, Flag, HandCoins, MessageCircle, Mic, Phone, Plus, Repeat2 } from 'lucide-react'
 import { listen, parseDictation, speechSupported } from '../../lib/voice'
 import { useStore } from '../../lib/store'
-import { notify, waitingFor, placeBooking, balanceOf, bookingStart, cancelBooking, clientsOf, courtsOf, depositFor, effStatus, getComplex, getCourt, ownerComplexes, paymentLabel, quote, slotInfo, slotsFor, STATUS } from '../../lib/domain'
+import { notify, reportOf, resolveReport, REPORT_KINDS, waitingFor, placeBooking, balanceOf, bookingStart, cancelBooking, clientsOf, courtsOf, depositFor, effStatus, getComplex, getCourt, ownerComplexes, paymentLabel, quote, slotInfo, slotsFor, STATUS } from '../../lib/domain'
 import { dateShort, addDays, cn, dateLong, money, slotEnd, slugify, telLink, todayISO, uid, waLink } from '../../lib/format'
 import { navigate } from '../../lib/router'
 import { Button, Content, Empty, Field, Input, MoneyInput, PageHeader, Segmented, Select, Sheet, Textarea, useConfirm, useToast } from '../../ui/kit'
@@ -105,7 +105,9 @@ export function BookingEditor({ bookingId, onClose }) {
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState(false)
   const [repeat, setRepeat] = useState(false)
+  const [reply, setReply] = useState('')
   if (!b) return null
+  const rep = reportOf(state, b.id)
   const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
   const st = effStatus(b)
   const live = ['pending', 'deposit_paid', 'confirmed'].includes(st)
@@ -149,6 +151,13 @@ export function BookingEditor({ bookingId, onClose }) {
         <div className="min-w-0"><p className="font-semibold text-lg leading-tight truncate">{b.playerName}</p><p className="text-muted">{court?.name} · {b.time} a {slotEnd(b.time, b.durationMin || 60)}</p></div>
         <BookingStatus booking={b} />
       </div>
+      {rep && rep.status === 'open' && (
+        <div className="mt-3 rounded-2xl bg-warn-soft text-warn p-3.5">
+          <p className="font-semibold inline-flex items-center gap-2"><Flag size={16} />El jugador avisó un problema</p>
+          <p className="text-sm mt-0.5">{REPORT_KINDS[rep.kind]}{rep.text ? ` — “${rep.text}”` : ''}</p>
+          <Field label="Tu respuesta al jugador" className="mt-3 [&_label]:text-ink"><Textarea value={reply} maxLength={300} onChange={e => setReply(e.target.value)} placeholder="Pedí disculpas, explicá qué pasó o cómo lo resolvés…" /></Field>
+          <Button size="sm" className="mt-2" onClick={() => { update(s => resolveReport(s, rep.id, reply)); toast('Respuesta enviada. El reporte quedó resuelto.') }}>Responder y marcar resuelto</Button>
+        </div>)}
       <dl className="divide-y divide-line border-y border-line mt-3">
         <Info k="Día">{dateLong(b.date)}</Info>
         <Info k="Importe">{money(b.totalCents)}{b.discountCents > 0 && <span className="text-muted text-sm"> (promo −{money(b.discountCents)})</span>}</Info>
