@@ -25,7 +25,7 @@ export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date }) 
     <article id={id} className={cn('tile', selected && '!border-brand ring-1 ring-brand')}>
       <div className="relative">
         <Link to={`/complejo/${c.slug}`} tabIndex={-1} aria-hidden="true" className="block relative overflow-hidden group/cover">
-          <Cover src={c.coverUrl} seed={c.id} className="aspect-[16/9] [&>img]:transition-transform [&>img]:duration-700 group-hover/cover:[&>img]:scale-110" />
+          <Cover src={c.coverUrl} seed={c.id} className="aspect-[16/9] lg:aspect-[2/1] [&>img]:transition-transform [&>img]:duration-700 group-hover/cover:[&>img]:scale-110" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </Link>
         {c.fromPrice != null && <span className="absolute left-3 bottom-3 text-white font-semibold tnum text-sm bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1">Desde {money(c.fromPrice)}</span>}

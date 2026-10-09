@@ -23,22 +23,40 @@ function useDark() {
   }, [])
   return dark
 }
-/* Mosaicos gratis y sin clave. Si el primer proveedor no carga (red, bloqueador, caída), pasamos al siguiente solos. */
+/* Mosaicos gratis y sin clave. Si un proveedor no carga (red, bloqueador, caída), pasamos al siguiente solos. */
 const PROVIDERS = [
   { id: 'carto', url: d => d ? TILES.dark : TILES.light, sub: 'abcd', attr: ATTR },
   { id: 'osm', url: () => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', sub: 'abc', attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
+  { id: 'esri', url: () => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', sub: 'abc', attr: 'Tiles &copy; Esri' },
   { id: 'osm-fr', url: () => 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', sub: 'abc', attr: '&copy; OpenStreetMap France' },
 ]
-function Tiles({ maxZoom = 19, attribution }) {
+function Tiles({ maxZoom = 19, attribution, notice = true }) {
   const d = useDark()
   const [i, setI] = useState(0)
+  const [dead, setDead] = useState(false)
   const stat = useRef({ ok: 0, bad: 0 })
   const p = PROVIDERS[i]
   const ev = useMemo(() => ({
-    tileload: () => { stat.current.ok++ },
-    tileerror: () => { const s = stat.current; s.bad++; if (s.bad >= 3 && s.ok === 0 && i < PROVIDERS.length - 1) { stat.current = { ok: 0, bad: 0 }; setI(i + 1) } },
+    tileload: () => { stat.current.ok++; setDead(false) },
+    tileerror: () => {
+      const s = stat.current; s.bad++
+      if (s.bad < 4 || s.bad < s.ok * 2) return
+      stat.current = { ok: 0, bad: 0 }
+      if (i < PROVIDERS.length - 1) setI(i + 1); else setDead(true)
+    },
   }), [i])
-  return <TileLayer key={p.id + (d ? 'd' : 'l')} url={p.url(d)} attribution={attribution === undefined ? undefined : p.attr} maxZoom={maxZoom} subdomains={p.sub} className={p.id !== 'carto' && d ? 'tiles-invert' : ''} eventHandlers={ev} />
+  const retry = () => { stat.current = { ok: 0, bad: 0 }; setDead(false); setI(0) }
+  return (
+    <>
+      <TileLayer key={p.id + (d ? 'd' : 'l')} url={p.url(d)} attribution={attribution === undefined ? undefined : p.attr} maxZoom={maxZoom} subdomains={p.sub} className={p.id !== 'carto' && d ? 'tiles-invert' : ''} eventHandlers={ev} />
+      {dead && notice && (
+        <div className="absolute inset-x-3 bottom-14 z-[500] rounded-xl bg-surface border border-line shadow-[var(--sh-2)] p-3 text-sm flex items-center gap-3">
+          <span className="flex-1">No pudimos cargar el fondo del mapa. Los precios siguen funcionando; revisá tu conexión.</span>
+          <button type="button" className="btn btn-secondary btn-sm flex-none" onClick={retry}>Reintentar</button>
+        </div>
+      )}
+    </>
+  )
 }
 
 const pinIcon = (label, on) => divIcon({ className: '', html: `<div class="pin pin-pop${on ? ' on' : ''}">${label}</div>`, iconSize: [0, 0], iconAnchor: [0, 0], popupAnchor: [0, -38] })
@@ -140,7 +158,7 @@ export function MiniMap({ lat, lng, href, className = '' }) {
   return (
     <a href={href} target="_blank" rel="noreferrer" className={`map-box block overflow-hidden rounded-lg border border-line ${className}`} aria-label="Ver en el mapa y cómo llegar">
       <MapContainer center={[lat, lng]} zoom={15} className="h-full w-full pointer-events-none" style={{ minHeight: 160 }} dragging={false} scrollWheelZoom={false} doubleClickZoom={false} touchZoom={false} boxZoom={false} keyboard={false} zoomControl={false} attributionControl={false}>
-        <Tiles />
+        <Tiles notice={false} />
         <Marker position={[lat, lng]} icon={divIcon({ className: '', html: '<div class="pin-me" style="background:var(--brand);width:22px;height:22px"></div>', iconSize: [0, 0] })} />
       </MapContainer>
       <span className="absolute bottom-2 right-2 z-[400] bg-surface border border-line rounded-lg px-3 min-h-9 inline-flex items-center text-sm font-semibold">Cómo llegar</span>

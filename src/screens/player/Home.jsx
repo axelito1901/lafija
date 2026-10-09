@@ -106,12 +106,15 @@ function FullHome() {
   return (
     <>
       <PageHeader logo />
-      <Content className="max-w-[640px] lg:mx-0"><Stagger>
+      <Content className="max-w-[640px] lg:max-w-[1120px]"><Stagger>
         <Item><p className="display text-3xl font-bold mb-4">Hola, {user.name.split(' ')[0]} <span className="inline-block origin-[70%_70%] animate-[wave_2.2s_ease-in-out_1]">👋</span></p></Item>
+        <div className="lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-x-8 lg:items-start">
+        <div className="lg:col-start-1 lg:row-start-1">
         <Item className="empty:hidden mb-5"><RateCard onRate={(b, n) => { setStars(n); setReview(b) }} /></Item>
         {next && <Item className="mb-6"><Ticket b={next} onOpen={() => setOpen(next.id)} /></Item>}
 
-        <section aria-labelledby="cuando">
+        </div>
+        <section aria-labelledby="cuando" className="lg:col-start-2 lg:row-start-1 lg:row-span-3">
           <h2 id="cuando" className="text-2xl">¿Cuándo querés jugar?</h2>
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-3 pb-1" role="group" aria-label="Día" data-tour="buscar">
             {days.map(d => (
@@ -139,7 +142,7 @@ function FullHome() {
         </section>
 
         {yours.length > 0 && (
-          <Section title="Tus canchas" className="!mt-10">
+          <Section title="Tus canchas" className="!mt-10 lg:!mt-2 lg:col-start-1 lg:row-start-2">
             <div className="list">{yours.map(c => (
               <Link key={c.id} to={`/complejo/${c.slug}/reservar${lastCourt[c.id] ? `?cancha=${lastCourt[c.id]}` : ''}`} className="row">
                 <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{c.name}</span><span className="block text-sm text-muted truncate">{c.city} · {c.distanceLabel}</span></span>
@@ -147,7 +150,7 @@ function FullHome() {
               </Link>))}</div>
           </Section>
         )}
-      </Stagger></Content>
+      </div></Stagger></Content>
       {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
       {review && <ReviewSheet booking={review} initialRating={stars} onClose={() => { setReview(null); setStars(0) }} />}
     </>
