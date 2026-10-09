@@ -124,7 +124,7 @@ export function OwnerHome() {
           <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             {[[Plus, 'Nueva reserva', () => { setPreset({}); setSheet('new') }, true], [Lock, 'Bloquear horario', () => setSheet('block')], [CalendarDays, 'Ver agenda', () => navigate('/dueno/agenda')], [HandCoins, 'Recordar pago', () => setSheet('remind')]].map(([I, l, fn, main]) => (
               <Item as="button" key={l} type="button" whileTap={{ scale: .95 }} whileHover={{ y: -2 }} onClick={fn} data-tour={main ? 'nueva-reserva' : undefined}
-                className={cn('flex flex-col items-start gap-6 p-4 rounded-2xl text-left font-semibold min-h-28', main ? 'bg-[image:var(--grad-brand)] text-[var(--brand-ink)] shadow-[0_14px_26px_-12px_color-mix(in_srgb,var(--brand)_80%,transparent)]' : 'bg-surface border border-line shadow-[var(--sh-1)]')}>
+                className={cn('flex flex-col items-start gap-6 p-4 rounded-2xl text-left font-semibold min-h-28', main ? 'bg-[image:var(--grad-brand)] text-[var(--on-grad)] shadow-[0_14px_26px_-12px_color-mix(in_srgb,var(--brand)_80%,transparent)]' : 'bg-surface border border-line shadow-[var(--sh-1)]')}>
                 <span className={cn('size-10 rounded-xl grid place-items-center', main ? 'bg-white/20' : 'bg-brand-soft text-brand')}><I size={20} aria-hidden="true" /></span>{l}
               </Item>))}
           </Stagger>

@@ -90,7 +90,7 @@ export default function Wizard({ id, inShell = true }) {
               const [wd, rest] = dateLong(d).split(', ')
               return (
                 <Item key={d} as="button" type="button" disabled={!n} onClick={() => pickDate(d)} aria-pressed={date === d} whileTap={{ scale: .96 }}
-                  className={cn('text-left p-4 rounded-2xl border bg-surface shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:opacity-45 disabled:shadow-none enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand', d === today && 'col-span-2 bg-[image:var(--grad-brand)] !border-transparent text-[var(--brand-ink)]')}>
+                  className={cn('text-left p-4 rounded-2xl border bg-surface shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:opacity-45 disabled:shadow-none enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand', d === today && 'col-span-2 bg-[image:var(--grad-brand)] !border-transparent text-[var(--on-grad)]')}>
                   <span className="block display text-2xl font-bold leading-tight">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : wd}</span>
                   <span className={cn('block text-sm', d === today ? 'opacity-85' : 'text-muted')}>{rest}</span>
                   <span className={cn('mt-3 inline-flex items-center gap-1 text-sm font-semibold', d === today ? '' : n ? 'text-brand' : 'text-muted')}>{n ? `${n} libres` : 'Sin horarios'}{n > 0 && <ChevronRight size={16} />}</span>
@@ -151,7 +151,7 @@ export default function Wizard({ id, inShell = true }) {
                       return (
                         <Item as="button" key={t} type="button" disabled={!free} aria-pressed={time === t} whileTap={{ scale: .94 }} onClick={() => setTime(t)} aria-label={`${t}${free ? `, ${money(quote(state, court, date, t, user?.id).totalCents)}` : ', ocupado'}`}
                           className={cn('rounded-xl border min-h-16 flex flex-col items-center justify-center transition-[background-color,box-shadow,transform] duration-200 disabled:opacity-35 disabled:cursor-not-allowed',
-                            time === t ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--brand-ink)] shadow-[0_10px_20px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)] scale-[1.04]' : 'bg-surface border-strong hover:bg-sunken')}>
+                            time === t ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--on-grad)] shadow-[0_10px_20px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)] scale-[1.04]' : 'bg-surface border-strong hover:bg-sunken')}>
                           <span className="text-lg font-semibold tnum">{t}</span>
                           <span className={cn('text-xs tnum', time !== t && 'text-muted')}>{free ? money(quote(state, court, date, t, user?.id).totalCents) : 'Ocupado'}{free && quote(state, court, date, t, user?.id).discountCents > 0 ? ' · promo' : ''}</span>
                         </Item>

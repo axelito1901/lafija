@@ -30,7 +30,7 @@ export function Promotions() {
         ? <Empty title="No hay promociones" text="Podés dar un descuento en un horario, un día o para clientes frecuentes." action={<Button onClick={() => setEdit(blankPromo(complex.id))}><Plus size={18} />Nueva promoción</Button>} />
         : <Stagger className="grid gap-3 sm:grid-cols-2">{list.map(p => (
           <Item key={p.id} className={cn('flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] transition-opacity', !p.active && 'opacity-70')}>
-            <span className={cn('size-14 rounded-xl grid place-items-center flex-none display text-xl font-bold tnum', p.active ? 'bg-[image:var(--grad-brand)] text-[var(--brand-ink)]' : 'bg-sunken text-muted')}>{p.kind === 'percent' ? `${p.value}%` : <Tags size={22} />}</span>
+            <span className={cn('size-14 rounded-xl grid place-items-center flex-none display text-xl font-bold tnum', p.active ? 'bg-[image:var(--grad-brand)] text-[var(--on-grad)]' : 'bg-sunken text-muted')}>{p.kind === 'percent' ? `${p.value}%` : <Tags size={22} />}</span>
             <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setEdit(p)}>
               <span className="block font-semibold truncate">{promoLabel(p)}{p.name ? ` · ${p.name}` : ''}</span>
               <span className="block text-sm text-muted truncate">{promoWhen(p)}{p.courtId ? ` · ${courts.find(c => c.id === p.courtId)?.name || ''}` : ''}</span>

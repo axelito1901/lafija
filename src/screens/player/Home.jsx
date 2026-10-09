@@ -74,7 +74,7 @@ export default function PlayerHome() {
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-3 pb-1" role="group" aria-label="Día" data-tour="buscar">
             {days.map(d => (
               <button key={d} type="button" aria-pressed={day === d} onClick={() => setDay(d)}
-                className={cn('flex-none min-w-16 h-14 px-3 rounded-xl border flex flex-col items-center justify-center transition-all duration-200', day === d ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--brand-ink)] shadow-[var(--sh-2)] scale-105' : 'bg-surface border-strong hover:bg-sunken')}>
+                className={cn('flex-none min-w-16 h-14 px-3 rounded-xl border flex flex-col items-center justify-center transition-all duration-200', day === d ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--on-grad)] shadow-[var(--sh-2)] scale-105' : 'bg-surface border-strong hover:bg-sunken')}>
                 <span className="font-semibold leading-tight">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : weekdayShort(d)}</span>
                 <span className={cn('text-xs tnum', day !== d && 'text-muted')}>{dayNum(d)}/{Number(d.slice(5, 7))}</span>
               </button>))}

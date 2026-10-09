@@ -163,7 +163,7 @@ export default function Agenda() {
         </Sheet>
         <div className="h-20 lg:hidden" aria-hidden="true" />
         <motion.button type="button" aria-label="Nueva reserva" whileTap={{ scale: .88 }} whileHover={{ scale: 1.06 }} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring} onClick={() => setSheet({ kind: 'new', preset: { date, courtId: filter !== 'all' ? filter : undefined } })}
-          className="lg:hidden fixed right-4 z-20 bottom-[calc(var(--nav-h)+var(--safe-bottom)+16px)] size-14 rounded-full bg-[image:var(--grad-brand)] text-[var(--brand-ink)] grid place-items-center shadow-[0_14px_28px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)]"><Plus size={28} /></motion.button>
+          className="lg:hidden fixed right-4 z-20 bottom-[calc(var(--nav-h)+var(--safe-bottom)+16px)] size-14 rounded-full bg-[image:var(--grad-brand)] text-[var(--on-grad)] grid place-items-center shadow-[0_14px_28px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)]"><Plus size={28} /></motion.button>
         {sheet?.kind === 'new' && <NewBookingSheet open onClose={() => setSheet(null)} complex={complex} preset={sheet.preset} />}
         {sheet?.kind === 'block' && <BlockSheet open onClose={() => setSheet(null)} complex={complex} preset={sheet.preset} />}
         {editing && <BookingEditor bookingId={editing} onClose={() => setEditing('')} />}
