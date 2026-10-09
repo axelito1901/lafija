@@ -10,8 +10,7 @@ import { Button, useToast } from './kit'
 
 import { DEFAULT_CENTER } from '../lib/geo'
 export { DEFAULT_CENTER }
-const TILES = { light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' }
-const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
 /* Mapa claro u oscuro según el tema de la app. */
 function useDark() {
@@ -23,10 +22,9 @@ function useDark() {
   }, [])
   return dark
 }
-/* Mosaicos gratis y sin clave. Si un proveedor no carga (red, bloqueador, caída), pasamos al siguiente solos. */
+/* Mosaicos de OpenStreetMap, gratis y sin clave (CARTO ahora exige clave paga, por eso ya no se usa). Si un proveedor no carga (red, bloqueador, caída), pasamos al siguiente solos. */
 const PROVIDERS = [
-  { id: 'carto', url: d => d ? TILES.dark : TILES.light, sub: 'abcd', attr: ATTR },
-  { id: 'osm', url: () => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', sub: 'abc', attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
+  { id: 'osm', url: () => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', sub: 'abc', attr: ATTR },
   { id: 'esri', url: () => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', sub: 'abc', attr: 'Tiles &copy; Esri' },
   { id: 'osm-fr', url: () => 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', sub: 'abc', attr: '&copy; OpenStreetMap France' },
 ]
@@ -48,7 +46,7 @@ function Tiles({ maxZoom = 19, attribution, notice = true }) {
   const retry = () => { stat.current = { ok: 0, bad: 0 }; setDead(false); setI(0) }
   return (
     <>
-      <TileLayer key={p.id + (d ? 'd' : 'l')} url={p.url(d)} attribution={attribution === undefined ? undefined : p.attr} maxZoom={maxZoom} subdomains={p.sub} className={p.id !== 'carto' && d ? 'tiles-invert' : ''} eventHandlers={ev} />
+      <TileLayer key={p.id + (d ? 'd' : 'l')} url={p.url(d)} attribution={attribution === undefined ? undefined : p.attr} maxZoom={maxZoom} subdomains={p.sub} className={d ? 'tiles-invert' : ''} eventHandlers={ev} />
       {dead && notice && (
         <div className="absolute inset-x-3 bottom-14 z-[500] rounded-xl bg-surface border border-line shadow-[var(--sh-2)] p-3 text-sm flex items-center gap-3">
           <span className="flex-1">No pudimos cargar el fondo del mapa. Los precios siguen funcionando; revisá tu conexión.</span>
