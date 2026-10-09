@@ -1,33 +1,32 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { Heart, MapPin, MessageCircle, Phone } from 'lucide-react'
+import { Banknote, BriefcaseMedical, Clock3, Coffee, Flame, Heart, Lightbulb, MapPin, MessageCircle, Navigation, Phone, ShieldCheck, ShowerHead, Shirt, Star, Tag, Umbrella, Wifi, CircleParking, ArrowRight } from 'lucide-react'
 import { useStore } from '../../lib/store'
-import { REVIEW_TAGS, cancelPolicyText, complexTags, courtsOf, favsOf, freeSlots, getComplex, promoLabel, ratingOf, slotInfo, slotsFor, toggleFav, quote } from '../../lib/domain'
+import { REVIEW_TAGS, cancelPolicyText, courtsOf, depositFor, favsOf, freeSlots, getComplex, nextTimes, promoLabel, promoWhen, ratingOf, toggleFav } from '../../lib/domain'
 import { isApproved } from '../../lib/domain'
-import { addDays, cn, dateHeading, mapsLink, money, telLink, todayISO, waLink } from '../../lib/format'
-import { navigate, useRoute } from '../../lib/router'
-import { Button, Content, Empty, IconButton, PageHeader, Rating, Section, Skeleton, Stars } from '../../ui/kit'
-import { Gallery } from '../../ui/Gallery'
-import { TrustPanel, VerifiedBadge } from '../../ui/trust'
+import { addDays, cn, dateShort, mapsLink, money, plural, relativeDay, telLink, todayISO, waLink } from '../../lib/format'
+import { Link, navigate, useRoute } from '../../lib/router'
+import { Avatar, Button, Content, Empty, IconButton, PageHeader, Rating, Skeleton, Stars } from '../../ui/kit'
+import { Cover } from '../../ui/Cover'
+import { Gallery, GalleryMosaic } from '../../ui/Gallery'
+import { ReviewSummary, TrustPanel, VerifiedBadge } from '../../ui/trust'
+import { CountUp, Reveal } from '../../ui/motion'
 const MiniMap = lazy(() => import('../../ui/MapView').then(m => ({ default: m.MiniMap })))
 import { DateStrip } from '../../ui/shared'
-import { BookSheet, ConfirmedSheet } from './flow'
+import './jugador.css'
+
+const SERVICE_ICON = { Vestuarios: Shirt, Duchas: ShowerHead, Estacionamiento: CircleParking, Buffet: Coffee, Parrilla: Flame, 'Wi-Fi': Wifi, 'Alquiler de pecheras': Shirt, Botiquín: BriefcaseMedical }
+const FACT = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium bg-sunken'
 
 export default function ComplexPage({ id, preview = false, inShell = true }) {
   const { state, user, update, loading } = useStore()
   const { query } = useRoute()
   const complex = state && getComplex(state, id)
-  const [date, setDate] = useState(() => (query.fecha >= todayISO() ? query.fecha : todayISO()))
-  const [courtId, setCourtId] = useState(query.cancha || '')
-  const [time, setTime] = useState(query.hora || '')
-  const [book, setBook] = useState(false)
-  const [doneId, setDoneId] = useState('')
+  const [dateSel, setDate] = useState(() => (query.fecha >= todayISO() ? query.fecha : ''))
   const [allReviews, setAllReviews] = useState(false)
   const now = new Date()
 
   const courts = useMemo(() => (complex ? courtsOf(state, complex.id).filter(c => c.status !== 'inactive') : []), [state, complex])
-  // Cancha elegida: la pedida, o la primera con horarios libres.
-  const court = courts.find(c => c.id === courtId && c.status === 'active') || courts.find(c => c.status === 'active' && freeSlots(state, complex, c, date, now).length) || courts.find(c => c.status === 'active')
-  useEffect(() => { if (time && court && slotInfo(state, complex, court, date, time).kind !== 'free') setTime('') }, [date, court?.id, state]) // eslint-disable-line
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [id])
 
   if (loading || !state) return <><PageHeader back="history" title="" /><Content><Skeleton className="aspect-[16/9] w-full" /><Skeleton className="h-6 w-2/3 mt-4" /></Content></>
   if (!complex || (!preview && (!complex.active || !complex.public || !isApproved(complex)))) {
@@ -38,100 +37,197 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
   const rating = ratingOf(state, complex.id)
   const reviews = state.reviews.filter(r => r.complexId === complex.id && !r.hidden).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const topTags = Object.entries(reviews.flatMap(r => r.tags || []).reduce((m, t) => ({ ...m, [t]: (m[t] || 0) + 1 }), {})).filter(([t]) => REVIEW_TAGS.good.includes(t)).sort((a, b) => b[1] - a[1]).slice(0, 4)
-  const slots = court ? slotsFor(complex).map(t => ({ t, free: slotInfo(state, complex, court, date, t, now).kind === 'free' })) : []
-  const freeTotal = slots.filter(s => s.free).length
-  const fromPrice = courts.filter(c => c.status === 'active').reduce((m, c) => Math.min(m, c.priceCents), Infinity)
-  const freeToday = courts.filter(c => c.status === 'active').reduce((n, c) => n + freeSlots(state, complex, c, todayISO(), now).length, 0)
-  const q = court && time ? quote(state, court, date, time, user?.id) : null
-  const dayPromos = court ? (state.promotions || []).filter(p => p.active && !p.frequentOnly && p.complexId === complex.id && (!p.courtId || p.courtId === court.id) && (!p.onlyToday || date === todayISO()) && (!p.dateFrom || date >= p.dateFrom) && (!p.dateTo || date <= p.dateTo)) : []
-
-  const reserve = () => {
-    if (preview) return
-    if (!user) { navigate(`/ingresar?volver=${encodeURIComponent(`/complejo/${complex.slug}?fecha=${date}&cancha=${court.id}&hora=${time}`)}`); return }
-    if (user.role !== 'player') return
-    setBook(true)
-  }
+  const active = courts.filter(c => c.status === 'active')
+  const fromPrice = active.reduce((m, c) => Math.min(m, c.priceCents), Infinity)
+  const freeToday = active.reduce((n, c) => n + freeSlots(state, complex, c, todayISO(), now).length, 0)
+  // Sin fecha pedida: arrancamos en el primer día con horarios libres.
+  const date = dateSel || Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i)).find(d => active.some(c => freeSlots(state, complex, c, d, now).length)) || todayISO()
+  const times = nextTimes(state, complex, date, 8, now)
+  const days = [...new Set(active.map(c => c.sport))]
+  const close = complex.hours.close === '00:00' ? '24:00' : complex.hours.close
+  const cfg = complex.booking || {}
+  const promos = (state.promotions || []).filter(p => p.active && p.complexId === complex.id && (!p.dateTo || p.dateTo >= todayISO()))
   const canBook = !preview && (!user || user.role === 'player')
-  const label = !user ? 'Ingresar para reservar' : 'Reservar'
+  const photos = [complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)
+  const shown = reviews.slice(0, allReviews ? 50 : 4)
+  const wizard = (q = '') => `/complejo/${complex.slug}/reservar${q}`
 
   return (
-    <>
+    <div className="pj-wide contents">
       <PageHeader back={preview ? '/dueno/complejo' : 'history'} title={complex.name}
         actions={user?.role === 'player' && <IconButton label={fav ? 'Quitar de favoritos' : 'Guardar en favoritos'} aria-pressed={!!fav} onClick={() => update(s => toggleFav(s, user.id, complex.id))}><Heart size={22} className={fav ? 'fill-current text-danger' : ''} /></IconButton>} />
       {preview && <div className="bg-brand-soft text-brand text-sm font-medium text-center py-2 px-4">Así ven tu complejo los jugadores. Los cambios se guardan en Mi complejo.</div>}
-      <Content className={cn(canBook && 'pb-28 lg:pb-6')}>
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-y-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-x-10">
-          <div className="lg:col-start-1">
-            <Gallery photos={[complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)} seed={complex.id} alt={`Foto de ${complex.name}`} className="aspect-[4/3] sm:aspect-[16/9] -mx-4 sm:mx-0 sm:rounded-3xl overflow-hidden shadow-[var(--sh-2)]" />
-            <div className="mt-4 flex items-start justify-between gap-3">
-              <h2 className="text-3xl leading-tight min-w-0 flex items-center gap-2">{complex.name}{complex.verified && <VerifiedBadge label={false} className="[&>svg]:size-6" />}</h2>
-              <Rating value={rating.avg} count={rating.count} className="mt-2 flex-none" />
-            </div>
-            <TrustPanel state={state} complex={complex} className="mt-4" />
-            <a href={mapsLink(complex)} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 text-muted mt-1 hover:text-ink"><MapPin size={18} className="mt-0.5 flex-none" /><span><span className="underline underline-offset-4 decoration-line">{complex.address}</span></span></a>
-            {complex.lat != null && <Suspense fallback={<Skeleton className="h-40 mt-4" />}><MiniMap lat={complex.lat} lng={complex.lng} href={mapsLink(complex)} className="h-40 mt-4" /></Suspense>}
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <Button as="a" variant="secondary" href={waLink(complex.whatsapp || complex.phone, `Hola, quería consultar por una cancha en ${complex.name}.`)} target="_blank" rel="noreferrer"><MessageCircle size={18} />WhatsApp</Button>
-              <Button as="a" variant="secondary" href={telLink(complex.phone)}><Phone size={18} />Llamar</Button>
+      <Content className={cn('max-w-[1480px]', canBook && 'pb-28 lg:pb-6')}>
+        <Gallery photos={photos} seed={complex.id} alt={`Foto de ${complex.name}`} className="lg:hidden aspect-[4/3] sm:aspect-[16/9] -mx-4 sm:mx-0 sm:rounded-3xl overflow-hidden shadow-[var(--sh-2)]" />
+        <GalleryMosaic photos={photos} seed={complex.id} alt={`Foto de ${complex.name}`} className="hidden lg:block h-[340px] xl:h-[400px] 2xl:h-[460px]" />
+
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-y-4 lg:gap-y-9 mt-4 lg:mt-8 xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_440px] xl:gap-x-12 xl:items-start">
+          <div className="contents xl:flex xl:flex-col xl:gap-9 xl:min-w-0 xl:col-start-1 xl:row-start-1">
+            {/* Título */}
+            <div className="lg:order-1">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-3xl lg:text-5xl lg:font-bold leading-tight min-w-0 flex items-center gap-2">{complex.name}{complex.verified && <VerifiedBadge label={false} className="[&>svg]:size-6 lg:[&>svg]:size-8" />}</h2>
+                <Rating value={rating.avg} count={rating.count} className="mt-2 flex-none lg:hidden" />
+              </div>
+              <div className="hidden lg:flex items-center gap-3 mt-2 text-muted flex-wrap">
+                {rating.count > 0 && <span className="inline-flex items-center gap-1.5 text-ink font-semibold"><Star size={18} className="fill-[var(--gold)] text-[var(--gold)]" aria-hidden="true" /><span className="tnum">{rating.avg.toFixed(1).replace('.', ',')}</span><span className="text-muted font-normal tnum">({plural(rating.count, 'reseña', 'reseñas')})</span></span>}
+                <a href={mapsLink(complex)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-ink"><MapPin size={17} aria-hidden="true" /><span className="underline underline-offset-4 decoration-line">{complex.address}</span></a>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className={FACT}><Clock3 size={15} className="text-brand" aria-hidden="true" />Abierto de {complex.hours.open} a {close}</span>
+                <span className={FACT}>{plural(active.length, 'cancha', 'canchas')}{days.length > 0 && ` · ${days.join(', ')}`}</span>
+                {fromPrice !== Infinity && <span className={FACT}><Banknote size={15} className="text-brand" aria-hidden="true" />Desde <strong className="tnum">{money(fromPrice)}</strong></span>}
+              </div>
             </div>
 
-            <h3 className="font-semibold mt-6 mb-2">Canchas</h3>
-            <ul className="list">
-              {courts.map(c => (
-                <li key={c.id} className="row !min-h-14">
-                  <span className="flex-1 min-w-0"><span className="block font-medium">{c.name} · {c.sport}</span><span className="block text-sm text-muted truncate">{[c.surface, c.covered && 'Techada', c.status !== 'active' && 'No disponible'].filter(Boolean).join(' · ')}</span></span>
-                  <span className="font-semibold tnum flex-none">{money(c.priceCents)}</span>
-                </li>
-              ))}
-            </ul>
+            <TrustPanel state={state} complex={complex} className="lg:order-3" />
 
-            <details className="group mt-4 border-t border-line">
+            {/* Ubicación y contacto */}
+            <section aria-label="Ubicación" className="lg:order-6 pj-lg-card lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+              <div className="lg:p-6 lg:flex lg:flex-col lg:justify-center">
+                <h2 className="hidden lg:block text-2xl font-bold">Dónde queda</h2>
+                <a href={mapsLink(complex)} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 text-muted mt-1 hover:text-ink lg:hidden"><MapPin size={18} className="mt-0.5 flex-none" /><span><span className="underline underline-offset-4 decoration-line">{complex.address}</span></span></a>
+                <p className="hidden lg:block text-muted mt-2">{complex.address}</p>
+                <Button as="a" variant="secondary" href={mapsLink(complex)} target="_blank" rel="noreferrer" className="hidden lg:inline-flex self-start mt-4"><Navigation size={16} />Cómo llegar</Button>
+              </div>
+              {complex.lat != null && <Suspense fallback={<Skeleton className="h-40 mt-4 lg:mt-0 lg:h-full lg:min-h-60" />}><MiniMap lat={complex.lat} lng={complex.lng} href={mapsLink(complex)} className="h-40 mt-4 lg:mt-0 lg:h-full lg:min-h-60 lg:!rounded-none lg:!border-0" /></Suspense>}
+              <div className="grid grid-cols-2 gap-2 mt-4 lg:hidden">
+                <Button as="a" variant="secondary" href={waLink(complex.whatsapp || complex.phone, `Hola, quería consultar por una cancha en ${complex.name}.`)} target="_blank" rel="noreferrer"><MessageCircle size={18} />WhatsApp</Button>
+                <Button as="a" variant="secondary" href={telLink(complex.phone)}><Phone size={18} />Llamar</Button>
+              </div>
+            </section>
+
+            {/* Canchas */}
+            <section aria-labelledby="canchas" className="lg:order-5 mt-2 lg:mt-0">
+              <h2 id="canchas" className="text-base font-semibold mb-2 lg:text-3xl lg:font-bold lg:mb-4">Canchas</h2>
+              <ul className="list lg:!border-0 lg:!shadow-none lg:!bg-transparent lg:!overflow-visible lg:space-y-4">
+                {courts.map((c, idx) => {
+                  const on = c.status === 'active', n = on ? freeSlots(state, complex, c, todayISO(), now).length : 0
+                  const meta = [c.surface, c.covered && 'Techada', !on && 'No disponible'].filter(Boolean).join(' · ')
+                  return (
+                    <li key={c.id} className="lg:flex lg:rounded-2xl lg:!border lg:bg-surface lg:overflow-hidden lg:shadow-[var(--sh-1)] pj-lg-lift">
+                      <div className="hidden lg:block relative w-44 xl:w-56 flex-none">
+                        <Cover src={c.photo || photos[idx % Math.max(photos.length, 1)]} seed={c.id} className="absolute inset-0" />
+                        <span className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
+                        <span className="absolute left-3 bottom-3 text-white text-sm font-semibold bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1">{c.sport}</span>
+                      </div>
+                      <div className="row !min-h-14 lg:!min-h-0 lg:!px-5 lg:!py-4 lg:flex-1 lg:!gap-4">
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-medium lg:font-display lg:text-2xl lg:font-bold lg:leading-tight">{c.name}<span className="lg:hidden"> · {c.sport}</span></span>
+                          <span className="block text-sm text-muted truncate lg:hidden">{meta}</span>
+                          <span className="hidden lg:flex flex-wrap gap-1.5 mt-2.5">
+                            {c.surface && <span className="text-xs font-medium rounded-full px-2.5 py-1 bg-sunken text-muted">{c.surface}</span>}
+                            {c.covered && <span className="inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-1 bg-sunken text-muted"><Umbrella size={12} aria-hidden="true" />Techada</span>}
+                            {c.lighting && <span className="inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-1 bg-sunken text-muted"><Lightbulb size={12} aria-hidden="true" />Luz</span>}
+                            {(c.features || []).slice(0, 2).map(f => <span key={f} className="text-xs font-medium rounded-full px-2.5 py-1 bg-sunken text-muted">{f}</span>)}
+                            {!on && <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-warn-soft text-warn">No disponible</span>}
+                          </span>
+                        </span>
+                        <span className="flex-none text-right">
+                          <span className="block font-semibold tnum lg:font-display lg:text-3xl lg:font-bold lg:leading-none">{money(c.priceCents)}</span>
+                          <span className="hidden lg:block text-sm mt-1 text-muted">por turno</span>
+                          {on && <span className={cn('hidden lg:block text-sm font-medium', n ? 'text-brand' : 'text-muted')}>{n ? `${n} libres hoy` : 'Sin turnos hoy'}</span>}
+                        </span>
+                        {canBook && on && <Link to={wizard(`?cancha=${c.id}&fecha=${date}`)} aria-label={`Reservar ${c.name}`} className="hidden lg:grid place-items-center size-11 rounded-xl flex-none bg-brand-soft text-brand hover:bg-[image:var(--grad-brand)] hover:text-[var(--on-grad)] transition-colors"><ArrowRight size={20} aria-hidden="true" /></Link>}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+
+            {/* Más información (celular) */}
+            <details className="group border-t border-line lg:hidden">
               <summary className="flex items-center justify-between min-h-14 font-semibold cursor-pointer list-none [&::-webkit-details-marker]:hidden">Más información<span className="text-muted text-xl leading-none transition-transform group-open:rotate-45">+</span></summary>
               {complex.description && <p className="mb-3">{complex.description}</p>}
               <dl className="text-sm space-y-2 pb-4">
-                <div className="flex gap-2"><dt className="text-muted w-20 flex-none">Horario</dt><dd>Todos los días de {complex.hours.open} a {complex.hours.close === '00:00' ? '24:00' : complex.hours.close}.</dd></div>
+                <div className="flex gap-2"><dt className="text-muted w-20 flex-none">Horario</dt><dd>Todos los días de {complex.hours.open} a {close}.</dd></div>
                 {complex.services?.length > 0 && <div className="flex gap-2"><dt className="text-muted w-20 flex-none">Servicios</dt><dd>{complex.services.join(', ')}</dd></div>}
                 <div className="flex gap-2"><dt className="text-muted w-20 flex-none">Cancelar</dt><dd>{cancelPolicyText(complex)}</dd></div>
               </dl>
             </details>
+
+            {/* Sobre el complejo (PC) */}
+            <section className="hidden lg:block lg:order-4 @container" aria-labelledby="sobre">
+              <h2 id="sobre" className="text-3xl font-bold">Sobre {complex.name}</h2>
+              {complex.description && <p className="mt-3 text-lg text-muted leading-relaxed max-w-3xl">{complex.description}</p>}
+              {complex.services?.length > 0 && <ul className="flex flex-wrap gap-2 mt-5" aria-label="Servicios">{complex.services.map(s => { const I = SERVICE_ICON[s] || ShieldCheck; return <li key={s} className="inline-flex items-center gap-2 rounded-xl bg-surface border border-line px-3.5 py-2 text-sm font-medium shadow-[var(--sh-1)]"><I size={16} className="text-brand" aria-hidden="true" />{s}</li> })}</ul>}
+              <dl className="grid gap-3 mt-5 @2xl:grid-cols-3">
+                {[[Clock3, 'Horario', `Todos los días de ${complex.hours.open} a ${close}.`], [ShieldCheck, 'Cancelación', cancelPolicyText(complex)], [Banknote, 'Cómo se paga', cfg.depositRequired && fromPrice !== Infinity ? `Seña de ${money(depositFor(complex, fromPrice))} online; el resto en la cancha.${cfg.allowFullPayment ? ' También podés pagar todo.' : ''}` : 'Reservás sin pagar ahora: se abona en la cancha.']].map(([I, k, v]) => (
+                  <div key={k} className="pj-soft p-4"><dt className="inline-flex items-center gap-2 text-sm font-semibold"><span className="grid place-items-center size-8 rounded-lg bg-brand-soft text-brand"><I size={16} aria-hidden="true" /></span>{k}</dt><dd className="text-sm text-muted mt-2">{v}</dd></div>))}
+              </dl>
+            </section>
+
+            {/* Reseñas */}
+            <section aria-labelledby="resenas" className="lg:order-7 @container">
+              <h2 id="resenas" className="text-base font-semibold mb-3 lg:text-3xl lg:font-bold lg:mb-4">Reseñas{rating.count ? ` (${rating.count})` : ''}</h2>
+              {reviews.length === 0 ? <Empty icon={Star} title="Todavía no hay reseñas" text="Cuando alguien juegue acá, vas a ver su opinión." className="pj-soft !py-8" /> : (
+                <>
+                  <ReviewSummary reviews={reviews} avg={rating.avg} tags={topTags} className="mb-4" />
+                  <div className="@xl:grid @xl:grid-cols-2 @xl:gap-3">
+                    <ul className="list @xl:contents">
+                      {shown.map(r => (
+                        <li key={r.id} className="px-4 py-3 @xl:rounded-2xl @xl:!border @xl:bg-surface @xl:p-4 @xl:shadow-[var(--sh-1)] @xl:self-start">
+                          <div className="flex items-center gap-3"><Avatar name={r.playerName} size={36} /><span className="min-w-0 flex-1"><span className="block font-medium truncate leading-tight">{r.playerName}</span><span className="block text-xs text-muted tnum">{dateShort(r.createdAt.slice(0, 10))}</span></span><Stars n={r.rating} /></div>
+                          {r.tags?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2.5">{r.tags.map(t => <span key={t} className="text-xs font-medium rounded-full px-2.5 py-1 bg-brand-soft text-brand">{t}</span>)}</div>}
+                          {r.text && <p className="text-sm mt-2">{r.text}</p>}
+                          {r.reply && <div className="mt-2.5 pl-3 border-l-2 border-brand"><p className="text-sm font-semibold">Respuesta del complejo</p><p className="text-sm">{r.reply.text}</p></div>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+              {reviews.length > 4 && !allReviews && <Button variant="ghost" className="mt-2" onClick={() => setAllReviews(true)}>Ver las {reviews.length} reseñas</Button>}
+            </section>
           </div>
 
-          <section className="hidden lg:block lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:sticky lg:top-6 lg:border lg:border-line lg:rounded-lg lg:p-5 lg:bg-surface" aria-label="Reservar">
-            <h2 className="text-xl">Reservar</h2>
-            <p className="text-muted mt-1">Desde <strong className="text-ink tnum">{fromPrice === Infinity ? "—" : money(fromPrice)}</strong> por turno · {courts.filter(c => c.status === 'active').length} canchas</p>
-            <p className="text-brand font-semibold mt-1">{freeToday} horarios libres hoy</p>
-            {canBook && <Button size="lg" className="w-full mt-4" onClick={() => navigate(`/complejo/${complex.slug}/reservar`)}>Elegir día y horario</Button>}
-            <p className="hint">Te guiamos paso a paso: el día, la cancha y la hora.</p>
-          </section>
-
-          <Section title={`Reseñas${rating.count ? ` (${rating.count})` : ''}`} className="lg:col-start-1 !mt-0">
-            {topTags.length > 0 && <div className="mb-3"><p className="text-sm text-muted mb-1.5">Lo que más destacan</p><div className="flex flex-wrap gap-2">{topTags.map(([t, k]) => <span key={t} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold bg-brand-soft text-brand">{t}<span className="tnum opacity-70">{k}</span></span>)}</div></div>}
-            {reviews.length === 0 ? <p className="text-muted">Todavía no hay reseñas.</p> : (
-              <ul className="list">
-                {reviews.slice(0, allReviews ? 50 : 3).map(r => (
-                  <li key={r.id} className="px-4 py-3">
-                    <div className="flex items-center justify-between gap-3"><span className="font-medium">{r.playerName}</span><Stars n={r.rating} /></div>
-                    {r.tags?.length > 0 && <div className="flex flex-wrap gap-1.5 mt-2">{r.tags.map(t => <span key={t} className="text-xs font-medium rounded-full px-2.5 py-1 bg-brand-soft text-brand">{t}</span>)}</div>}
-                    {r.text && <p className="text-sm mt-1">{r.text}</p>}
-                    {r.reply && <div className="mt-2 pl-3 border-l-2 border-brand"><p className="text-sm font-semibold">Respuesta del complejo</p><p className="text-sm">{r.reply.text}</p></div>}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {reviews.length > 3 && !allReviews && <Button variant="ghost" className="mt-2" onClick={() => setAllReviews(true)}>Ver las {reviews.length} reseñas</Button>}
-          </Section>
+          {/* Panel de reserva (PC) */}
+          <aside className="hidden lg:block lg:order-2 xl:order-none xl:sticky xl:top-6 xl:col-start-2 xl:row-start-1" aria-label="Reservar">
+            <Reveal y={10}>
+              <div className="pj-panel overflow-hidden">
+                <div className="hero !rounded-none !shadow-none p-5 pb-6">
+                  <p className="text-xs font-semibold uppercase tracking-widest opacity-90 inline-flex items-center gap-2"><span className="live-dot" />{freeToday ? `${plural(freeToday, 'horario libre', 'horarios libres')} hoy` : 'Sin horarios hoy'}</p>
+                  <p className="mt-3 text-sm opacity-85">Desde</p>
+                  <p className="display text-5xl font-bold tnum leading-none">{fromPrice === Infinity ? '—' : <CountUp value={money(fromPrice)} />}<span className="text-base font-medium opacity-80"> / turno</span></p>
+                  <p className="text-sm opacity-85 mt-2">{plural(active.length, 'cancha', 'canchas')} · {days.join(' y ') || 'Fútbol'}</p>
+                </div>
+                <div className="p-5">
+                  <p className="label">Elegí el día</p>
+                  <DateStrip value={date} onChange={setDate} days={14} />
+                  <p className="label mt-4">Horarios libres · {relativeDay(date)}</p>
+                  {times.length > 0
+                    ? <div className="grid grid-cols-4 sm:grid-cols-8 xl:grid-cols-4 gap-2">{times.map(s => canBook
+                      ? <Link key={s.t} to={wizard(`?fecha=${date}&cancha=${s.courtId}&hora=${s.t}`)} className="chip !min-h-11 !px-0 justify-center tnum">{s.t}</Link>
+                      : <span key={s.t} className="chip !min-h-11 !px-0 justify-center tnum">{s.t}</span>)}</div>
+                    : <p className="text-sm text-muted pj-soft p-3">No quedan horarios libres ese día. Probá con otro.</p>}
+                  {canBook && <Button size="lg" className="w-full mt-4" onClick={() => navigate(wizard(`?fecha=${date}`))}>Elegir cancha y horario</Button>}
+                  <p className="hint text-center">Te guiamos paso a paso: el día, la cancha y la hora.</p>
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <Button as="a" variant="secondary" size="sm" href={waLink(complex.whatsapp || complex.phone, `Hola, quería consultar por una cancha en ${complex.name}.`)} target="_blank" rel="noreferrer"><MessageCircle size={16} />WhatsApp</Button>
+                    <Button as="a" variant="secondary" size="sm" href={telLink(complex.phone)}><Phone size={16} />Llamar</Button>
+                  </div>
+                </div>
+                {promos.length > 0 && (
+                  <div className="px-5 pb-5">
+                    <p className="label inline-flex items-center gap-1.5"><Tag size={14} className="text-brand" aria-hidden="true" />Promos vigentes</p>
+                    <ul className="space-y-2">{promos.slice(0, 3).map(p => (
+                      <li key={p.id} className="flex items-center gap-3 rounded-xl bg-brand-soft px-3 py-2.5"><span className="font-display font-bold text-brand text-lg leading-none flex-none tnum">{promoLabel(p)}</span><span className="min-w-0 text-sm"><span className="block font-semibold truncate">{p.name}</span><span className="block text-muted truncate">{promoWhen(p)}</span></span></li>))}</ul>
+                  </div>
+                )}
+                <div className="border-t border-line px-5 py-4 text-sm text-muted flex gap-2.5"><ShieldCheck size={18} className="flex-none text-brand mt-0.5" aria-hidden="true" /><p>{cancelPolicyText(complex)}</p></div>
+              </div>
+            </Reveal>
+          </aside>
         </div>
       </Content>
 
       {canBook && (
         <div className={cn('lg:hidden fixed inset-x-0 z-20 bg-surface border-t border-line px-4 py-3 flex items-center gap-3', inShell ? 'bottom-[calc(var(--nav-h)+var(--safe-bottom))]' : 'bottom-0 pb-[calc(12px+var(--safe-bottom))]')}>
-          <div className="min-w-0 flex-1"><div className="text-sm text-muted">Desde</div><div className="font-semibold tnum">{money(Math.min(...courts.filter(c => c.status === 'active').map(c => c.priceCents), Infinity) === Infinity ? 0 : Math.min(...courts.filter(c => c.status === 'active').map(c => c.priceCents)))} <span className="text-sm font-normal text-muted">/ turno</span></div></div>
-          <Button size="lg" onClick={() => navigate(`/complejo/${complex.slug}/reservar`)}>Reservar</Button>
+          <div className="min-w-0 flex-1"><div className="text-sm text-muted">Desde</div><div className="font-semibold tnum">{fromPrice === Infinity ? money(0) : money(fromPrice)} <span className="text-sm font-normal text-muted">/ turno</span></div></div>
+          <Button size="lg" onClick={() => navigate(wizard())}>Reservar</Button>
         </div>
       )}
-
-      <BookSheet open={book} onClose={() => setBook(false)} complex={complex} court={court} date={date} time={time} onDone={bid => { setBook(false); setDoneId(bid); setTime('') }} />
-      {doneId && <ConfirmedSheet bookingId={doneId} onClose={() => setDoneId('')} />}
-    </>
+    </div>
   )
 }

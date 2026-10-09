@@ -1,0 +1,24 @@
+/* Estilos de los gráficos del panel (src/ui/dash.jsx). Todo con variables del tema: sirve en claro y oscuro. */
+
+/* Mapa de calor: la intensidad la pone --p (0 a 100) mezclando la marca con el fondo. */
+.hg-cell { --p: 6%; position: relative; display: grid; place-items: center; min-width: 0; border-radius: 6px; background: color-mix(in srgb, var(--brand) var(--p), var(--sunken)); color: var(--ink); font-size: 11px; font-weight: 600; line-height: 1; transition: transform 160ms cubic-bezier(.2,.8,.3,1.2), box-shadow 160ms; -webkit-tap-highlight-color: transparent; }
+.hg-cell:hover { transform: scale(1.14); z-index: 2; box-shadow: var(--sh-2); }
+.hg-cell[data-hot="mid"] { color: var(--ink); }
+.dark .hg-cell[data-hot="mid"] { color: var(--brand-ink); }
+.hg-cell[data-hot="hi"] { color: var(--brand-ink); }
+.hg-cell[data-empty="1"] { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--faint); }
+.hg-cell[data-mark="weak"] { box-shadow: inset 0 0 0 2px var(--warn); }
+.hg-cell[data-mark="strong"] { box-shadow: inset 0 0 0 2px var(--gold); }
+.hg-cell[aria-pressed="true"] { z-index: 3; transform: scale(1.14); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+
+/* Escala de la leyenda del mapa de calor */
+.hg-scale { background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 6%, var(--sunken)), var(--brand)); }
+
+/* Gráfico de área: la línea y el relleno heredan el color del texto (text-brand). */
+.ac-wrap { touch-action: pan-y; outline: none; }
+.ac-wrap:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; border-radius: 8px; }
+.ac-tip { transition: left 90ms linear; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hg-cell, .ac-tip { transition: none; }
+}

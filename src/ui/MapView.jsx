@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import { divIcon } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { LocateFixed, LoaderCircle, Star } from 'lucide-react'
+import './mapview.css'
+import { LocateFixed, LoaderCircle, MapPin, Star } from 'lucide-react'
 import { Cover } from './Cover'
 import { money } from '../lib/format'
 import { getLocation } from '../lib/geo'
@@ -97,7 +98,7 @@ export function LocateButton({ onLocate, className = '' }) {
 }
 
 /** Mapa de complejos. Tocar un marcador abre el globo; el botón del globo abre el complejo. */
-export function ComplexMap({ complexes, selectedId, onSelect, onOpen, userPos, onLocate, className = '' }) {
+export function ComplexMap({ complexes, selectedId, onSelect, onOpen, userPos, onLocate, title, className = '' }) {
   const pts = complexes.filter(c => c.lat != null && c.lng != null)
   const center = userPos || pts[0] || DEFAULT_CENTER
   return (
@@ -112,9 +113,10 @@ export function ComplexMap({ complexes, selectedId, onSelect, onOpen, userPos, o
             <Popup closeButton={false} autoPanPadding={[16, 16]} minWidth={220} maxWidth={240}>
               <div className="-m-3 overflow-hidden rounded-2xl">
                 <div className="relative"><Cover src={c.coverUrl} seed={c.id} className="aspect-[16/9]" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  {c.ratingCount > 0 && <span className="absolute right-2 top-2 inline-flex items-center gap-1 text-white text-xs font-semibold bg-black/45 rounded-full px-2 py-0.5"><Star size={11} className="fill-[var(--gold)] text-[var(--gold)]" />{c.rating.toFixed(1).replace('.', ',')}</span>}</div>
+                  {c.ratingCount > 0 && <span className="absolute right-2 top-2 inline-flex items-center gap-1 text-white text-xs font-semibold bg-black/45 rounded-full px-2 py-0.5"><Star size={11} className="fill-[var(--gold)] text-[var(--gold)]" />{c.rating.toFixed(1).replace('.', ',')}</span>}
+                  {c.fromPrice != null && <span className="absolute left-2 bottom-2 text-white text-xs font-semibold tnum bg-black/45 rounded-full px-2.5 py-0.5">Desde {money(c.fromPrice)}</span>}</div>
                 <div className="p-3 flex flex-col gap-2">
-                  <div><div className="font-semibold text-base leading-tight">{c.name}</div><div className="text-sm text-muted">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}{c.fromPrice != null ? ` · desde ${money(c.fromPrice)}` : ''}</div></div>
+                  <div><div className="display font-bold text-xl leading-tight">{c.name}</div><div className="text-sm text-muted">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</div></div>
                   <Button size="sm" onClick={() => onOpen(c)}>Ver horarios</Button>
                 </div>
               </div>
@@ -122,6 +124,7 @@ export function ComplexMap({ complexes, selectedId, onSelect, onOpen, userPos, o
           </Marker>
         ))}
       </MapContainer>
+      {title && <div className="absolute top-3 left-3 z-[400] map-chip"><MapPin size={16} className="text-brand" aria-hidden="true" />{title}</div>}
       {onLocate && <div className="absolute top-3 right-3 z-[400]"><LocateButton onLocate={onLocate} /></div>}
     </div>
   )

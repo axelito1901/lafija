@@ -1,0 +1,44 @@
+/* Jugador: Inicio, Buscar, Complejo y Reserva guiada.
+   Sólo lo que Tailwind no cubre. Todo con variables del tema (claro y oscuro). */
+
+/* El encabezado de la app mide 1120px; en las pantallas anchas del jugador lo alineamos con el contenido. */
+.pj-wide .app-bar > div { max-width: 1480px; }
+@media (max-width: 1023px) { .pj-wide .app-bar > div { max-width: 1120px; } }
+
+/* Superficies con profundidad */
+.pj-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--sh-2); }
+.pj-soft { background: color-mix(in srgb, var(--sunken) 70%, var(--surface)); border: 1px solid var(--line); border-radius: 16px; }
+.pj-lift { transition: transform 240ms cubic-bezier(.2,.8,.3,1), box-shadow 240ms, border-color 160ms; }
+.pj-lift:hover { transform: translateY(-3px); box-shadow: var(--sh-2); border-color: var(--line-strong); }
+
+/* Rótulo chico en mayúsculas */
+.pj-eyebrow { font-size: .75rem; line-height: 1.2; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brand); }
+
+/* Carrusel horizontal en el celular */
+.pj-rail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; contain: layout paint; }
+.pj-rail::-webkit-scrollbar { display: none; }
+.pj-rail > * { scroll-snap-align: start; flex: 0 0 min(72%, 280px); min-width: 0; }
+@media (min-width: 768px) { .pj-rail { margin-inline: 0; padding-inline: 0; } }
+@media (min-width: 1024px) { .pj-rail { display: grid; overflow: visible; contain: none; gap: 16px; scroll-snap-type: none; } .pj-rail > * { flex: none; } }
+
+/* Barras de reseñas */
+.pj-bar { height: 8px; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.pj-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--grad-brand); transform-origin: left; }
+
+/* Mosaico de fotos */
+.pj-mosaic > button { position: relative; overflow: hidden; background: var(--sunken); }
+.pj-mosaic > button:focus-visible { outline-offset: -3px; }
+
+/* Numeritos de pasos */
+.pj-step-dot { transition: background-color 200ms, color 200ms, box-shadow 200ms, border-color 200ms; }
+
+@media (prefers-reduced-motion: reduce) { .pj-lift:hover { transform: none; } }
+
+/* Panel con fondo sólo en PC (en el celular los filtros quedan sueltos, como siempre) */
+@media (min-width: 1024px) { .pj-lg-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--sh-2); padding: 20px 22px; } }
+
+/* Tarjeta sin relleno sólo en PC (para bloques con mapa o foto a sangre) */
+@media (min-width: 1024px) { .pj-lg-card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--sh-2); overflow: hidden; } }
+
+/* Tarjeta que se levanta al pasar el mouse, sólo en PC (lg) */
+@media (min-width: 1024px) { .pj-lg-lift { transition: transform 240ms cubic-bezier(.2,.8,.3,1), box-shadow 240ms, border-color 160ms; } .pj-lg-lift:hover { transform: translateY(-2px); box-shadow: var(--sh-2); border-color: var(--line-strong); } }

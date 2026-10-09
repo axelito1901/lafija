@@ -1,0 +1,16 @@
+/* Mapa de complejos: pines de precio, globo y controles con el look de La Fija. */
+.map-box .pin { height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: .01em; border: 2px solid var(--surface); box-shadow: 0 6px 16px -4px rgba(10, 20, 14, .38), 0 1px 2px rgba(10, 20, 14, .2); transition: transform 200ms cubic-bezier(.2,.8,.3,1.4), box-shadow 200ms, background-color 150ms; }
+.map-box .pin::after { width: 10px; height: 10px; bottom: -6px; border-right: 2px solid var(--surface); border-bottom: 2px solid var(--surface); border-radius: 0 0 3px 0; }
+.map-box .pin.on { border-color: var(--surface); }
+.map-box .pin.on::after { background: var(--brand); border-color: var(--surface); }
+.map-box .pin:hover { z-index: 6; }
+
+.map-box .leaflet-popup-content-wrapper { border-radius: 18px; padding: 0; }
+.map-box .leaflet-popup-content { margin: 12px; }
+.map-box .leaflet-popup-tip { box-shadow: none; }
+
+.map-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--glass); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border: 1px solid color-mix(in srgb, var(--line) 80%, transparent); box-shadow: var(--sh-2); font-size: 14px; font-weight: 600; color: var(--ink); }
+
+/* Modo oscuro: el mapa se invierte, así que los precios van en píldoras claras para que se lean. */
+.dark .map-box .pin:not(.on) { background: #eef2ee; color: #161a17; border-color: #0e110f; }
+.dark .map-box .pin:not(.on)::after { border-color: #0e110f; }

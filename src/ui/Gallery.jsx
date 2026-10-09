@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, m as motion } from 'motion/react'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Images, X } from 'lucide-react'
 import { cn } from '../lib/format'
 import { Cover } from './Cover'
+import '../screens/player/jugador.css'
 
 /* Carrusel de fotos con deslizar táctil, puntos y vista ampliada. */
 export function Gallery({ photos, seed, alt, className, children }) {
@@ -32,6 +33,32 @@ export function Gallery({ photos, seed, alt, className, children }) {
         {i > 0 && <button type="button" onClick={() => go(i - 1)} aria-label="Foto anterior" className="hidden lg:grid absolute left-3 top-1/2 -translate-y-1/2 size-10 place-items-center rounded-full bg-white/90 text-black opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={20} /></button>}
         {i < list.length - 1 && <button type="button" onClick={() => go(i + 1)} aria-label="Foto siguiente" className="hidden lg:grid absolute right-3 top-1/2 -translate-y-1/2 size-10 place-items-center rounded-full bg-white/90 text-black opacity-0 group-hover:opacity-100 transition-opacity"><ChevronRight size={20} /></button>}
       </>}
+      <Lightbox list={list} index={zoom} onClose={() => setZoom(null)} onIndex={setZoom} alt={alt} />
+    </div>
+  )
+}
+
+/* Mosaico para PC: una foto grande y dos al costado; tocar cualquiera abre la vista ampliada. */
+export function GalleryMosaic({ photos, seed, alt, className }) {
+  const list = photos.length ? photos : ['']
+  const [zoom, setZoom] = useState(null)
+  const n = list.length
+  const cell = (k, cls, more) => (
+    <button key={k} type="button" onClick={() => list[k] && setZoom(k)} aria-label={`Ampliar foto ${k + 1} de ${n}`} className={cn('group/ph', cls)}>
+      <Cover src={list[k]} seed={seed + k} alt={`${alt} (${k + 1})`} className="absolute inset-0 [&>img]:transition-transform [&>img]:duration-[900ms] group-hover/ph:[&>img]:scale-105" />
+      <span className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 group-hover/ph:opacity-100 transition-opacity" />
+      {more}
+    </button>
+  )
+  const grid = n === 1 ? 'grid-cols-1' : n === 2 ? 'grid-cols-[3fr_2fr]' : 'grid-cols-[3fr_2fr] grid-rows-2'
+  return (
+    <div className={cn('relative', className)}>
+      <div className={cn('pj-mosaic grid gap-2 h-full overflow-hidden rounded-3xl shadow-[var(--sh-2)]', grid)}>
+        {cell(0, n > 2 ? 'row-span-2' : '')}
+        {n > 1 && cell(1, '')}
+        {n > 2 && cell(2, '', n > 3 ? <span className="absolute inset-0 grid place-items-center bg-black/45 text-white display text-3xl font-bold">+{n - 3}</span> : null)}
+      </div>
+      {n > 1 && <button type="button" onClick={() => setZoom(0)} className="absolute bottom-4 right-4 inline-flex items-center gap-2 min-h-11 px-4 rounded-xl bg-[var(--glass)] backdrop-blur-xl border border-line text-ink font-semibold shadow-[var(--sh-2)] hover:bg-surface transition-colors"><Images size={18} aria-hidden="true" />Ver las {n} fotos</button>}
       <Lightbox list={list} index={zoom} onClose={() => setZoom(null)} onIndex={setZoom} alt={alt} />
     </div>
   )

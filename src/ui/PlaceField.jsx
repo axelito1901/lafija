@@ -71,7 +71,7 @@ export function PlaceField({ className }) {
     <div ref={box} className={cn('relative', className)}>
       <label htmlFor={id} className="label">¿Dónde?</label>
       <div className="relative">
-        <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+        <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand pointer-events-none" />
         <input id={id} className="input !pl-10 !pr-11" role="combobox" aria-expanded={open} aria-controls={`${id}-list`} aria-autocomplete="list" autoComplete="off"
           value={open ? text : busy ? 'Buscando dónde estás…' : label} placeholder={hasGoogle ? 'Barrio, calle o ciudad' : 'Barrio o ciudad'}
           onFocus={() => { setOpen(true); setText('') }} onChange={e => { setText(e.target.value); setOpen(true) }} onKeyDown={key} />
@@ -79,7 +79,7 @@ export function PlaceField({ className }) {
           : real && !open && <button type="button" className="absolute right-0 top-0 h-full w-11 grid place-items-center text-muted" aria-label="Quitar ubicación" onClick={() => setOrigin(null)}><X size={18} /></button>}
       </div>
       {open && (
-        <ul id={`${id}-list`} role="listbox" className="absolute z-40 left-0 right-0 mt-1 bg-surface border border-line rounded-lg shadow-lg overflow-hidden max-h-80 overflow-y-auto">
+        <ul id={`${id}-list`} role="listbox" className="absolute z-40 left-0 right-0 mt-2 bg-surface border border-line rounded-2xl shadow-[var(--sh-3)] overflow-hidden max-h-80 overflow-y-auto">
           {options.map((o, i) => (
             <li key={o.locate ? 'me' : `${o.name}-${o.placeId || o.lat}`} role="option" aria-selected={i === active}>
               <button type="button" onMouseEnter={() => setActive(i)} onClick={() => (o.locate ? locate() : choose(o))}
