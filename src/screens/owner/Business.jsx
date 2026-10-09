@@ -1,4 +1,8 @@
 import { useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { CalendarDays, HandCoins, Ticket } from 'lucide-react'
+import { CountUp, Item, Stagger } from '../../ui/motion'
+import { Columns, Kpi } from '../../ui/dash'
 import { TrendingDown, TrendingUp, ChevronRight, Eye, LogOut, Moon, Plus, Store, Tags, Users, Wallet, UserRound, Sun, Star, BarChart3 } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { courtsOf, effStatus, paymentLabel, promoLabel, promoWhen } from '../../lib/domain'
@@ -98,6 +102,7 @@ export function Finance() {
   const [period, setPeriod] = useState('week')
   const [limit, setLimit] = useState(15)
   const [editing, setEditing] = useState('')
+  const [pickDay, setPickDay] = useState(null)
   const today = todayISO(), wk = mondayOf(today), mo = monthStart(today)
   const mEnd = (() => { const d = fromISO(mo); d.setMonth(d.getMonth() + 1, 0); return toISO(d) })()
   const prevMo = (() => { const d = fromISO(mo); d.setMonth(d.getMonth() - 1, 1); return toISO(d) })()
@@ -118,44 +123,50 @@ export function Finance() {
   const ticket = active.length ? Math.round(active.reduce((s, b) => s + b.totalCents, 0) / active.length) : 0
   const days = period === 'today' ? [] : Array.from({ length: Math.round((fromISO(R.to) - fromISO(R.from)) / 864e5) + 1 }, (_, i) => addDays(R.from, i))
   const perDay = days.map(d => ({ d, v: sumPaid(all.filter(b => b.date === d)) }))
-  const maxDay = Math.max(1, ...perDay.map(x => x.v))
+  const prevDays = days.map((_, i) => addDays(R.prev[0], i))
+  const prevPerDay = prevDays.map(d => sumPaid(all.filter(b => b.date === d)))
   const rows = cur.filter(b => b.paidCents > 0 || ['pending', 'deposit_paid', 'confirmed'].includes(effStatus(b))).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
   const fee = (() => { const bz = businessOf(state); if (bz.model === 'free') return null; const f = feeFor(state, complex?.id, mo, today); return { bz, f } })()
   return (
     <OwnerPage title="Finanzas">
       {complex && <>
-        <Segmented value={period} onChange={v => { setPeriod(v); setLimit(15) }} label="Período" options={[{ value: 'today', label: 'Hoy' }, { value: 'week', label: 'Semana' }, { value: 'month', label: 'Mes' }]} />
-        <div className="border border-line rounded-lg bg-surface p-4 mt-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted">Ingresos</div>
-          <div className="display text-4xl font-bold tnum mt-1">{money(income)}</div>
-          <p className={cn('text-sm mt-1 inline-flex items-center gap-1', delta == null ? 'text-muted' : delta >= 0 ? 'text-brand' : 'text-danger')}>
+        <Segmented value={period} onChange={v => { setPeriod(v); setLimit(15); setPickDay(null) }} label="Período" options={[{ value: 'today', label: 'Hoy' }, { value: 'week', label: 'Semana' }, { value: 'month', label: 'Mes' }]} />
+        <div className="hero p-5 mt-4">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-90 inline-flex items-center gap-2"><span className="live-dot" />Ingresos · {period === 'today' ? 'hoy' : period === 'week' ? 'esta semana' : 'este mes'}</p>
+          <div className="display text-5xl font-bold tnum mt-2 leading-none"><CountUp key={period} value={money(income)} /></div>
+          <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold rounded-full px-3 py-1 bg-white/18 backdrop-blur">
             {delta == null ? `Sin datos de ${R.vs.split(' a esta')[0]} para comparar` : <>{delta >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}{delta >= 0 ? '+' : ''}{delta}% contra {R.vs}</>}</p>
-          {days.length > 0 && (
-            <div className="mt-4" role="img" aria-label={`Ingresos por día: ${perDay.map(x => `${x.d.slice(8)} ${money(x.v)}`).join(', ')}`}>
-              <div className="flex items-end gap-[3px] h-24">{perDay.map(x => (
-                <div key={x.d} className="flex-1 h-full flex items-end" title={`${dateShort(x.d)}: ${money(x.v)}`}>
-                  <div className={cn('w-full rounded-t-sm', x.d > today ? 'bg-sunken' : x.d === today ? 'bg-brand' : 'bg-[color-mix(in_srgb,var(--brand)_55%,var(--sunken))]')} style={{ height: `${Math.max(x.v ? 4 : 2, (x.v / maxDay) * 100)}%` }} />
-                </div>))}</div>
-              <div className="flex gap-[3px] mt-1 text-[11px] text-muted tnum">{perDay.map((x, i) => <span key={x.d} className="flex-1 text-center truncate">{period === 'week' ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'][i] : (i % 5 === 0 ? Number(x.d.slice(8)) : '')}</span>)}</div>
-            </div>)}
         </div>
-        <div className="grid grid-cols-3 border border-line rounded-lg bg-surface mt-3">
-          <div className="p-4 min-w-0"><div className="text-xs font-semibold uppercase tracking-wider text-muted">Por cobrar</div><div className="text-xl font-semibold tnum mt-1 truncate">{money(pendingAmt)}</div></div>
-          <div className="p-4 min-w-0 border-l border-line"><div className="text-xs font-semibold uppercase tracking-wider text-muted">Reservas</div><div className="text-xl font-semibold tnum mt-1">{active.length}</div></div>
-          <div className="p-4 min-w-0 border-l border-line"><div className="text-xs font-semibold uppercase tracking-wider text-muted">Ticket prom.</div><div className="text-xl font-semibold tnum mt-1 truncate">{money(ticket)}</div></div>
-        </div>
+        {days.length > 0 && (
+          <div className="border border-line rounded-2xl bg-surface p-4 mt-3 shadow-[var(--sh-1)]">
+            <div className="flex items-baseline justify-between gap-3 mb-3 min-h-9">
+              <h2 className="font-semibold">Por día</h2>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.p key={pickDay || 'none'} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: .12 }} className="text-sm text-right tnum">
+                  {pickDay ? <><span className="text-muted">{dateShort(pickDay)} · </span><strong className="text-brand text-base">{money(perDay.find(x => x.d === pickDay)?.v || 0)}</strong></> : <span className="text-muted">Tocá una columna · <span className="inline-block w-4 border-t-2 border-dashed border-strong align-middle" /> {R.vs.split(' a esta')[0]}</span>}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+            <Columns items={perDay.map((x, i) => ({ key: x.d, v: x.v, ghost: prevPerDay[i] || 0, future: x.d > today, today: x.d === today, aria: `${dateShort(x.d)}: ${money(x.v)}` }))}
+              selected={pickDay} onSelect={setPickDay} labelFor={(x, i) => period === 'week' ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'][i] : (i % 5 === 0 ? Number(x.key.slice(8)) : '')} />
+          </div>)}
+        <Stagger className="grid grid-cols-3 gap-3 mt-3">
+          <Item><Kpi icon={HandCoins} label="Por cobrar" value={money(pendingAmt)} tone={pendingAmt ? 'warn' : 'brand'} /></Item>
+          <Item><Kpi icon={CalendarDays} label="Reservas" value={active.length} /></Item>
+          <Item><Kpi icon={Ticket} label="Ticket prom." value={money(ticket)} /></Item>
+        </Stagger>
         {fee && <p className="text-sm text-muted mt-3">{fee.bz.model === 'commission' ? <>Comisión de La Fija ({fee.bz.commissionPercent}% de las reservas hechas por la app) este mes: <strong className="text-ink tnum">{money(fee.f.fee)}</strong></> : <>Abono de La Fija: <strong className="text-ink tnum">{money(fee.bz.monthlyFeeCents)}</strong> por mes</>}</p>}
         <h2 className="font-semibold mt-6 mb-3">Movimientos</h2>
         {rows.length === 0 ? <div className="list"><Empty title="Sin movimientos en este período" text="Cuando cobres una reserva, aparece acá." /></div> : (
-          <><div className="list">{rows.slice(0, limit).map(b => {
+          <><Stagger className="list" key={period + (pickDay || '')}>{rows.filter(b => !pickDay || b.date === pickDay).slice(0, limit).map(b => {
             const court = courtsOf(state, b.complexId).find(c => c.id === b.courtId)
             return (
-              <button key={b.id} type="button" className="row" onClick={() => setEditing(b.id)}>
+              <Item as="button" key={b.id} type="button" className="row" onClick={() => setEditing(b.id)}>
                 <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{b.playerName}</span><span className="block text-sm text-muted truncate">{court?.name} · {dateShort(b.date)} · {b.time}</span></span>
                 <span className="text-right flex-none"><span className="block font-semibold tnum">{money(b.paidCents)}</span><span className="block text-sm text-muted">{paymentLabel(b)}</span></span>
                 <ChevronRight size={18} className="text-faint flex-none -mr-1" />
-              </button>)
-          })}</div>
+              </Item>)
+          })}</Stagger>
           {rows.length > limit && <Button variant="secondary" className="w-full mt-3" onClick={() => setLimit(limit + 15)}>Ver más ({rows.length - limit})</Button>}</>)}
         {editing && <BookingEditor bookingId={editing} onClose={() => setEditing('')} />}
       </>}

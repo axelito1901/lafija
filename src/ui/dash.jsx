@@ -38,10 +38,45 @@ export function HeatStrip({ rows, nowT }) {
 export function Kpi({ icon: I, label, value, tone = 'brand', className }) {
   const tones = { brand: 'bg-brand-soft text-brand', warn: 'bg-warn-soft text-warn', info: 'bg-[color-mix(in_srgb,var(--info)_14%,transparent)] text-info' }
   return (
-    <div className={cn('p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] min-w-0 card-lift', className)}>
+    <div className={cn('p-3.5 sm:p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] min-w-0 card-lift', className)}>
       <span className={cn('size-9 rounded-xl grid place-items-center', tones[tone])}><I size={18} aria-hidden="true" /></span>
       <div className="text-xs font-semibold uppercase tracking-wider text-muted mt-3">{label}</div>
-      <div className="display text-3xl font-bold tnum mt-0.5 truncate"><CountUp value={value} /></div>
+      <div className={cn('display font-bold tnum mt-0.5 whitespace-nowrap leading-tight', String(value).length > 9 ? 'text-xl' : String(value).length > 6 ? 'text-2xl' : 'text-3xl')}><CountUp value={value} /></div>
+    </div>
+  )
+}
+
+/* Barra horizontal que crece al aparecer. */
+export function HBar({ label, pct, strong, i = 0 }) {
+  const tone = pct >= 70 ? 'var(--grad-brand)' : pct >= 35 ? 'color-mix(in srgb, var(--brand) 55%, var(--sunken))' : 'var(--line-strong)'
+  return (
+    <div className="flex items-center gap-3 min-h-8">
+      <span className={cn('w-14 flex-none text-sm tnum', strong ? 'font-semibold' : 'text-muted')}>{label}</span>
+      <span className="flex-1 h-3 rounded-full bg-sunken overflow-hidden">
+        <motion.span className="block h-full rounded-full" style={{ background: tone }} initial={{ width: 0 }} whileInView={{ width: `${Math.max(pct, 2)}%` }} viewport={{ once: true }} transition={{ duration: .7, delay: Math.min(i * .02, .5), ease: [.2, .8, .2, 1] }} />
+      </span>
+      <span className="w-10 text-right text-sm tnum flex-none">{pct}%</span>
+    </div>
+  )
+}
+
+/* Gráfico de columnas tocable: al tocar una columna muestra su valor. */
+export function Columns({ items, selected, onSelect, labelFor, height = 112 }) {
+  const max = Math.max(1, ...items.map(x => Math.max(x.v, x.ghost || 0)))
+  return (
+    <div>
+      <div className="flex items-end gap-[3px]" style={{ height }} role="group" aria-label="Gráfico">
+        {items.map((x, i) => {
+          const on = selected === x.key
+          return (
+            <button key={x.key} type="button" aria-pressed={on} aria-label={x.aria} onClick={() => onSelect?.(on ? null : x.key)} className="relative flex-1 h-full flex items-end min-w-0 group">
+              {x.ghost > 0 && <span className="absolute inset-x-0 border-t-2 border-dashed border-strong" style={{ bottom: `${(x.ghost / max) * 100}%` }} />}
+              <motion.span className={cn('w-full rounded-t-md origin-bottom', x.future ? 'bg-sunken' : on ? 'bg-[image:var(--grad-brand)] shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--brand)]' : x.today ? 'bg-[image:var(--grad-brand)]' : 'bg-[color-mix(in_srgb,var(--brand)_45%,var(--sunken))] group-hover:bg-[color-mix(in_srgb,var(--brand)_70%,var(--sunken))]')}
+                initial={{ height: 0 }} animate={{ height: `${Math.max(x.v ? 4 : 2, (x.v / max) * 100)}%` }} transition={{ ...spring, delay: Math.min(i * .015, .4) }} />
+            </button>)
+        })}
+      </div>
+      <div className="flex gap-[3px] mt-1 text-[11px] text-muted tnum">{items.map((x, i) => <span key={x.key} className={cn('flex-1 text-center truncate', selected === x.key && 'text-brand font-bold')}>{labelFor(x, i)}</span>)}</div>
     </div>
   )
 }
