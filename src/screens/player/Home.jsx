@@ -1,0 +1,112 @@
+import { useMemo, useState } from 'react'
+import { ChevronRight, Search } from 'lucide-react'
+import { useStore } from '../../lib/store'
+import { nextTimes, balanceOf, effStatus, favsOf, getComplex, getCourt, isUpcoming, perPerson, publicComplexes, STATUS } from '../../lib/domain'
+import { addDays, cn, dateLong, dayNum, money, relativeDay, todayISO, weekdayShort } from '../../lib/format'
+import { useOrigin } from '../../lib/origin'
+import { Link, navigate } from '../../lib/router'
+import { Button, Content, Empty, PageHeader, Section } from '../../ui/kit'
+import { complexView } from '../../ui/shared'
+import { BookingDetail, ReviewSheet } from './flow'
+
+/* Entrada de partido: lo primero que ve el jugador si tiene una reserva. */
+function Ticket({ b, onOpen }) {
+  const { state } = useStore()
+  const c = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
+  const st = effStatus(b), rest = balanceOf(b), each = perPerson(court, b.totalCents)
+  return (
+    <button type="button" onClick={onOpen} className="relative w-full text-left rounded-xl overflow-hidden text-[var(--brand-ink)] bg-brand active:opacity-90 transition-opacity" aria-label={`Tu próximo partido: ${c.name}, ${relativeDay(b.date)} a las ${b.time}`}>
+      <div className="p-5 pb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Tu próximo partido</p>
+        <div className="flex items-end justify-between gap-4 mt-2">
+          <div className="min-w-0">
+            <p className="display text-5xl font-bold leading-none tnum">{b.time}</p>
+            <p className="mt-2 font-semibold">{relativeDay(b.date)}{b.date > todayISO() ? '' : ''} · {dateLong(b.date).split(', ')[1]}</p>
+          </div>
+          <div className="text-right min-w-0">
+            <p className="display text-xl font-semibold leading-tight truncate">{c.name}</p>
+            <p className="opacity-80 truncate">{court.name} · {court.sport}</p>
+          </div>
+        </div>
+      </div>
+      <div className="relative border-t-2 border-dashed border-current/25 mx-4" aria-hidden="true">
+        <span className="absolute -left-7 -top-3 size-6 rounded-full bg-[var(--bg)]" /><span className="absolute -right-7 -top-3 size-6 rounded-full bg-[var(--bg)]" />
+      </div>
+      <div className="px-5 py-3 flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium">{STATUS[st].label}{rest > 0 && st !== 'pending' ? ` · resta ${money(rest)}` : ''}{each ? ` · ${money(each)} c/u` : ''}</span>
+        <span className="font-semibold inline-flex items-center gap-1 flex-none">Ver<ChevronRight size={16} /></span>
+      </div>
+    </button>
+  )
+}
+
+export default function PlayerHome() {
+  const { state, user } = useStore()
+  const { origin } = useOrigin()
+  const [open, setOpen] = useState('')
+  const [review, setReview] = useState(null)
+  const now = new Date(), today = todayISO()
+
+  const [day, setDay] = useState(today)
+  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i))
+  const mine = state.bookings.filter(b => b.playerId === user.id)
+  const near = useMemo(() => publicComplexes(state).map(c => complexView(state, c, origin)).sort((a, b) => (a.distance ?? 99) - (b.distance ?? 99))
+    .map(c => ({ c, slots: nextTimes(state, c, day, 4, now) })).filter(x => x.slots.length).slice(0, 4), [state, day, origin]) // eslint-disable-line
+  const next = mine.filter(b => isUpcoming(b, now)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0]
+  // Tus canchas: favoritas y donde ya jugaste, sin repetir (máximo 3)
+  const lastCourt = {}
+  for (const b of [...mine].sort((a, b) => a.date.localeCompare(b.date))) lastCourt[b.complexId] = b.courtId
+  const yours = useMemo(() => {
+    const ids = [...favsOf(state, user.id), ...[...mine].sort((a, b) => b.date.localeCompare(a.date)).map(b => b.complexId)]
+    return [...new Set(ids)].map(id => publicComplexes(state).find(c => c.id === id)).filter(Boolean).slice(0, 3).map(c => complexView(state, c, origin))
+  }, [state, origin]) // eslint-disable-line
+
+  return (
+    <>
+      <PageHeader logo />
+      <Content className="max-w-[640px] lg:mx-0">
+        <p className="text-muted mb-4">Hola, {user.name.split(' ')[0]}</p>
+        {next && <div className="mb-6"><Ticket b={next} onOpen={() => setOpen(next.id)} /></div>}
+
+        <section aria-labelledby="cuando">
+          <h2 id="cuando" className="text-2xl">¿Cuándo querés jugar?</h2>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-3 pb-1" role="group" aria-label="Día" data-tour="buscar">
+            {days.map(d => (
+              <button key={d} type="button" aria-pressed={day === d} onClick={() => setDay(d)}
+                className={cn('flex-none min-w-16 h-14 px-3 rounded-lg border flex flex-col items-center justify-center transition-colors', day === d ? 'bg-brand border-brand text-[var(--brand-ink)]' : 'bg-surface border-strong hover:bg-sunken')}>
+                <span className="font-semibold leading-tight">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : weekdayShort(d)}</span>
+                <span className={cn('text-xs tnum', day !== d && 'text-muted')}>{dayNum(d)}/{Number(d.slice(5, 7))}</span>
+              </button>))}
+          </div>
+          <div className="mt-4 space-y-3">
+            {near.length === 0
+              ? <div className="list"><Empty title={day === today ? 'Hoy ya no quedan horarios cerca' : 'No hay horarios libres ese día'} action={<Button variant="secondary" onClick={() => setDay(addDays(day, 1))}>Ver el día siguiente</Button>} /></div>
+              : near.map(({ c, slots }) => (
+                <div key={c.id} className="border border-line rounded-lg bg-surface p-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <Link to={`/complejo/${c.slug}`} className="font-semibold text-lg leading-tight truncate inline-flex items-center min-h-11 -my-2.5">{c.name}</Link>
+                    <span className="text-sm text-muted flex-none">{c.distanceLabel}</span>
+                  </div>
+                  <p className="text-sm text-muted truncate">{(c.tags || '').split(' · ').filter(t => t.startsWith('Fútbol')).join(' · ')} · desde {money(c.fromPrice)}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-3">{slots.map(s2 => <Link key={s2.t} to={`/complejo/${c.slug}/reservar?fecha=${day}&cancha=${s2.courtId}&hora=${s2.t}`} className="chip !min-h-11 !px-3.5 tnum">{s2.t}</Link>)}
+                    <Link to={`/complejo/${c.slug}/reservar?fecha=${day}`} className="chip !min-h-11 !px-3 !border-transparent text-brand">Más</Link></div>
+                </div>))}
+          </div>
+          <Button variant="secondary" className="w-full mt-3" onClick={() => navigate(`/buscar?fecha=${day}`)}><Search size={18} />Buscar por zona o en el mapa</Button>
+        </section>
+
+        {yours.length > 0 && (
+          <Section title="Tus canchas" className="!mt-10">
+            <div className="list">{yours.map(c => (
+              <Link key={c.id} to={`/complejo/${c.slug}/reservar${lastCourt[c.id] ? `?cancha=${lastCourt[c.id]}` : ''}`} className="row">
+                <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{c.name}</span><span className="block text-sm text-muted truncate">{c.city} · {c.distanceLabel}</span></span>
+                <span className="text-brand font-semibold flex-none">Reservar</span><ChevronRight size={18} className="text-brand flex-none -mr-1" />
+              </Link>))}</div>
+          </Section>
+        )}
+      </Content>
+      {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
+      {review && <ReviewSheet booking={review} onClose={() => setReview(null)} />}
+    </>
+  )
+}
