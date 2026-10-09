@@ -11,11 +11,12 @@ import App from './App'
 import { LazyMotion } from 'motion/react'
 import { StoreProvider } from './lib/store'
 import { FeedbackProvider } from './ui/kit'
-import { applyBig, applyTheme } from './lib/theme'
+import { applyBig, applyEasy, applyTheme } from './lib/theme'
 import { registerSW } from './lib/push'
 
 applyTheme(localStorage.getItem('lafija-theme') || 'system')
 applyBig(localStorage.getItem('lafija-big') === '1')
+applyEasy()
 createRoot(document.getElementById('root')).render(
   <StrictMode><LazyMotion features={() => import('./ui/motionFeatures').then(m => m.default)}><FeedbackProvider><StoreProvider><App /></StoreProvider></FeedbackProvider></LazyMotion></StrictMode>
 )

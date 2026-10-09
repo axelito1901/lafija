@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import { divIcon } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -23,7 +23,23 @@ function useDark() {
   }, [])
   return dark
 }
-const Tiles = ({ maxZoom = 19, attribution }) => { const d = useDark(); return <TileLayer key={d ? 'd' : 'l'} url={d ? TILES.dark : TILES.light} attribution={attribution} maxZoom={maxZoom} subdomains="abcd" /> }
+/* Mosaicos gratis y sin clave. Si el primer proveedor no carga (red, bloqueador, caída), pasamos al siguiente solos. */
+const PROVIDERS = [
+  { id: 'carto', url: d => d ? TILES.dark : TILES.light, sub: 'abcd', attr: ATTR },
+  { id: 'osm', url: () => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', sub: 'abc', attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' },
+  { id: 'osm-fr', url: () => 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', sub: 'abc', attr: '&copy; OpenStreetMap France' },
+]
+function Tiles({ maxZoom = 19, attribution }) {
+  const d = useDark()
+  const [i, setI] = useState(0)
+  const stat = useRef({ ok: 0, bad: 0 })
+  const p = PROVIDERS[i]
+  const ev = useMemo(() => ({
+    tileload: () => { stat.current.ok++ },
+    tileerror: () => { const s = stat.current; s.bad++; if (s.bad >= 3 && s.ok === 0 && i < PROVIDERS.length - 1) { stat.current = { ok: 0, bad: 0 }; setI(i + 1) } },
+  }), [i])
+  return <TileLayer key={p.id + (d ? 'd' : 'l')} url={p.url(d)} attribution={attribution === undefined ? undefined : p.attr} maxZoom={maxZoom} subdomains={p.sub} className={p.id !== 'carto' && d ? 'tiles-invert' : ''} eventHandlers={ev} />
+}
 
 const pinIcon = (label, on) => divIcon({ className: '', html: `<div class="pin pin-pop${on ? ' on' : ''}">${label}</div>`, iconSize: [0, 0], iconAnchor: [0, 0], popupAnchor: [0, -38] })
 const meIcon = divIcon({ className: '', html: '<div class="pin-me"></div>', iconSize: [0, 0] })

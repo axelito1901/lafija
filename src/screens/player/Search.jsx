@@ -4,11 +4,15 @@ import { activeCourts, favsOf, nextTimes, publicComplexes, SPORTS, toggleFav } f
 import { cn, plural, todayISO } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { navigate, useRoute } from '../../lib/router'
-import { Button, Chip, Content, Empty, PageHeader, Segmented } from '../../ui/kit'
+import { Button, Chip, Content, Empty, PageHeader, Segmented, Select } from '../../ui/kit'
 import { DateField } from '../../ui/DateField'
 import { PlaceField } from '../../ui/PlaceField'
 import { ComplexMap } from '../../ui/MapView'
 import { ComplexCard, complexView } from '../../ui/shared'
+
+const PARTS = [['', 'Cualquiera'], ['m', 'Mañana'], ['t', 'Tarde'], ['n', 'Noche'], ['h', 'Una hora']]
+const PART_FN = { m: t => t < '12:00' && t >= '06:00', t: t => t >= '12:00' && t < '18:00', n: t => t >= '18:00' || t < '06:00' }
+const HOURS = Array.from({ length: 18 }, (_, i) => `${String(i + 7).padStart(2, '0')}:00`)
 
 export default function Search() {
   const { state, user, update } = useStore()
@@ -16,6 +20,8 @@ export default function Search() {
   const { origin, real, label, setOrigin } = useOrigin()
   const [fecha, setFecha] = useState(query.fecha >= todayISO() ? query.fecha : todayISO())
   const [tipo, setTipo] = useState(query.tipo || '')
+  const [part, setPart] = useState('')
+  const [hour, setHour] = useState('21:00')
   const [view, setView] = useState('lista')
   const [selected, setSelected] = useState('')
   const now = new Date()
@@ -23,8 +29,8 @@ export default function Search() {
   const sports = SPORTS.filter(s => publicComplexes(state).some(c => activeCourts(state, c.id).some(x => x.sport === s)))
   const results = useMemo(() => publicComplexes(state)
     .filter(c => !tipo || activeCourts(state, c.id).some(x => x.sport === tipo))
-    .map(c => ({ ...complexView(state, c, origin), slots: nextTimes(state, c, fecha, 4, now) }))
-    .sort((a, b) => (a.distance ?? 99) - (b.distance ?? 99)), [state, tipo, fecha, origin]) // eslint-disable-line
+    .map(c => ({ ...complexView(state, c, origin), slots: nextTimes(state, c, fecha, 4, now, part === 'h' ? { near: hour } : part ? { part: PART_FN[part] } : null) }))
+    .sort((a, b) => (b.slots.length > 0) - (a.slots.length > 0) || (a.distance ?? 99) - (b.distance ?? 99)), [state, tipo, fecha, origin, part, hour]) // eslint-disable-line
 
   const favs = user ? favsOf(state, user.id) : []
   const pick = id => { setSelected(id); if (view === 'lista') document.getElementById(`c-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }
@@ -36,6 +42,13 @@ export default function Search() {
         <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
           <PlaceField />
           <div><span className="label">¿Cuándo?</span><DateField min={todayISO()} value={fecha} onChange={v => setFecha(v || todayISO())} /></div>
+        </div>
+        <div className="mt-4">
+          <span className="label">¿A qué hora?</span>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-1" role="group" aria-label="Horario">
+            {PARTS.map(([k, l]) => <Chip key={k} active={part === k} onClick={() => setPart(k)}>{l}</Chip>)}
+          </div>
+          {part === 'h' && <Select className="mt-2 sm:max-w-48" aria-label="Hora" value={hour} onChange={e => setHour(e.target.value)}>{HOURS.map(h => <option key={h} value={h}>{h} hs</option>)}</Select>}
         </div>
         {sports.length > 1 && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-4 pb-1" role="group" aria-label="Tipo de cancha">

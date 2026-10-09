@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, m as motion } from 'motion/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button, LogoMark } from './kit'
+import { useEasy } from '../lib/theme'
 
 export const TOURS = {
   player: [
@@ -30,6 +31,7 @@ const WELCOME = {
 export function Tour({ role, onDone }) {
   const steps = [{ welcome: true, ...WELCOME[role] }, ...(TOURS[role] || [])]
   const [i, setI] = useState(0)
+  const [easy, setEasy] = useEasy()
   const [rect, setRect] = useState(null)
   const step = steps[i]
   const finish = () => { localStorage.setItem(tourKey(role), '1'); onDone() }
@@ -76,7 +78,15 @@ export function Tour({ role, onDone }) {
           <motion.span initial={{ rotate: -20, scale: .5 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: 'spring', delay: .15, stiffness: 300, damping: 14 }} className="mx-auto grid place-items-center size-16 rounded-2xl bg-white/20 backdrop-blur"><LogoMark size={36} /></motion.span>
           <h2 className="display text-3xl font-bold mt-4 leading-tight">{step.title}</h2>
         </div>
-        <div className="p-6"><p className="text-muted">{step.text}</p><div className="mt-4">{dots}</div>{actions}</div>
+        <div className="p-6"><p className="text-muted">{step.text}</p>
+          {role === 'player' && (
+            <div className="mt-4" role="group" aria-label="Tamaño de la letra">
+              <p className="font-semibold mb-2">¿Cómo preferís ver la app?</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" aria-pressed={!easy} onClick={() => setEasy(false)} className={`rounded-xl border p-3 text-center ${!easy ? 'border-brand bg-brand-soft font-semibold' : 'border-strong'}`}><span className="block text-base">Aa</span><span className="block text-sm">Normal</span></button>
+                <button type="button" aria-pressed={easy} onClick={() => setEasy(true)} className={`rounded-xl border p-3 text-center ${easy ? 'border-brand bg-brand-soft font-semibold' : 'border-strong'}`}><span className="block text-2xl leading-none">Aa</span><span className="block text-sm">Letra grande y simple</span></button>
+              </div>
+            </div>)}<div className="mt-4">{dots}</div>{actions}</div>
       </motion.div>
     </motion.div>, document.body)
 

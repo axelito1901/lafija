@@ -8,7 +8,7 @@ import { playerStats, nextTimes, effStatus, rebookLink, reviewOf, favsOf, freeCo
 import { relativeDay, todayISO } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { navigate } from '../../lib/router'
-import { useBigText } from '../../lib/theme'
+import { useBigText, useEasy } from '../../lib/theme'
 import { enablePush, pushPermission } from '../../lib/push'
 import { Button, Content, Empty, Field, Input, PageHeader, Section, Segmented, Switch, useToast } from '../../ui/kit'
 import { BookingCard, ComplexCard, complexView } from '../../ui/shared'
@@ -102,6 +102,7 @@ const BADGE_ICON = { goal: Goal, shirt: Shirt, trophy: Trophy, crown: Crown, fla
 export function Account({ theme, onSignOut }) {
   const { state, user, update } = useStore()
   const [big, setBig] = useBigText()
+  const [easy, setEasy] = useEasy()
   const [pushOn, setPushOn] = useState(pushPermission() === 'granted')
   const [pushMsg, setPushMsg] = useState(pushPermission() === 'unsupported' ? 'Este navegador no permite avisos (en iPhone, agregá La Fija a la pantalla de inicio).' : pushPermission() === 'denied' ? 'Los avisos están bloqueados en la configuración del navegador.' : '')
   const toast = useToast()
@@ -152,6 +153,7 @@ export function Account({ theme, onSignOut }) {
         <Section title="Preferencias" className="mt-10 [&>*:not(:first-child)]:rounded-2xl">
           <Switch label="Avisos en este celular" hint={pushMsg || 'Te avisamos de reservas, pagos y horarios que se liberan.'} checked={pushOn} disabled={pushPermission() === 'unsupported' || pushPermission() === 'denied'}
             onChange={async v => { if (!v) { setPushMsg('Para apagarlos, desactivá los avisos de La Fija en la configuración del navegador.'); return } try { const r = await enablePush(user.id); setPushOn(true); setPushMsg(r === 'server' ? 'Listo: te llegan aunque la app esté cerrada.' : 'Listo: te avisamos mientras la app esté abierta.') } catch (e) { setPushMsg(e.message) } }} />
+          <Switch label="Modo fácil" hint="Letra grande y una pantalla de inicio con solo tres botones." checked={easy} onChange={setEasy} />
           <Switch label="Letra más grande" hint="Agranda los textos y los botones de toda la app." checked={big} onChange={setBig} />
           <Switch label="Modo oscuro" checked={theme.dark} onChange={theme.toggle} />
         </Section>

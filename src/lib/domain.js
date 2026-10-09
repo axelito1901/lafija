@@ -435,12 +435,18 @@ export function dayStatus(state, complex, date = todayISO(), now = new Date(), c
 
 
 /* Próximos horarios libres de un complejo en un día (uno por hora, con la primera cancha libre). */
-export function nextTimes(state, complex, date, n = 5, now = new Date()) {
+export function nextTimes(state, complex, date, n = 5, now = new Date(), when = null) {
   const courts = activeCourts(state, complex.id), out = []
   for (const t of slotsFor(complex)) {
+    if (when?.part && !when.part(t)) continue
     const c = courts.find(x => slotInfo(state, complex, x, date, t, now).kind === 'free')
     if (c) out.push({ t, courtId: c.id })
-    if (out.length >= n) break
+    if (!when?.near && out.length >= n) break
+  }
+  // "Cerca de las 21": los horarios libres más cercanos a la hora pedida, en orden de reloj.
+  if (when?.near) {
+    const m = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)), at = m(when.near)
+    return out.sort((a, b) => Math.abs(m(a.t) - at) - Math.abs(m(b.t) - at)).slice(0, n).sort((a, b) => a.t.localeCompare(b.t))
   }
   return out
 }

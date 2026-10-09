@@ -8,6 +8,7 @@ import { navigate } from '../../lib/router'
 import { Button, Chip, Field, Input, MoneyInput, Segmented, Select, Switch, Textarea, useToast } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
 import { LocateButton, PositionPicker } from '../../ui/MapView'
+import { AddressSearch } from '../../ui/PlaceField'
 import { OwnerPage, useOwner } from './common'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
@@ -71,7 +72,8 @@ function Form({ complex }) {
         </div>
       </Block>
 
-      <Block title="Ubicación en el mapa" hint="Tocá el mapa o arrastrá el marcador hasta la entrada.">
+      <Block title="Ubicación en el mapa" hint="Buscá la dirección, o tocá el mapa y arrastrá el marcador hasta la entrada.">
+        <AddressSearch onPick={p => setD(x => ({ ...x, lat: p.lat, lng: p.lng, address: x.address || p.address || '' }))} />
         <PositionPicker className="h-56 rounded-lg overflow-hidden border border-line" value={d.lat != null ? { lat: d.lat, lng: d.lng } : null} onChange={p => setD(x => ({ ...x, lat: p.lat, lng: p.lng }))} />
         <LocateButton onLocate={p => setD(x => ({ ...x, lat: p.lat, lng: p.lng }))} />
         {d.lat == null && <p className="hint">Sin ubicación, el complejo no aparece en el mapa.</p>}

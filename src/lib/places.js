@@ -14,8 +14,34 @@ export const LOCAL_PLACES = [
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 export const localMatches = q => { const t = norm(q).trim(); return t ? LOCAL_PLACES.filter(p => norm(p.name).includes(t) || norm(p.area).startsWith(t)).slice(0, 6) : [] }
 
+/* Google Places (New): solo se usa si hay VITE_GOOGLE_MAPS_KEY. Sin clave, o si Google falla, sigue la búsqueda gratuita. */
+const GKEY = import.meta.env.VITE_GOOGLE_MAPS_KEY
+export const hasGoogle = !!GKEY
+const newToken = () => (globalThis.crypto?.randomUUID?.() || String(Math.random()).slice(2))
+let session = newToken()
+async function googleSearch(q, signal, near) {
+  const body = { input: q, languageCode: 'es', includedRegionCodes: ['ar'], sessionToken: session }
+  if (near?.lat != null) body.locationBias = { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 40000 } }
+  const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GKEY }, body: JSON.stringify(body) })
+  if (!res.ok) throw new Error('google')
+  const data = await res.json()
+  return (data.suggestions || []).map(x => x.placePrediction).filter(Boolean).slice(0, 5).map(x => ({
+    placeId: x.placeId, name: x.structuredFormat?.mainText?.text || x.text?.text || '', area: x.structuredFormat?.secondaryText?.text || '', full: x.text?.text || '',
+  }))
+}
+/* Las sugerencias de Google traen solo el nombre; las coordenadas se piden al elegir una (y eso cierra la sesión de cobro). */
+export async function resolvePlace(p) {
+  if (p.lat != null || !p.placeId) return p
+  const res = await fetch(`https://places.googleapis.com/v1/places/${p.placeId}?languageCode=es&sessionToken=${session}`, { headers: { 'X-Goog-Api-Key': GKEY, 'X-Goog-FieldMask': 'location' } })
+  session = newToken()
+  if (!res.ok) throw new Error('No pudimos ubicar ese lugar. Probá con otro.')
+  const { location } = await res.json()
+  return { ...p, lat: location.latitude, lng: location.longitude }
+}
+
 const NOMI = 'https://nominatim.openstreetmap.org'
-export async function searchPlaces(q, signal) {
+export async function searchPlaces(q, signal, near) {
+  if (GKEY) { try { return await googleSearch(q, signal, near) } catch (e) { if (e.name === 'AbortError') throw e } }
   const url = `${NOMI}/search?format=json&countrycodes=ar&limit=5&addressdetails=1&accept-language=es&q=${encodeURIComponent(q)}`
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
   if (!res.ok) return []

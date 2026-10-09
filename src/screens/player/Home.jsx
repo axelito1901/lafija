@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight, Search } from 'lucide-react'
+import { CalendarCheck, ChevronRight, LifeBuoy, Search } from 'lucide-react'
+import { useEasy } from '../../lib/theme'
+import { SUPPORT_WA } from '../../ui/Help'
 import { useStore } from '../../lib/store'
 import { nextTimes, balanceOf, effStatus, favsOf, getComplex, getCourt, isUpcoming, perPerson, publicComplexes, STATUS } from '../../lib/domain'
-import { addDays, cn, dateLong, dayNum, money, relativeDay, todayISO, weekdayShort } from '../../lib/format'
+import { addDays, cn, waLink, dateLong, dayNum, money, relativeDay, todayISO, weekdayShort } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { Link, navigate } from '../../lib/router'
 import { Button, Content, Empty, PageHeader, Section } from '../../ui/kit'
@@ -41,7 +43,45 @@ function Ticket({ b, onOpen }) {
   )
 }
 
+/* Inicio simple: tres botones grandes y nada más. */
+function EasyHome({ user, next, onOpen, onRate }) {
+  const big = 'w-full rounded-3xl p-5 flex items-center gap-4 text-left min-h-24 active:scale-[.98] transition-transform'
+  return (
+    <>
+      <PageHeader logo />
+      <Content className="max-w-[560px] lg:mx-0"><Stagger>
+        <Item><p className="display text-3xl font-bold mb-5">Hola, {user.name.split(' ')[0]} 👋</p></Item>
+        <Item><Link to="/buscar" data-tour="buscar" className={cn(big, 'bg-[image:var(--grad-brand)] text-[var(--on-grad)] shadow-[var(--sh-2)]')}><Search size={34} aria-hidden="true" /><span className="display text-2xl font-bold leading-tight">Reservar una cancha</span></Link></Item>
+        {next && <Item className="mt-3"><Ticket b={next} onOpen={onOpen} /></Item>}
+        <Item className="empty:hidden mt-3"><RateCard onRate={onRate} /></Item>
+        <Item className="mt-3"><Link to="/reservas" className={cn(big, 'bg-surface border border-strong')}><CalendarCheck size={34} className="text-brand" aria-hidden="true" /><span className="display text-2xl font-bold leading-tight">Mis reservas</span></Link></Item>
+        <Item className="mt-3"><a href={waLink(SUPPORT_WA, `Hola, necesito ayuda con La Fija. Soy ${user.name}.`)} target="_blank" rel="noreferrer" className={cn(big, 'bg-surface border border-strong')}><LifeBuoy size={34} className="text-brand" aria-hidden="true" /><span><span className="display text-2xl font-bold leading-tight block">Necesito ayuda</span><span className="text-muted">Te respondemos por WhatsApp</span></span></a></Item>
+      </Stagger></Content>
+    </>
+  )
+}
+
 export default function PlayerHome() {
+  const [easy] = useEasy()
+  return easy ? <EasyWrap /> : <FullHome />
+}
+function EasyWrap() {
+  const { state, user } = useStore()
+  const [open, setOpen] = useState('')
+  const [review, setReview] = useState(null)
+  const [stars, setStars] = useState(0)
+  const now = new Date()
+  const next = state.bookings.filter(b => b.playerId === user.id && isUpcoming(b, now)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0]
+  return (
+    <>
+      <EasyHome user={user} next={next} onOpen={() => setOpen(next.id)} onRate={(b, n) => { setStars(n); setReview(b) }} />
+      {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
+      {review && <ReviewSheet booking={review} initialRating={stars} onClose={() => { setReview(null); setStars(0) }} />}
+    </>
+  )
+}
+
+function FullHome() {
   const { state, user } = useStore()
   const { origin } = useOrigin()
   const [open, setOpen] = useState('')

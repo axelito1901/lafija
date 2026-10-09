@@ -113,3 +113,10 @@ html { scroll-behavior: smooth; }
 .tour-pulse { animation: tour-pulse 1.8s ease-out infinite; border: 2px solid var(--brand); }
 @keyframes tour-pulse { from { transform: scale(1); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .tour-pulse { animation: none; } }
+/* Mapa de respaldo (OpenStreetMap) en modo oscuro: se invierte para no encandilar. */
+.dark .tiles-invert { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.9); }
+/* Modo fácil: textos chicos más legibles y menos adornos. */
+html.easy .text-sm { font-size: 1rem; line-height: 1.45; }
+html.easy .text-xs { font-size: .875rem; }
+html.easy .bottom-nav a, html.easy .bottom-nav button { font-size: 14px; }
+html.easy .text-muted { color: color-mix(in srgb, var(--ink) 72%, var(--bg)); }
