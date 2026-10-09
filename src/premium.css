@@ -110,3 +110,6 @@ html { scroll-behavior: smooth; }
 @keyframes float-y { 50% { transform: translateY(-5px); } }
 .float-y { animation: float-y 3.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .float-y { animation: none; } }
+.tour-pulse { animation: tour-pulse 1.8s ease-out infinite; border: 2px solid var(--brand); }
+@keyframes tour-pulse { from { transform: scale(1); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tour-pulse { animation: none; } }
