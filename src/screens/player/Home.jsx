@@ -7,6 +7,7 @@ import { useOrigin } from '../../lib/origin'
 import { Link, navigate } from '../../lib/router'
 import { Button, Content, Empty, PageHeader, Section } from '../../ui/kit'
 import { complexView } from '../../ui/shared'
+import { Item, Stagger } from '../../ui/motion'
 import { BookingDetail, ReviewSheet } from './flow'
 
 /* Entrada de partido: lo primero que ve el jugador si tiene una reserva. */
@@ -15,9 +16,9 @@ function Ticket({ b, onOpen }) {
   const c = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
   const st = effStatus(b), rest = balanceOf(b), each = perPerson(court, b.totalCents)
   return (
-    <button type="button" onClick={onOpen} className="relative w-full text-left rounded-xl overflow-hidden text-[var(--brand-ink)] bg-brand active:opacity-90 transition-opacity" aria-label={`Tu próximo partido: ${c.name}, ${relativeDay(b.date)} a las ${b.time}`}>
+    <button type="button" onClick={onOpen} className="hero w-full text-left active:scale-[.985] transition-transform duration-200" aria-label={`Tu próximo partido: ${c.name}, ${relativeDay(b.date)} a las ${b.time}`}>
       <div className="p-5 pb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Tu próximo partido</p>
+        <p className="text-xs font-semibold uppercase tracking-widest opacity-90 inline-flex items-center gap-2"><span className="live-dot" />Tu próximo partido</p>
         <div className="flex items-end justify-between gap-4 mt-2">
           <div className="min-w-0">
             <p className="display text-5xl font-bold leading-none tnum">{b.time}</p>
@@ -64,16 +65,16 @@ export default function PlayerHome() {
   return (
     <>
       <PageHeader logo />
-      <Content className="max-w-[640px] lg:mx-0">
-        <p className="text-muted mb-4">Hola, {user.name.split(' ')[0]}</p>
-        {next && <div className="mb-6"><Ticket b={next} onOpen={() => setOpen(next.id)} /></div>}
+      <Content className="max-w-[640px] lg:mx-0"><Stagger>
+        <Item><p className="display text-3xl font-bold mb-4">Hola, {user.name.split(' ')[0]} <span className="inline-block origin-[70%_70%] animate-[wave_2.2s_ease-in-out_1]">👋</span></p></Item>
+        {next && <Item className="mb-6"><Ticket b={next} onOpen={() => setOpen(next.id)} /></Item>}
 
         <section aria-labelledby="cuando">
           <h2 id="cuando" className="text-2xl">¿Cuándo querés jugar?</h2>
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-3 pb-1" role="group" aria-label="Día" data-tour="buscar">
             {days.map(d => (
               <button key={d} type="button" aria-pressed={day === d} onClick={() => setDay(d)}
-                className={cn('flex-none min-w-16 h-14 px-3 rounded-lg border flex flex-col items-center justify-center transition-colors', day === d ? 'bg-brand border-brand text-[var(--brand-ink)]' : 'bg-surface border-strong hover:bg-sunken')}>
+                className={cn('flex-none min-w-16 h-14 px-3 rounded-xl border flex flex-col items-center justify-center transition-all duration-200', day === d ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--brand-ink)] shadow-[var(--sh-2)] scale-105' : 'bg-surface border-strong hover:bg-sunken')}>
                 <span className="font-semibold leading-tight">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : weekdayShort(d)}</span>
                 <span className={cn('text-xs tnum', day !== d && 'text-muted')}>{dayNum(d)}/{Number(d.slice(5, 7))}</span>
               </button>))}
@@ -82,7 +83,7 @@ export default function PlayerHome() {
             {near.length === 0
               ? <div className="list"><Empty title={day === today ? 'Hoy ya no quedan horarios cerca' : 'No hay horarios libres ese día'} action={<Button variant="secondary" onClick={() => setDay(addDays(day, 1))}>Ver el día siguiente</Button>} /></div>
               : near.map(({ c, slots }) => (
-                <div key={c.id} className="border border-line rounded-lg bg-surface p-4">
+                <Item key={c.id} className="border border-line rounded-2xl bg-surface p-4 shadow-[var(--sh-1)] card-lift">
                   <div className="flex items-baseline justify-between gap-3">
                     <Link to={`/complejo/${c.slug}`} className="font-semibold text-lg leading-tight truncate inline-flex items-center min-h-11 -my-2.5">{c.name}</Link>
                     <span className="text-sm text-muted flex-none">{c.distanceLabel}</span>
@@ -90,7 +91,7 @@ export default function PlayerHome() {
                   <p className="text-sm text-muted truncate">{(c.tags || '').split(' · ').filter(t => t.startsWith('Fútbol')).join(' · ')} · desde {money(c.fromPrice)}</p>
                   <div className="flex flex-wrap gap-1.5 mt-3">{slots.map(s2 => <Link key={s2.t} to={`/complejo/${c.slug}/reservar?fecha=${day}&cancha=${s2.courtId}&hora=${s2.t}`} className="chip !min-h-11 !px-3.5 tnum">{s2.t}</Link>)}
                     <Link to={`/complejo/${c.slug}/reservar?fecha=${day}`} className="chip !min-h-11 !px-3 !border-transparent text-brand">Más</Link></div>
-                </div>))}
+                </Item>))}
           </div>
           <Button variant="secondary" className="w-full mt-3" onClick={() => navigate(`/buscar?fecha=${day}`)}><Search size={18} />Buscar por zona o en el mapa</Button>
         </section>
@@ -104,7 +105,7 @@ export default function PlayerHome() {
               </Link>))}</div>
           </Section>
         )}
-      </Content>
+      </Stagger></Content>
       {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
       {review && <ReviewSheet booking={review} onClose={() => setReview(null)} />}
     </>

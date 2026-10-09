@@ -1,4 +1,5 @@
 import { LogOut, Moon, Sun } from 'lucide-react'
+import { LayoutGroup, motion } from 'motion/react'
 import { Link } from '../lib/router'
 import { Avatar, Logo } from './kit'
 
@@ -34,13 +35,14 @@ export function Shell({ nav, user, path, theme, onSignOut, sidebarTop, children 
 
       <main id="main" className="pb-[calc(var(--nav-h)+var(--safe-bottom)+16px)] lg:pb-12">{children}</main>
 
-      <nav className="bottom-nav lg:hidden" aria-label="Principal">
+      <nav className="bottom-nav lg:hidden" aria-label="Principal"><LayoutGroup>
         {nav.mobile.map(i => (
           <Link key={i.to} to={i.to} data-tour={tourId(i)} aria-current={isActive(i, path) ? 'page' : undefined}>
+            {isActive(i, path) && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />}
             <i.icon size={22} strokeWidth={isActive(i, path) ? 2.25 : 1.75} aria-hidden="true" /><span>{i.label}</span>
           </Link>
         ))}
-      </nav>
+      </LayoutGroup></nav>
     </div>
   )
 }

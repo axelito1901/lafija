@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { celebrate } from '../../ui/motion'
 import { CalendarPlus, Check, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { WEEKDAYS, requestFixed, weekdayOf, PLAYERS, perPerson, applyPayment, balanceOf, bookingStart, cancelBooking, cancelPolicyText, depositFor, effStatus, getComplex, getCourt, paymentLabel, placeBooking, quote, refundFor, STATUS } from '../../lib/domain'
@@ -108,6 +109,7 @@ export function BookSheet({ open, onClose, complex, court, date, time, onDone })
 export function ConfirmedSheet({ bookingId, onClose }) {
   const { state } = useStore()
   const [share, setShare] = useState(false)
+  useEffect(() => { celebrate() }, [])
   const b = state.bookings.find(x => x.id === bookingId)
   if (!b) return null
   const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)

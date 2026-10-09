@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AlertCircle, ArrowLeft, Check, LoaderCircle, Star, X } from 'lucide-react'
 import { cn, centsToPesos, initials, pesosToCents } from '../lib/format'
 import { Link, navigate } from '../lib/router'
+import { CountUp } from './motion'
 
 /* ---------- Marca ---------- */
 export function LogoMark({ size = 24 }) {
@@ -159,7 +160,7 @@ export function Section({ title, action, children, className }) {
   )
 }
 export function Stat({ label, value, note }) {
-  return <div className="min-w-0"><div className="text-sm text-muted">{label}</div><div className="text-xl lg:text-2xl font-semibold tnum tracking-tight mt-0.5 truncate">{value}</div>{note && <div className="text-sm text-muted">{note}</div>}</div>
+  return <div className="min-w-0"><div className="text-sm text-muted">{label}</div><div className="text-xl lg:text-2xl font-semibold tnum tracking-tight mt-0.5 truncate"><CountUp value={value} /></div>{note && <div className="text-sm text-muted">{note}</div>}</div>
 }
 
 /* ---------- Sheet / diálogo ---------- */

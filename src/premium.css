@@ -1,0 +1,95 @@
+/* Capa visual premium: se carga después de index.css y sólo refina (sombras, vidrio, brillo, movimiento). */
+:root {
+  --brand: #12803f; --brand-hover: #0e6a34; --brand-soft: #e6f3ea;
+  --grad-brand: linear-gradient(135deg, #17a04f 0%, #0e6a34 55%, #0a4d26 100%);
+  --gold: #f4c430;
+  --glass: rgba(255, 255, 255, .72);
+  --sh-1: 0 1px 2px rgba(16, 24, 18, .06), 0 1px 1px rgba(16, 24, 18, .04);
+  --sh-2: 0 6px 20px -6px rgba(16, 24, 18, .14), 0 2px 6px rgba(16, 24, 18, .05);
+  --sh-3: 0 24px 48px -16px rgba(16, 24, 18, .28);
+  --ring-brand: 0 0 0 4px rgba(18, 128, 63, .16);
+}
+.dark {
+  --brand: #4fc47f; --brand-hover: #69d493; --brand-soft: #14281b;
+  --grad-brand: linear-gradient(135deg, #1f9a52 0%, #0f6a35 60%, #0a4a25 100%);
+  --glass: rgba(21, 26, 22, .72);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --sh-2: 0 8px 24px -8px rgba(0, 0, 0, .6);
+  --sh-3: 0 24px 48px -16px rgba(0, 0, 0, .7);
+  --ring-brand: 0 0 0 4px rgba(79, 196, 127, .18);
+}
+body { background-image: radial-gradient(900px 420px at 80% -120px, color-mix(in srgb, var(--brand) 9%, transparent), transparent 70%); background-attachment: fixed; }
+
+/* Botones */
+.btn { border-radius: 12px; transition: transform 160ms cubic-bezier(.2,.8,.3,1.2), box-shadow 200ms, background-color 150ms, border-color 150ms, color 150ms; }
+.btn:active:not(:disabled) { transform: scale(.97); opacity: 1; }
+.btn-primary { background: var(--grad-brand); box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--brand) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.18); }
+.btn-primary:hover:not(:disabled) { background: var(--grad-brand); filter: brightness(1.08); box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--brand) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.22); transform: translateY(-1px); }
+.btn-secondary { box-shadow: var(--sh-1); }
+.icon-btn { border-radius: 12px; transition: transform 160ms cubic-bezier(.2,.8,.3,1.2), background-color 150ms; }
+.icon-btn:active:not(:disabled) { transform: scale(.9); }
+
+/* Formularios */
+.input { border-radius: 12px; transition: border-color 150ms, box-shadow 200ms; }
+.input:focus { box-shadow: var(--ring-brand); }
+.chip { border-radius: 12px; transition: transform 160ms cubic-bezier(.2,.8,.3,1.2), background-color 150ms, border-color 150ms, box-shadow 200ms; box-shadow: var(--sh-1); }
+.chip:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--sh-2); }
+.chip:active:not(:disabled) { transform: scale(.94); }
+.chip[aria-pressed="true"] { background: var(--grad-brand); color: var(--brand-ink); border-color: transparent; box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--brand) 70%, transparent); }
+.seg { border-radius: 12px; } .seg > button { border-radius: 9px; transition: background-color 200ms, color 200ms, box-shadow 200ms; }
+.seg > button[aria-pressed="true"], .seg > button[aria-selected="true"] { box-shadow: var(--sh-1), 0 0 0 1px var(--line); }
+.switch { transition: background-color 200ms; } .switch::after { transition: transform 260ms cubic-bezier(.2,.8,.3,1.3); }
+
+/* Tarjetas y listas */
+.list, .tile { border-radius: 16px; box-shadow: var(--sh-1); }
+@media (max-width: 639px) { .list { border-radius: 0; box-shadow: none; } }
+.tile { transition: transform 220ms cubic-bezier(.2,.8,.3,1), box-shadow 220ms, border-color 150ms; }
+.tile:hover { transform: translateY(-3px); box-shadow: var(--sh-2); border-color: var(--line-strong); }
+a.row, button.row { transition: background-color 150ms, padding-left 200ms; }
+a.row:active, button.row:active { background: var(--sunken); }
+.card-lift { transition: transform 220ms cubic-bezier(.2,.8,.3,1), box-shadow 220ms; }
+.card-lift:hover { transform: translateY(-2px); box-shadow: var(--sh-2); }
+
+/* Navegación de vidrio */
+.bottom-nav { background: var(--glass); backdrop-filter: saturate(1.6) blur(18px); -webkit-backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.bottom-nav a { position: relative; transition: color 200ms; }
+.bottom-nav a > svg { transition: transform 260ms cubic-bezier(.2,.8,.3,1.4); }
+.bottom-nav a[aria-current="page"] > svg { transform: translateY(-2px) scale(1.12); }
+.nav-pill { position: absolute; top: 7px; left: 50%; margin-left: -24px; width: 48px; height: 30px; border-radius: 15px; background: var(--brand-soft); z-index: -1; }
+.bottom-nav a > svg, .bottom-nav a > span:not(.nav-pill) { position: relative; }
+.app-bar { background: var(--glass); backdrop-filter: saturate(1.6) blur(16px); -webkit-backdrop-filter: saturate(1.6) blur(16px); border-bottom-color: color-mix(in srgb, var(--line) 70%, transparent); }
+@media (min-width: 1024px) { .app-bar { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; } }
+.side-link { border-radius: 12px; position: relative; transition: background-color 150ms, color 150ms, transform 200ms; }
+.side-link:hover { transform: translateX(2px); }
+.side-link[aria-current="page"] { background: var(--brand-soft); box-shadow: inset 3px 0 0 var(--brand); }
+
+/* Sheets */
+.overlay { background: rgba(8, 12, 9, .55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.sheet { border-radius: 24px 24px 0 0; box-shadow: var(--sh-3); animation: sheet-up 340ms cubic-bezier(.2,.9,.25,1); }
+@media (min-width: 640px) { .sheet { border-radius: 20px; animation: pop 240ms cubic-bezier(.2,.9,.25,1); } }
+.sheet-grip { width: 40px; height: 5px; }
+.toast { border-radius: 14px; box-shadow: var(--sh-3); animation: toast-in 380ms cubic-bezier(.2,.9,.25,1.2); }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(16px) scale(.96); } }
+
+/* Héroe: entrada de partido y bloques de marca */
+.hero { position: relative; overflow: hidden; isolation: isolate; color: var(--brand-ink); background: var(--grad-brand); border-radius: 20px; box-shadow: 0 18px 36px -16px color-mix(in srgb, var(--brand) 75%, transparent); }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .18; background:
+  radial-gradient(circle at 100% 0%, #fff 0, transparent 45%),
+  linear-gradient(90deg, transparent 49.6%, #fff 49.6% 50.4%, transparent 50.4%),
+  radial-gradient(circle at 50% 50%, transparent 0 38px, #fff 38px 40px, transparent 40px); }
+.hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.16) 50%, transparent 65%); transform: translateX(-120%); animation: shine 4.5s 1s ease-in-out infinite; }
+@keyframes shine { 0%, 60% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 0 rgba(244,196,48,.7); animation: live 1.8s infinite; }
+@keyframes live { 70% { box-shadow: 0 0 0 9px rgba(244,196,48,0); } 100% { box-shadow: 0 0 0 0 rgba(244,196,48,0); } }
+
+/* Esqueleto con brillo */
+.skel { background: linear-gradient(90deg, var(--sunken) 25%, color-mix(in srgb, var(--sunken) 55%, var(--surface)) 50%, var(--sunken) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.pin { border-radius: 12px; box-shadow: var(--sh-2); transition: transform 200ms cubic-bezier(.2,.8,.3,1.4); } .pin:hover { transform: scale(1.1); }
+.pin.on { background: var(--grad-brand); }
+::selection { background: color-mix(in srgb, var(--brand) 25%, transparent); }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .hero::after, .live-dot { animation: none; } }
+@keyframes wave { 0%, 60%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(16deg); } 20%, 40% { transform: rotate(-10deg); } 50% { transform: rotate(8deg); } }

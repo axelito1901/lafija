@@ -1,4 +1,5 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { PageFade } from './ui/motion'
 import { CalendarCheck, CalendarDays, ClipboardList, CircleUser, Ellipsis, Heart, House, LayoutGrid, Search as SearchIcon, Store, Tags, Users, Wallet, Building2, UserRound, Star, BarChart3 } from 'lucide-react'
 import { useStore } from './lib/store'
 import { useTheme } from './lib/theme'
@@ -152,7 +153,7 @@ export default function App() {
   return (
     <HeaderExtra.Provider value={<><HelpButton onReplayIntro={() => { navigate(homeFor(user.role)); setIntro(true) }} /><BellButton /></>}>
       <Shell nav={NAV[user.role]} user={user} path={path} theme={theme} onSignOut={signOut}>
-        <Boundary key={path}><Suspense fallback={<PageSkeleton />}>{renderRoute(user.role, path, theme, signOut)}</Suspense></Boundary>
+        <PageFade k={path}><Boundary key={path}><Suspense fallback={<PageSkeleton />}>{renderRoute(user.role, path, theme, signOut)}</Suspense></Boundary></PageFade>
       </Shell>
       <NotificationToaster />
       {TOURS[user.role] && path === homeFor(user.role) && (intro || !localStorage.getItem(tourKey(user.role))) && <Tour key={String(intro)} role={user.role} onDone={() => { setIntro(false); setTick(t => t + 1) }} />}
