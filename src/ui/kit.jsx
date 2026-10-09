@@ -90,9 +90,10 @@ export const Chip = ({ active, className, children, ...p }) => <button type="but
 export const Status = ({ tone = 'muted', icon: I, children }) => <span className={cn('status', tone, I && 'no-dot')}>{I && <I size={15} strokeWidth={2.25} aria-hidden="true" />}{children}</span>
 export const Skeleton = ({ className }) => <div className={cn('skel', className)} aria-hidden="true" />
 
-export function Empty({ title, text, action, className }) {
+export function Empty({ title, text, action, className, icon: Icon }) {
   return (
     <div className={cn('text-center py-12 px-6', className)}>
+      {Icon && <span className="mx-auto mb-4 grid place-items-center size-16 rounded-2xl bg-brand-soft text-brand float-y"><Icon size={30} strokeWidth={1.75} aria-hidden="true" /></span>}
       <p className="font-semibold text-base">{title}</p>
       {text && <p className="text-muted text-sm mt-1 max-w-xs mx-auto">{text}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}

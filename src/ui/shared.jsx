@@ -57,6 +57,38 @@ export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date }) 
   )
 }
 
+/* Cuánto falta para el partido, en palabras. */
+export function untilLabel(b, now = new Date()) {
+  const ms = new Date(`${b.date}T${b.time}:00`) - now
+  if (ms <= 0) return 'En juego'
+  const m = Math.round(ms / 60000), h = Math.floor(m / 60)
+  if (m < 60) return `En ${m} min`
+  if (h < 24) return `En ${h} h`
+  const d = Math.floor(h / 24)
+  return d === 1 ? 'Mañana' : `En ${d} días`
+}
+const ACCENT = { pending: 'var(--warn)', deposit_paid: 'var(--info)', confirmed: 'var(--brand)', completed: 'var(--faint)', cancelled: 'var(--danger)', no_show: 'var(--danger)' }
+
+/* Tarjeta de reserva del jugador: foto del complejo, hora grande y estado. */
+export function BookingCard({ b, state, onClick }) {
+  const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)
+  const st = effStatus(b), live = ['pending', 'deposit_paid', 'confirmed'].includes(st)
+  return (
+    <button type="button" onClick={onClick} className="w-full text-left flex items-stretch rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] overflow-hidden card-lift active:scale-[.985] transition-transform" style={{ boxShadow: `inset 4px 0 0 ${ACCENT[st]}, var(--sh-1)` }}>
+      <Cover src={complex?.coverUrl} seed={complex?.id || b.id} className="w-24 flex-none ml-1" />
+      <span className="flex-1 min-w-0 p-3.5">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="display text-2xl font-bold tnum leading-none">{b.time}</span>
+          {live ? <span className="text-xs font-semibold text-brand bg-brand-soft rounded-full px-2.5 py-1 whitespace-nowrap">{untilLabel(b)}</span> : null}
+        </span>
+        <span className="block text-sm text-muted mt-1">{relativeDay(b.date)} · {dateShort(b.date)}</span>
+        <span className="block font-semibold truncate mt-1.5">{complex?.name}</span>
+        <span className="flex items-center justify-between gap-2 mt-0.5"><span className="text-sm text-muted truncate">{court?.name} · {court?.sport}</span><BookingStatus booking={b} /></span>
+      </span>
+    </button>
+  )
+}
+
 /* Fila de reserva. `who` muestra el cliente (vista dueño/admin); si no, muestra el complejo. */
 export function BookingRow({ b, state, onClick, who = false, showDate = true }) {
   const complex = getComplex(state, b.complexId), court = getCourt(state, b.courtId)

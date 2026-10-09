@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { celebrate } from '../../ui/motion'
+import { motion } from 'motion/react'
+import { celebrate, spring } from '../../ui/motion'
+import { Cover } from '../../ui/Cover'
 import { CalendarPlus, Check, MapPin, MessageCircle, Phone, Repeat, Share2, Shuffle, Star, Ticket, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { WEEKDAYS, requestFixed, weekdayOf, PLAYERS, perPerson, applyPayment, balanceOf, bookingStart, cancelBooking, cancelPolicyText, depositFor, effStatus, getComplex, getCourt, paymentLabel, placeBooking, quote, refundFor, STATUS } from '../../lib/domain'
@@ -88,7 +90,7 @@ export function BookSheet({ open, onClose, complex, court, date, time, onDone })
         <legend className="label">¿Cómo querés pagar?</legend>
         <div className="space-y-2">
           {options.map(o => (
-            <label key={o.v} className={cn('flex items-start gap-3 p-3 rounded-lg border cursor-pointer min-h-14 transition-colors', current === o.v ? 'border-brand bg-brand-soft' : 'border-strong hover:bg-sunken')}>
+            <label key={o.v} className={cn('relative flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer min-h-14 transition-all duration-200', current === o.v ? 'border-brand bg-brand-soft shadow-[var(--sh-2)]' : 'border-line hover:border-strong')}>
               <input type="radio" name="pago" className="mt-1 size-5 accent-[var(--brand)]" checked={current === o.v} onChange={() => setMode(o.v)} />
               <span className="flex-1 min-w-0"><span className="block font-semibold">{o.title}{o.amount > 0 && <span className="tnum"> · {money(o.amount)}</span>}</span><span className="block text-sm text-muted">{o.note}</span></span>
             </label>
@@ -142,6 +144,7 @@ export function ConfirmedSheet({ bookingId, onClose }) {
 /* ---------- Pantalla de resultado: un tilde grande y una frase clara ---------- */
 export function ResultSheet({ tone = 'ok', title, text, onClose, action }) {
   const Icon = tone === 'ok' ? Check : X
+  useEffect(() => { if (tone === 'ok') celebrate() }, []) // eslint-disable-line
   return (
     <Sheet open onClose={onClose} title="" footer={<>{action}<Button onClick={onClose} data-autofocus>Listo</Button></>}>
       <div className="text-center py-4">
@@ -190,6 +193,7 @@ export function BookingDetail({ bookingId, onClose, onReview }) {
   return (<>
     <Sheet open onClose={onClose} title="Tu reserva"
       footer={st === 'pending' && upcoming ? <Button className="!flex-1" size="lg" loading={!!busy} onClick={() => doPay(b.depositCents > 0 && b.paymentMode !== 'full' ? 'deposit' : 'full')}>{busy ? 'Procesando pago…' : b.depositCents > 0 && b.paymentMode !== 'full' ? `Pagar seña · ${money(b.depositCents)}` : `Pagar total · ${money(b.totalCents)}`}</Button> : null}>
+      <div className="relative -mx-4 -mt-2 mb-3 overflow-hidden"><Cover src={complex.coverUrl} seed={complex.id} className="aspect-[21/9]" /><div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" /><span className="absolute left-4 bottom-3 display text-3xl font-bold text-white leading-none tnum">{b.time}</span></div>
       <div className="flex items-center justify-between gap-3 mb-2"><div><p className="font-semibold text-lg leading-tight">{complex.name}</p><p className="text-muted">{court.name} · {court.sport}</p></div><BookingStatus booking={b} /></div>
       <dl className="divide-y divide-line border-y border-line">
         <Line k="Día">{dateLong(b.date)}</Line>
@@ -272,7 +276,7 @@ export function ReviewSheet({ booking, onClose }) {
       <div className="flex gap-1 justify-center py-2" role="radiogroup" aria-label="Calificación">
         {[1, 2, 3, 4, 5].map(n => (
           <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`} onClick={() => { setRating(n); setError('') }} className="icon-btn !size-14">
-            <Star size={34} className={n <= rating ? 'fill-current text-warn' : 'text-strong'} />
+            <motion.span className="block" animate={{ scale: n <= rating ? [1, 1.35, 1] : 1 }} transition={{ duration: .3 }}><Star size={34} className={n <= rating ? 'fill-current text-warn' : 'text-strong'} /></motion.span>
           </button>
         ))}
       </div>

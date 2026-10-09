@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
-import { LogOut, Moon, Sun } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { CalendarCheck, CalendarX, Heart, HeartOff, LogOut } from 'lucide-react'
+import { Item, Stagger, spring, CountUp } from '../../ui/motion'
 import { useStore } from '../../lib/store'
 import { nextTimes, effStatus, favsOf, freeCount, isUpcoming, leaveWaitlist, publicComplexes, toggleFav } from '../../lib/domain'
 import { relativeDay, todayISO } from '../../lib/format'
@@ -8,7 +10,7 @@ import { navigate } from '../../lib/router'
 import { useBigText } from '../../lib/theme'
 import { enablePush, pushPermission } from '../../lib/push'
 import { Button, Content, Empty, Field, Input, PageHeader, Section, Segmented, Switch, useToast } from '../../ui/kit'
-import { BookingRow, ComplexCard, complexView } from '../../ui/shared'
+import { BookingCard, ComplexCard, complexView } from '../../ui/shared'
 import { BookingDetail, ReviewSheet } from './flow'
 
 export function PlayerBookings() {
@@ -30,7 +32,7 @@ export function PlayerBookings() {
         {tab === 'next' && waits.length > 0 && (
           <section className="mt-5">
             <h2 className="font-semibold mb-2">Lista de espera</h2>
-            <div className="list">{waits.map(w => {
+            <div className="list !rounded-2xl">{waits.map(w => {
               const c = state.complexes.find(x => x.id === w.complexId), ct = state.courts.find(x => x.id === w.courtId)
               return (
                 <div key={w.id} className="row">
@@ -46,8 +48,8 @@ export function PlayerBookings() {
         <h2 className="font-semibold mt-5 mb-2 sr-only">Reservas</h2>
         <div className="mt-4">
           {list.length === 0
-            ? <Empty title={tab === 'next' ? 'No tenés reservas próximas' : 'Todavía no jugaste'} text={tab === 'next' ? 'Buscá una cancha y reservá un horario.' : ''} action={tab === 'next' && <Button onClick={() => navigate('/buscar')}>Buscar cancha</Button>} />
-            : <div className="list">{list.map(b => <BookingRow key={b.id} b={b} state={state} onClick={() => setOpen(b.id)} />)}</div>}
+            ? <Empty icon={tab === 'next' ? CalendarX : CalendarCheck} title={tab === 'next' ? 'No tenés reservas próximas' : 'Todavía no jugaste'} text={tab === 'next' ? 'Buscá una cancha y reservá un horario.' : ''} action={tab === 'next' && <Button onClick={() => navigate('/buscar')}>Buscar cancha</Button>} />
+            : <Stagger key={tab} className="space-y-3">{list.map(b => <Item key={b.id}><BookingCard b={b} state={state} onClick={() => setOpen(b.id)} /></Item>)}</Stagger>}
         </div>
       </Content>
       {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
@@ -66,8 +68,11 @@ export function PlayerFavorites() {
       <PageHeader title="Mis favoritos" sub={favs.length ? 'Tocá un horario para reservar' : ''} />
       <Content>
         {favs.length === 0
-          ? <Empty title="Todavía no guardaste canchas" text="Tocá el corazón de un complejo para tenerlo a mano." action={<Button onClick={() => navigate('/buscar')}>Buscar cancha</Button>} />
-          : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{favs.map(c => <ComplexCard key={c.id} c={c} slots={nextTimes(state, c, todayISO(), 4, now)} date={todayISO()} fav onFav={() => update(s => toggleFav(s, user.id, c.id))} />)}</div>}
+          ? <Empty icon={HeartOff} title="Todavía no guardaste canchas" text="Tocá el corazón de un complejo para tenerlo a mano." action={<Button onClick={() => navigate('/buscar')}>Buscar cancha</Button>} />
+          : <motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><AnimatePresence>{favs.map(c => (
+              <motion.div key={c.id} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }} transition={spring}>
+                <ComplexCard c={c} slots={nextTimes(state, c, todayISO(), 4, now)} date={todayISO()} fav onFav={() => update(s => toggleFav(s, user.id, c.id))} />
+              </motion.div>))}</AnimatePresence></motion.div>}
       </Content>
     </>
   )
@@ -92,13 +97,23 @@ export function Account({ theme, onSignOut }) {
     <>
       <PageHeader title="Cuenta" />
       <Content className="max-w-[560px] lg:mx-0">
+        <Stagger>
+        <Item className="hero p-5 flex items-center gap-4">
+          <span className="size-16 rounded-2xl grid place-items-center bg-white/20 backdrop-blur display text-2xl font-bold flex-none">{user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</span>
+          <div className="min-w-0 flex-1"><p className="display text-2xl font-bold leading-tight truncate">{user.name}</p><p className="text-sm opacity-90 truncate">{user.email}</p></div>
+        </Item>
+        <Item className="grid grid-cols-3 gap-3 mt-3 mb-8">
+          {[[CalendarCheck, 'Reservas', state.bookings.filter(b => b.playerId === user.id && effStatus(b) !== 'cancelled').length], [CalendarCheck, 'Jugadas', state.bookings.filter(b => b.playerId === user.id && effStatus(b) === 'completed').length], [Heart, 'Favoritas', favsOf(state, user.id).length]].map(([I, k, v]) => (
+            <div key={k} className="rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-3 text-center"><I size={18} className="mx-auto text-brand" aria-hidden="true" /><div className="display text-2xl font-bold tnum mt-1"><CountUp value={v} /></div><div className="text-xs text-muted">{k}</div></div>))}
+        </Item>
+        </Stagger>
         <form onSubmit={save} className="space-y-4" noValidate>
           <Field label="Nombre y apellido" error={err.name}><Input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} autoComplete="name" /></Field>
           <Field label="Celular" hint="El complejo lo usa para contactarte por tu reserva."><Input type="tel" inputMode="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} autoComplete="tel" /></Field>
           <Field label="Email"><Input value={user.email} disabled /></Field>
           <Button type="submit" disabled={!dirty}>Guardar cambios</Button>
         </form>
-        <Section title="Pantalla" className="mt-10">
+        <Section title="Preferencias" className="mt-10 [&>*:not(:first-child)]:rounded-2xl">
           <Switch label="Avisos en este celular" hint={pushMsg || 'Te avisamos de reservas, pagos y horarios que se liberan.'} checked={pushOn} disabled={pushPermission() === 'unsupported' || pushPermission() === 'denied'}
             onChange={async v => { if (!v) { setPushMsg('Para apagarlos, desactivá los avisos de La Fija en la configuración del navegador.'); return } try { const r = await enablePush(user.id); setPushOn(true); setPushMsg(r === 'server' ? 'Listo: te llegan aunque la app esté cerrada.' : 'Listo: te avisamos mientras la app esté abierta.') } catch (e) { setPushMsg(e.message) } }} />
           <Switch label="Letra más grande" hint="Agranda los textos y los botones de toda la app." checked={big} onChange={setBig} />
