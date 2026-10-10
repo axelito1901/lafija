@@ -43,7 +43,9 @@ export function Tour({ role, onDone }) {
     const find = () => {
       el = visible(step.target)
       if (!el) { if (tries++ < 10) { t = setTimeout(find, 100); return } i < steps.length - 1 ? setI(i + 1) : finish(); return }
-      el.scrollIntoView({ block: 'center', behavior: 'instant' })
+      const r0 = el.getBoundingClientRect()
+      // Sólo se desplaza si el elemento no se ve entero (el menú lateral de PC es fijo: no hace falta mover la página).
+      if (r0.top < 0 || r0.bottom > window.innerHeight) el.scrollIntoView({ block: 'center', behavior: 'instant' })
       const loop = () => {
         const r = el.getBoundingClientRect()
         setRect(p => (p && p.x === r.left && p.y === r.top && p.w === r.width && p.h === r.height ? p : { x: r.left, y: r.top, w: r.width, h: r.height }))
@@ -92,11 +94,15 @@ export function Tour({ role, onDone }) {
 
   const pad = 8, W = window.innerWidth, H = window.innerHeight
   const hole = { x: rect.x - pad, y: rect.y - pad, w: rect.w + pad * 2, h: rect.h + pad * 2 }
-  const cardW = Math.min(340, W - 32)
+  const cardW = Math.min(340, W - 32), cardH = 215
+  // En PC, si lo señalado es del menú lateral, la tarjeta va a su derecha para no tapar el resto del menú.
+  const beside = W >= 1024 && rect.x + rect.w < 340
   const below = hole.y + hole.h + 230 < H
-  const top = below ? hole.y + hole.h + 14 : Math.max(16, hole.y - 14 - 215)
-  const left = Math.min(Math.max(16, rect.x + rect.w / 2 - cardW / 2), W - 16 - cardW)
+  const top = beside ? Math.min(Math.max(16, hole.y + hole.h / 2 - cardH / 2), H - 16 - cardH - 15) : below ? hole.y + hole.h + 14 : Math.max(16, hole.y - 14 - cardH)
+  const left = beside ? hole.x + hole.w + 16 : Math.min(Math.max(16, rect.x + rect.w / 2 - cardW / 2), W - 16 - cardW)
   const cx = Math.min(Math.max(28, rect.x + rect.w / 2 - left), cardW - 28)
+  const cy = Math.min(Math.max(28, hole.y + hole.h / 2 - top), cardH - 10)
+  const arrow = beside ? { top: cy - 6, left: -5 } : { left: cx - 6, [below ? 'top' : 'bottom']: -5 }
 
   return createPortal(
     <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Guía de La Fija">
@@ -104,9 +110,9 @@ export function Tour({ role, onDone }) {
         <span className="absolute inset-0 rounded-2xl tour-pulse" />
       </div>
       <AnimatePresence mode="wait">
-        <motion.div key={i} initial={{ opacity: 0, y: below ? -8 : 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: .2 }} className="absolute bg-surface rounded-2xl p-5 shadow-[var(--sh-3)] border border-line" style={{ top, left, width: cardW }}>
+        <motion.div key={i} initial={beside ? { opacity: 0, x: -8 } : { opacity: 0, y: below ? -8 : 8 }} animate={{ opacity: 1, x: 0, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: .2 }} className="absolute bg-surface rounded-2xl p-5 shadow-[var(--sh-3)] border border-line" style={{ top, left, width: cardW }}>
           <span className="absolute inset-x-0 -top-px h-[3px] rounded-t-2xl bg-[image:var(--grad-brand)]" aria-hidden="true" />
-          <span className="absolute size-3 bg-surface rotate-45 rounded-sm" style={{ left: cx - 6, [below ? 'top' : 'bottom']: -5 }} aria-hidden="true" />
+          <span className="absolute size-3 bg-surface rotate-45 rounded-sm" style={arrow} aria-hidden="true" />
           <div className="flex items-center justify-between"><p className="ui-eyebrow is-brand">Paso {i} de {steps.length - 1}</p>{dots}</div>
           <h2 className="text-xl mt-2 display font-bold">{step.title}</h2>
           <p className="text-muted mt-1">{step.text}</p>
