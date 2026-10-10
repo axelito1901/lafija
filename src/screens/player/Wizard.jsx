@@ -13,7 +13,7 @@ import { Link, navigate, useRoute } from '../../lib/router'
 import { Button, Chip, Content, Empty, PageHeader, Sheet, useToast } from '../../ui/kit'
 import { BellRing } from 'lucide-react'
 import { DateField } from '../../ui/DateField'
-import { complexView } from '../../ui/shared'
+import { complexView, futureDay } from '../../ui/shared'
 import { BookSheet, ConfirmedSheet } from './flow'
 import './jugador.css'
 
@@ -137,9 +137,11 @@ export default function Wizard({ id, inShell = true }) {
   const today = todayISO()
   const courts = complex ? activeCourts(state, complex.id) : []
   const single = courts.length === 1
-  const [date, setDate] = useState(query.fecha >= today ? query.fecha : '')
-  const [courtId, setCourtId] = useState(query.cancha || (single ? courts[0]?.id : '') || '')
-  const [time, setTime] = useState(query.hora || '')
+  // Lo que llega por el link se valida: una cancha que ya no existe o una fecha rota no deben dejar el paso en blanco.
+  const startCourt = courts.find(c => c.id === query.cancha)?.id || (single ? courts[0]?.id : '') || ''
+  const [date, setDate] = useState(futureDay(query.fecha))
+  const [courtId, setCourtId] = useState(startCourt)
+  const [time, setTime] = useState(startCourt && /^\d{2}:\d{2}$/.test(query.hora || '') ? query.hora : '')
   const [step, setStep] = useState(() => (!date ? 0 : !courtId ? 1 : 2))
   const [book, setBook] = useState(false)
   const [doneId, setDoneId] = useState('')
@@ -169,13 +171,13 @@ export default function Wizard({ id, inShell = true }) {
   return (
     <>
       <header className="app-bar">
-        <div className="flex items-center gap-2 min-h-14 px-4 md:px-6 lg:px-8 lg:pt-6 max-w-[640px] lg:max-w-[1200px] mx-auto">
+        <div className="flex items-center gap-2 min-h-14 px-4 md:px-6 lg:px-8 lg:pt-6 max-w-[640px] lg:max-w-[1200px] 2xl:max-w-[1360px] mx-auto">
           <button type="button" className="btn btn-ghost btn-sm !min-h-11 -ml-2" onClick={back}>← Atrás</button>
           <div className="flex-1 min-w-0 text-right text-sm text-muted truncate">{complex.name}</div>
         </div>
       </header>
-      <Content className={cn('max-w-[640px] lg:max-w-[1200px]', valid && 'pb-32 lg:pb-6')}>
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] lg:gap-8 xl:gap-12 lg:items-start">
+      <Content className={cn('max-w-[640px] lg:max-w-[1200px] 2xl:max-w-[1360px]', valid && 'pb-32 lg:pb-6')}>
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px] lg:gap-8 xl:gap-12 lg:items-start">
         <div className="min-w-0">
         <div className="flex items-center gap-3 mb-5 p-2 pr-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] lg:hidden">
           <Cover src={complex.coverUrl} seed={complex.id} className="size-14 rounded-xl flex-none" />
@@ -189,6 +191,8 @@ export default function Wizard({ id, inShell = true }) {
           <Stagger className="grid grid-cols-2 xl:grid-cols-3 gap-3">
             {days.map(d => {
               const n = freeCount(state, complex, d, now)
+              const total = courts.length * slotsFor(complex).length
+              const pct = total ? Math.round(n / total * 100) : 0
               const [wd, rest] = dateLong(d).split(', ')
               return (
                 <Item key={d} as="button" type="button" disabled={!n} onClick={() => pickDate(d)} aria-pressed={date === d} whileTap={{ scale: .96 }}
@@ -196,6 +200,7 @@ export default function Wizard({ id, inShell = true }) {
                   <span className="block display text-2xl font-bold leading-tight lg:text-3xl">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : wd}</span>
                   <span className={cn('block text-sm', d === today && n > 0 ? 'opacity-85' : 'text-muted')}>{rest}</span>
                   <span className={cn('mt-3 inline-flex items-center gap-1 text-sm font-semibold', d === today && n > 0 ? '' : n ? 'text-brand' : 'text-muted')}>{d === today && n > 0 && <span className="live-dot mr-1" aria-hidden="true" />}{n ? `${n} libres` : 'Sin horarios'}{n > 0 && <ChevronRight size={16} aria-hidden="true" />}</span>
+                  {n > 0 && <span className={cn('mt-2.5 block h-1 rounded-full overflow-hidden', d === today ? 'bg-white/25' : 'bg-sunken')} aria-hidden="true"><span className={cn('block h-full rounded-full', d === today ? 'bg-white/80' : 'bg-[image:var(--grad-brand)]')} style={{ width: `${Math.max(pct, 6)}%` }} /></span>}
                 </Item>
               )
             })}
@@ -269,7 +274,7 @@ export default function Wizard({ id, inShell = true }) {
         </StepView>}
         </AnimatePresence>
         </div>
-        <SummaryPanel complex={complex} court={court} date={date} time={time} q={q} valid={!!valid} user={user} onStep={goStep} onGo={go} />
+        <SummaryPanel complex={complex} court={court} date={date} time={valid ? time : ''} q={q} valid={!!valid} user={user} onStep={goStep} onGo={go} />
         </div>
       </Content>
 

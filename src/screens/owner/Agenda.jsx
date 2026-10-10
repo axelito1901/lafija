@@ -8,7 +8,7 @@ import { addDays, cn, dayNum, money, monthShort, todayISO, weekdayShort } from '
 const weekdayLong = iso => new Intl.DateTimeFormat('es-AR', { weekday: 'long' }).format(new Date(`${iso}T12:00:00`))
 import { navigate, useRoute } from '../../lib/router'
 import { Button, Chip, Empty, IconButton, Input, Sheet, Status, useToast } from '../../ui/kit'
-import { BlockSheet, BookingEditor, NewBookingSheet, OwnerPage, useOwner } from './common'
+import { BlockSheet, BookingEditor, NewBookingSheet, OwnerPage, useMedia, useOwner } from './common'
 import { DateField } from '../../ui/DateField'
 
 export default function Agenda() {
@@ -24,6 +24,7 @@ export default function Agenda() {
   const [sheet, setSheet] = useState(null) // {kind:'new'|'block', preset}
   const [dir, setDir] = useState(1)
   const strip = useRef(null)
+  const xxl = useMedia('(min-width: 1600px)')
   const now = new Date()
   const goDay = d => { setDir(d >= date ? 1 : -1); setDate(d) }
   const accent = b => { const st = effStatus(b); return st === 'pending' || st === 'no_show' ? 'var(--danger)' : b.paidCents >= b.totalCents && b.totalCents > 0 ? 'var(--brand)' : b.paidCents > 0 ? 'var(--info)' : 'var(--warn)' }
@@ -57,7 +58,7 @@ export default function Agenda() {
   const day = complex ? dayStatus(state, complex, date, now, filter === 'all' ? null : filter) : null
 
   return (
-    <OwnerPage title="Agenda" actions={<>
+    <OwnerPage title="Agenda" wide actions={<>
       <Button size="sm" variant="secondary" className="hidden sm:inline-flex" onClick={() => setSheet({ kind: 'block', preset: { date } })}><Lock size={16} />Bloquear horario</Button>
       <Button size="sm" className="hidden lg:inline-flex" onClick={() => setSheet({ kind: 'new', preset: { date, courtId: filter !== 'all' ? filter : undefined } })}><Plus size={16} />Nueva reserva</Button>
     </>}>
@@ -76,7 +77,7 @@ export default function Agenda() {
         </div>
         {day && <p className="mt-2 text-muted tnum"><strong className="text-ink">Ocupación {day.pct}%</strong> · {day.bookings.length} {day.bookings.length === 1 ? 'reserva' : 'reservas'} · {day.free} {day.free === 1 ? 'libre' : 'libres'}</p>}
         <div ref={strip} className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-4 pb-1" role="group" aria-label="Elegir día">
-          {Array.from({ length: 14 }, (_, i) => addDays(todayISO(), i - 1)).map(d => {
+          {Array.from({ length: xxl ? 21 : 14 }, (_, i) => addDays(todayISO(), i - 1)).map(d => {
             const p = dayStatus(state, complex, d, now, filter === 'all' ? null : filter).pct, on = d === date
             return (
               <button key={d} type="button" aria-pressed={on} onClick={() => goDay(d)} className={cn('relative flex-none w-14 h-[68px] rounded-2xl border flex flex-col items-center justify-center transition-colors overflow-hidden', on ? 'border-transparent text-[var(--brand-ink)]' : 'bg-surface border-line hover:border-strong')}>

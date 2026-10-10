@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CalendarClock, Clock3, Moon, SearchX, Sun, Sunrise } from 'lucide-react'
 import { useStore } from '../../lib/store'
-import { activeCourts, favsOf, nextTimes, publicComplexes, SPORTS, toggleFav } from '../../lib/domain'
+import { activeCourts, favsOf, freeCount, nextTimes, publicComplexes, SPORTS, toggleFav } from '../../lib/domain'
 import { addDays, cn, plural, relativeDay, todayISO } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { navigate, useRoute } from '../../lib/router'
@@ -9,7 +9,7 @@ import { Button, Chip, Content, Empty, PageHeader, Segmented, Select } from '../
 import { DateField } from '../../ui/DateField'
 import { PlaceField } from '../../ui/PlaceField'
 import { ComplexMap } from '../../ui/MapView'
-import { ComplexCard, complexView } from '../../ui/shared'
+import { ComplexCard, complexView, futureDay } from '../../ui/shared'
 import { Item, Stagger } from '../../ui/motion'
 import './jugador.css'
 
@@ -22,7 +22,7 @@ export default function Search() {
   const { state, user, update } = useStore()
   const { query } = useRoute()
   const { origin, real, label, setOrigin } = useOrigin()
-  const [picked, setFecha] = useState(query.fecha >= todayISO() ? query.fecha : '')
+  const [picked, setFecha] = useState(futureDay(query.fecha))
   const [tipo, setTipo] = useState(query.tipo || '')
   const [part, setPart] = useState('')
   const [hour, setHour] = useState('21:00')
@@ -38,7 +38,7 @@ export default function Search() {
   const sports = SPORTS.filter(s => publicComplexes(state).some(c => activeCourts(state, c.id).some(x => x.sport === s)))
   const results = useMemo(() => publicComplexes(state)
     .filter(c => !tipo || activeCourts(state, c.id).some(x => x.sport === tipo))
-    .map(c => ({ ...complexView(state, c, origin), slots: nextTimes(state, c, fecha, 4, now, part === 'h' ? { near: hour } : part ? { part: PART_FN[part] } : null) }))
+    .map(c => ({ ...complexView(state, c, origin), slots: nextTimes(state, c, fecha, 4, now, part === 'h' ? { near: hour } : part ? { part: PART_FN[part] } : null), free: freeCount(state, c, fecha, now) }))
     .sort((a, b) => (b.slots.length > 0) - (a.slots.length > 0)
       || (sort === 'rating' ? b.rating - a.rating : sort === 'precio' ? (a.fromPrice ?? Infinity) - (b.fromPrice ?? Infinity) : 0)
       || (a.distance ?? 99) - (b.distance ?? 99)), [state, tipo, fecha, origin, part, hour, sort]) // eslint-disable-line
@@ -64,7 +64,7 @@ export default function Search() {
                 <span className="label lg:mb-0 lg:self-center"><span className="lg:hidden">¿A qué hora?</span><span className="hidden lg:inline">Horario</span></span>
                 <div>
                   <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-1 lg:pb-0 lg:flex-wrap lg:overflow-visible" role="group" aria-label="Horario">
-                    {PARTS.map(([k, l, I]) => <Chip key={k} active={part === k} onClick={() => setPart(k)} className="!min-h-11 pointer-fine:!min-h-10">{I && <I size={16} aria-hidden="true" />}{l}</Chip>)}
+                    {PARTS.map(([k, l, I]) => <Chip key={k} active={part === k} onClick={() => setPart(k)} className="!min-h-11 pointer-fine:!min-h-10 xl:max-2xl:!px-3">{I && <I size={16} className="xl:max-2xl:hidden" aria-hidden="true" />}{l}</Chip>)}
                   </div>
                   {part === 'h' && <Select className="mt-2 sm:max-w-48" aria-label="Hora" value={hour} onChange={e => setHour(e.target.value)}>{HOURS.map(h => <option key={h} value={h}>{h} hs</option>)}</Select>}
                 </div>
@@ -85,11 +85,11 @@ export default function Search() {
               <p className="text-muted min-w-0" aria-live="polite"><strong className="text-ink tnum">{plural(results.length, 'complejo', 'complejos')}</strong>{results.length > 0 && <span className="hidden sm:inline"> · <span className="tnum">{withSlots}</span> con horarios libres</span>}{real ? ` · ${label.replace(/^Cerca de /, 'cerca de ')}` : ''}</p>
               <Segmented className="xl:hidden w-40 flex-none [&>button]:!min-h-11" value={view} onChange={setView} label="Vista" options={[{ value: 'lista', label: 'Lista' }, { value: 'mapa', label: 'Mapa' }]} />
             </div>
-            <div className={cn('flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-1 mb-3 items-center lg:hidden', view === 'mapa' && 'hidden')} role="group" aria-label="Ordenar por">
+            <div className={cn('flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-1 mb-3 items-center lg:hidden', (view === 'mapa' || results.length === 0) && 'hidden')} role="group" aria-label="Ordenar por">
               <span className="text-sm text-muted flex-none pr-1">Ordenar por</span>
               {SORTS.map(([k, l]) => <Chip key={k} active={sort === k} onClick={() => setSort(k)} className="!min-h-11">{l}</Chip>)}
             </div>
-            <div className={cn('hidden items-center gap-3 mb-4', view === 'mapa' ? 'xl:flex' : 'lg:flex')}>
+            <div className={cn('hidden items-center gap-3 mb-4', results.length > 0 && (view === 'mapa' ? 'xl:flex' : 'lg:flex'))}>
               <span className="text-sm text-muted flex-none">Ordenar por</span>
               <Segmented className="flex-1 max-w-[420px]" value={sort} onChange={setSort} label="Ordenar por" options={SORTS.map(([value, l]) => ({ value, label: l }))} />
               {filtered && <button type="button" onClick={clear} className="text-sm font-semibold text-brand min-h-11 px-2 ml-auto">Quitar filtros</button>}
@@ -101,12 +101,12 @@ export default function Search() {
               <Stagger key={`${fecha}|${tipo}|${part}|${hour}|${sort}`} className={cn('grid gap-4 sm:grid-cols-2 xl:grid-cols-1', view === 'mapa' && 'hidden xl:grid')} step={.04}>
                 {results.map(c => (
                   <Item key={c.id} className="min-w-0">
-                    <ComplexCard id={`c-${c.id}`} row c={c} slots={c.slots} date={fecha} selected={selected === c.id} onHover={setHover} fav={favs.includes(c.id)} onFav={user?.role === 'player' ? () => update(s => toggleFav(s, user.id, c.id)) : undefined} />
+                    <ComplexCard id={`c-${c.id}`} row c={c} slots={c.slots} free={c.free} date={fecha} selected={selected === c.id} onHover={setHover} fav={favs.includes(c.id)} onFav={user?.role === 'player' ? () => update(s => toggleFav(s, user.id, c.id)) : undefined} />
                   </Item>))}
               </Stagger>
             )}
           </div>
-          <div className={cn('rounded-2xl overflow-hidden border border-line shadow-[var(--sh-2)] h-[min(62dvh,520px)] lg:h-[min(70dvh,640px)] xl:h-[calc(100dvh-3rem)] xl:sticky xl:top-6', view === 'lista' && 'hidden xl:block')}>
+          <div className={cn('rounded-2xl overflow-hidden border border-line shadow-[var(--sh-2)] h-[min(62dvh,520px)] lg:h-[min(70dvh,640px)] xl:h-[calc(100dvh-8rem)] xl:min-h-[480px] xl:sticky xl:top-6', view === 'lista' && 'hidden xl:block')}>
             <ComplexMap className="h-full" complexes={results} selectedId={hover || selected} onSelect={pick} userPos={real ? origin : null} title={plural(results.length, 'complejo', 'complejos')} onLocate={p => setOrigin({ ...p, label: 'Tu ubicación' })}
               onOpen={c => navigate(`/complejo/${c.slug}?fecha=${fecha}`)} />
           </div>

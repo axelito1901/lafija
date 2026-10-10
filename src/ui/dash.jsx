@@ -1,4 +1,4 @@
-import { Fragment, useId, useRef, useState } from 'react'
+import { Fragment, useCallback, useId, useRef, useState } from 'react'
 import { m as motion, useReducedMotion } from 'motion/react'
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 import { cn } from '../lib/format'
@@ -6,6 +6,22 @@ import { CountUp, spring } from './motion'
 import './dash.css'
 
 const EASE = [.2, .8, .2, 1]
+
+/* Panel lateral "pegajoso" que nunca queda cortado: si es más alto que la ventana, su borde de abajo se pega
+   al fondo de la pantalla mientras se hace scroll, así se llega a ver todo sin scroll interno. Devuelve la ref del panel. */
+export function useStickyTop(gap = 24) {
+  const off = useRef(null)
+  return useCallback(el => {
+    off.current?.(); off.current = null
+    if (!el) return
+    const set = () => { el.style.top = `${Math.min(gap, window.innerHeight - el.offsetHeight - gap)}px` }
+    set()
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(set) : null
+    ro?.observe(el)
+    window.addEventListener('resize', set)
+    off.current = () => { ro?.disconnect(); window.removeEventListener('resize', set) }
+  }, [gap])
+}
 
 /* Anillo de ocupación que se dibuja al entrar. */
 export function Ring({ pct, size = 132, stroke = 12, children }) {
@@ -80,7 +96,6 @@ export function Kpi({ icon: I, label, value, tone = 'brand', className, delta, s
   const size = big ? (len > 11 ? 'text-3xl' : 'text-4xl') : len > 9 ? 'text-xl' : len > 6 ? 'text-2xl' : 'text-3xl'
   return (
     <div className={cn('relative overflow-hidden p-3.5 sm:p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] min-w-0 card-lift', className)}>
-      {spark && <div className={cn('absolute right-0 bottom-0 pointer-events-none text-brand opacity-60', big ? 'w-[58%]' : 'hidden sm:block w-[55%]')} aria-hidden="true">{spark}</div>}
       <div className="relative flex items-start justify-between gap-2">
         <span className={cn('size-9 rounded-xl grid place-items-center flex-none', tones[tone])}><I size={18} aria-hidden="true" /></span>
         {delta}
@@ -88,6 +103,7 @@ export function Kpi({ icon: I, label, value, tone = 'brand', className, delta, s
       <div className="relative text-xs font-semibold uppercase tracking-wider text-muted mt-3">{label}</div>
       <div className={cn('relative display font-bold tnum mt-0.5 whitespace-nowrap leading-tight', size)}><CountUp value={value} /></div>
       {hint && <div className="relative text-xs text-muted mt-1 truncate">{hint}</div>}
+      {spark && <div className={cn('relative mt-3 -mx-1 -mb-1 text-brand pointer-events-none', !big && 'hidden sm:block')} aria-hidden="true">{spark}</div>}
     </div>
   )
 }
@@ -166,7 +182,7 @@ export function AreaChart({ points, height = 180, format = String, label = 'Grá
   }
   const ticks = n <= 8 ? points.map((_, i) => i) : [...new Set(Array.from({ length: 5 }, (_, k) => Math.round((k * (n - 1)) / 4)))]
   const p = hov == null ? null : points[hov]
-  const axis = 'absolute left-0 -translate-y-full mb-1 px-1 rounded bg-surface/80 text-[11px] text-muted tnum leading-none sm:left-auto sm:right-full sm:translate-y-[-50%] sm:mb-0 sm:mr-2 sm:px-0 sm:bg-transparent'
+  const axis = 'absolute left-0 -translate-y-full mb-1 px-1 rounded bg-surface/80 whitespace-nowrap text-[11px] text-muted tnum leading-none sm:left-auto sm:right-full sm:translate-y-[-50%] sm:mb-0 sm:mr-2 sm:px-0 sm:bg-transparent'
   return (
     <div className={cn('relative pt-9', className)}>
       <div className="relative sm:ml-14">
@@ -179,7 +195,7 @@ export function AreaChart({ points, height = 180, format = String, label = 'Grá
           </svg>
           <span className={cn(axis, 'top-[4%]')} aria-hidden="true">{format(max)}</span>
           <span className={cn(axis, 'top-[52%]')} aria-hidden="true">{format(max / 2)}</span>
-          <span className="absolute left-0 top-full -translate-y-1/2 hidden sm:block sm:left-auto sm:right-full sm:mr-2 text-[11px] text-muted tnum leading-none" aria-hidden="true">{format(0)}</span>
+          <span className="absolute left-0 top-full -translate-y-1/2 hidden sm:block whitespace-nowrap sm:left-auto sm:right-full sm:mr-2 text-[11px] text-muted tnum leading-none" aria-hidden="true">{format(0)}</span>
           {hasG && (
             <motion.svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible text-faint" aria-hidden="true"
               initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .6, delay: .5 }}>

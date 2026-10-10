@@ -22,3 +22,8 @@
   .dx-review, .dx-review::before { transition: none; }
   .dx-review:hover { transform: none; }
 }
+
+/* Páginas anchas del panel (Estadísticas y Reseñas): el contenedor de la pantalla pasa del tope de 1120px a 1536px,
+   así en monitores grandes el contenido acompaña el ancho disponible en vez de quedar centrado con márgenes vacíos. */
+div:has(> .dx-wide) { max-width: min(100%, 1536px); }
+body:has(.dx-wide) .app-bar > div { max-width: min(100%, 1536px); }

@@ -11,16 +11,17 @@ import { Button, Chip, Content, Empty, PageHeader } from '../../ui/kit'
 import { ComplexCard, complexView } from '../../ui/shared'
 import './misc.css'
 
-/* Casilleros que faltan para cerrar la fila: invitan a sumar otra cancha y evitan el hueco a la derecha.
-   La cantidad de columnas cambia con el ancho (2, 3 o 4), así que calculamos el sobrante para cada una. */
-function AddTile({ count }) {
-  const rest = cols => (cols - (count % cols)) % cols
+/* Casillero que cierra la fila: invita a sumar otra cancha y evita el hueco a la derecha.
+   La cantidad de columnas cambia con el ancho (2, 3 o 4), así que calculamos el sobrante para cada una.
+   `counts` es cuántas tarjetas se ven con 2, 3 y 4 columnas (pueden ser distintas si algunas se ocultan). */
+function AddTile({ counts, title = 'Sumá otra cancha', text = 'Guardá tus complejos de siempre y reservá más rápido.', label = 'Buscar otra cancha para guardar' }) {
+  const rest = (cols, n) => (cols - (n % cols)) % cols
   return (
-    <motion.div layout className="pm-add" data-r2={rest(2)} data-r3={rest(3)} data-r4={rest(4)}>
-      <Link to="/buscar" className="group h-full min-h-56 rounded-2xl border-2 border-dashed border-[var(--line-strong)] flex flex-col items-center justify-center gap-3 p-6 text-center transition-colors hover:border-brand hover:bg-brand-soft" aria-label="Buscar otra cancha para guardar">
-        <span className="pm-ico is-sunken !size-14 !rounded-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90"><Plus size={26} aria-hidden="true" /></span>
-        <span><span className="block display text-xl font-bold">Sumá otra cancha</span><span className="block text-sm text-muted mt-0.5 max-w-[16rem]">Guardá tus complejos de siempre y reservá más rápido.</span></span>
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand min-h-11">Explorar canchas<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
+    <motion.div layout className="pm-add" data-r2={rest(2, counts[0])} data-r3={rest(3, counts[1])} data-r4={rest(4, counts[2])}>
+      <Link to="/buscar" className="pm-add-link group" aria-label={label}>
+        <span className="pm-ico is-sunken !size-14 !rounded-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90 relative"><Plus size={26} aria-hidden="true" /></span>
+        <span className="relative"><span className="block display text-xl font-bold">{title}</span><span className="block text-sm text-muted mt-0.5 max-w-[16rem] mx-auto">{text}</span></span>
+        <span className="relative inline-flex items-center gap-1.5 text-sm font-semibold text-brand min-h-11">Explorar canchas<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
       </Link>
     </motion.div>
   )
@@ -77,7 +78,7 @@ export function PlayerFavorites() {
             {shown.length === 0
               ? <Empty icon={Clock3} title="Ninguna tiene horarios libres hoy" text="Probá con otro orden o mirá los días siguientes en cada complejo." action={<Button variant="secondary" onClick={() => setSort('recent')}>Ver todas</Button>} />
               : <motion.div layout className="pm-fav-grid mt-3"><AnimatePresence>{shown.map(c => (
-                  <motion.div key={c.id} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }} transition={spring}>{card(c, true)}</motion.div>))}</AnimatePresence>{sort === 'recent' && <AddTile count={shown.length} />}</motion.div>}
+                  <motion.div key={c.id} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }} transition={spring}>{card(c, true)}</motion.div>))}</AnimatePresence>{sort === 'recent' && <AddTile counts={[shown.length, shown.length, shown.length]} />}</motion.div>}
           </>
         )}
 
@@ -88,7 +89,9 @@ export function PlayerFavorites() {
               <Link to="/buscar" className="text-sm font-semibold text-brand min-h-11 inline-flex items-center flex-none">Ver todas</Link>
             </div>
             <div className="pm-fav-grid">{suggested.map((c, i) => (
-              <motion.div key={c.id} className={i === 2 ? 'max-lg:hidden' : i === 3 ? 'pm-xl-only' : undefined} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .15 + i * .06 }}>{card(c, false)}</motion.div>))}</div>
+              <motion.div key={c.id} className={i === 2 ? 'max-lg:hidden' : i === 3 ? 'pm-xl-only' : undefined} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .15 + i * .06 }}>{card(c, false)}</motion.div>))}
+              {suggested.length < 4 && <AddTile counts={[Math.min(suggested.length, 2), Math.min(suggested.length, 3), suggested.length]} title="Hay más para ver" text="Mirá todas las canchas con horarios libres cerca tuyo." label="Ver todas las canchas" />}
+            </div>
           </section>)}
       </Content>
     </div>

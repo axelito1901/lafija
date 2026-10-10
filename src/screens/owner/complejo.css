@@ -1,0 +1,79 @@
+/* Dueño: Mi complejo y Canchas. Todo con prefijo cx- y variables del tema (claro y oscuro). */
+
+/* ---------- Barras de progreso / ocupación ---------- */
+.cx-bar { height: 8px; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.cx-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--grad-brand); }
+.cx-bar.on-grad { background: rgba(255, 255, 255, .22); }
+.cx-bar.on-grad > span { background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .55); }
+
+/* ---------- Canchas ---------- */
+.cx-court {
+  position: relative; display: flex; flex-direction: column; height: 100%; overflow: hidden; isolation: isolate;
+  border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1);
+  transition: transform 240ms cubic-bezier(.2, .8, .3, 1), box-shadow 240ms, border-color 150ms;
+}
+.cx-court:hover { transform: translateY(-3px); box-shadow: var(--sh-2); border-color: var(--line-strong); }
+.cx-court .cx-photo { overflow: hidden; }
+.cx-court .cx-photo img { transition: transform 700ms cubic-bezier(.2, .8, .3, 1), filter 300ms; }
+.cx-court:hover .cx-photo img { transform: scale(1.06); }
+.cx-court.off .cx-photo { filter: grayscale(1); }
+.cx-court.off .cx-photo > * { opacity: .72; }
+.cx-court.off .cx-photo .cx-photo-ui { opacity: 1; }
+.cx-court-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(4, 12, 7, .78) 0%, rgba(4, 12, 7, .18) 55%, rgba(4, 12, 7, .35) 100%); pointer-events: none; }
+.cx-glass { background: rgba(8, 14, 10, .46); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .22); color: #fff; }
+
+.cx-feat { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border-radius: 10px; font-size: 13px; font-weight: 500; background: var(--sunken); color: var(--muted); }
+.cx-feat svg { flex: none; color: var(--brand); }
+
+/* Mosaico para sumar otra cancha */
+.cx-add {
+  display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; height: 100%; min-height: 96px; padding: 18px 20px; text-align: left;
+  border-radius: 20px; border: 2px dashed var(--line-strong); color: var(--muted); background: transparent;
+  transition: border-color 150ms, background-color 150ms, color 150ms, transform 200ms cubic-bezier(.2, .8, .3, 1);
+}
+.cx-add:hover { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); transform: translateY(-2px); }
+.cx-add:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cx-add .cx-add-ico { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 16px; background: var(--brand-soft); color: var(--brand); transition: transform 260ms cubic-bezier(.2, .8, .3, 1.4), background-color 150ms, color 150ms; }
+.cx-add:hover .cx-add-ico { transform: rotate(90deg) scale(1.08); background: var(--surface); }
+
+/* Resumen: línea de precios con un punto por cancha */
+.cx-range { position: relative; height: 8px; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 22%, var(--sunken)), color-mix(in srgb, var(--brand) 55%, var(--sunken))); margin: 14px 7px 6px; }
+.cx-range > i { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--surface); border: 3px solid var(--brand); box-shadow: var(--sh-1); }
+.cx-range > i.avg { width: 18px; height: 18px; margin: -9px 0 0 -9px; background: var(--grad-brand); border-color: var(--surface); box-shadow: 0 0 0 2px var(--brand), var(--sh-2); }
+
+/* ---------- Mi complejo ---------- */
+.cx-block { scroll-margin-top: 24px; }
+.cx-ico { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--brand-soft); color: var(--brand); }
+
+/* Panel derecho: sigue el scroll y, si no entra en la pantalla, scrollea solo */
+.cx-side { display: flex; flex-direction: column; gap: 16px; }
+.cx-side > * { flex: none; }
+@media (min-width: 1024px) {
+  .cx-side { position: sticky; top: 24px; max-height: calc(100dvh - 48px - 76px); overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 8px; margin: -4px -6px -8px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+}
+
+/* Vista previa de la tarjeta: marco tipo pantalla de celular */
+.cx-preview { position: relative; border-radius: 22px; padding: 14px; background: color-mix(in srgb, var(--brand) 7%, var(--sunken)); border: 1px solid var(--line); }
+.cx-preview-card { pointer-events: none; user-select: none; }
+.cx-preview-card .tile:hover { transform: none; box-shadow: var(--sh-1); border-color: var(--line); }
+
+.cx-check { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 10px 6px 12px; border-radius: 14px; text-align: left; width: 100%; transition: background-color 150ms; }
+button.cx-check:hover { background: var(--sunken); }
+button.cx-check:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@media (min-width: 1024px) and (pointer: fine) { .cx-check { min-height: 40px; padding-top: 3px; padding-bottom: 3px; } }
+.cx-tick { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line-strong); color: transparent; transition: background-color 200ms, border-color 200ms, color 200ms; }
+.cx-tick.ok { background: var(--grad-brand); border-color: transparent; color: var(--on-grad); }
+
+/* Barra de guardar */
+.cx-savebar { background: var(--glass); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 -12px 32px -18px rgba(10, 20, 12, .35); }
+
+/* Galería: casillas */
+.cx-slot { position: relative; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; }
+.cx-slot.empty { display: grid; place-items: center; border: 2px dashed var(--line-strong); color: var(--faint); background: transparent; transition: border-color 150ms, color 150ms, background-color 150ms; }
+.cx-slot.empty.can:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-court, .cx-court:hover, .cx-add, .cx-add:hover { transition: none; transform: none; }
+  .cx-court .cx-photo img, .cx-court:hover .cx-photo img { transition: none; transform: none; }
+  .cx-add:hover .cx-add-ico { transform: none; }
+}

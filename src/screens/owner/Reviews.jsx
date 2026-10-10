@@ -1,12 +1,14 @@
 import { useId, useMemo, useState } from 'react'
 import { AnimatePresence, m as motion } from 'motion/react'
-import { ArrowRight, CheckCheck, CornerDownRight, MessageSquareReply, Search, Star, Tags, ThumbsUp, X } from 'lucide-react'
+import { ArrowRight, CheckCheck, CornerDownRight, Flag, MessageSquareReply, Search, Star, Tags, ThumbsUp, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { notify, ratingOf, REVIEW_TAGS } from '../../lib/domain'
 import { addDays, cn, dateShort, todayISO } from '../../lib/format'
 import { CountUp, Item, Reveal, Stagger } from '../../ui/motion'
+import { useStickyTop } from '../../ui/dash'
 import { Avatar, Button, Chip, Field, Segmented, Stars, Status, Textarea, useToast } from '../../ui/kit'
 import { OwnerPage, useOwner } from './common'
+import './estadisticas.css'
 
 const avgText = n => n.toFixed(1).replace('.', ',')
 const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`
@@ -35,7 +37,7 @@ function TagPill({ tag, n, tone, on, onClick }) {
   const tones = { good: 'bg-brand-soft text-brand', bad: 'bg-warn-soft text-warn', other: 'bg-sunken text-ink' }
   return (
     <button type="button" aria-pressed={on} onClick={onClick}
-      className={cn('inline-flex items-center gap-2 rounded-full pl-3 pr-1.5 min-h-9 text-sm font-medium transition-[transform,box-shadow] active:scale-95 hover:shadow-[var(--sh-2)]', on ? 'bg-[image:var(--grad-brand)] text-[var(--on-grad)]' : tones[tone])}>
+      className={cn('inline-flex items-center gap-2 rounded-full pl-3 pr-1.5 min-h-9 pointer-coarse:min-h-11 text-sm font-medium transition-[transform,box-shadow] active:scale-95 hover:shadow-[var(--sh-2)]', on ? 'bg-[image:var(--grad-brand)] text-[var(--on-grad)]' : tones[tone])}>
       {tag}<span className={cn('grid place-items-center min-w-6 h-6 px-1.5 rounded-full text-xs font-semibold tnum', on ? 'bg-white/25' : 'bg-surface/70')}>{n}</span>
     </button>
   )
@@ -48,10 +50,10 @@ function Summary({ list, avg, star, onStar, onOpen }) {
   const fresh = list.filter(r => r.createdAt.slice(0, 10) >= addDays(todayISO(), -30)).length
   const five = list.length ? Math.round((byStar[0].k / list.length) * 100) : 0
   return (
-    <div className="hero p-5 sm:p-6">
-      <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8 xl:grid-cols-1 xl:gap-5">
-        <div className="flex sm:flex-col items-center sm:items-start xl:flex-row xl:items-end gap-x-5 gap-y-2">
-          <div className="display text-6xl sm:text-7xl font-bold tnum leading-none"><CountUp value={avgText(avg)} /></div>
+    <div className="hero dx-hero p-5 @lg:p-6">
+      <div className="grid gap-5 @lg:grid-cols-[auto_minmax(0,1fr)] @lg:gap-8">
+        <div className="flex @lg:flex-col items-center @lg:items-start gap-x-5 gap-y-2">
+          <div className="display text-6xl @lg:text-7xl font-bold tnum leading-none"><CountUp value={avgText(avg)} /></div>
           <div className="min-w-0">
             <div className="flex gap-0.5" role="img" aria-label={`${avgText(avg)} de 5 estrellas`}>{[1, 2, 3, 4, 5].map(n => <Star key={n} size={18} aria-hidden="true" className={n <= Math.round(avg) ? 'fill-[var(--gold)] text-[var(--gold)]' : 'text-white/40'} />)}</div>
             <p className="text-sm opacity-90 mt-1 tnum">{pl(list.length, 'reseña', 'reseñas')}</p>
@@ -93,13 +95,43 @@ function Mentions({ tags, tag, onTag, className }) {
   )
 }
 
+/* Las reseñas sin responder que más conviene atender: primero las de menos estrellas, después las más nuevas. */
+function Priority({ list, onReply }) {
+  const open = list.filter(r => !r.reply)
+  const next = [...open].sort((a, b) => a.rating - b.rating || b.createdAt.localeCompare(a.createdAt)).slice(0, 3)
+  return (
+    <section aria-labelledby="prio" className="rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-4 sm:p-5">
+      <div className="flex items-center gap-3">
+        <span className={cn('size-10 rounded-xl grid place-items-center flex-none', open.length ? 'bg-warn-soft text-warn' : 'bg-brand-soft text-brand')}>{open.length ? <Flag size={20} aria-hidden="true" /> : <CheckCheck size={20} aria-hidden="true" />}</span>
+        <div className="min-w-0"><h2 id="prio" className="text-lg leading-tight">{open.length ? 'Para responder primero' : '¡Estás al día!'}</h2><p className="text-sm text-muted">{open.length ? 'Las de menos estrellas son las que más pesan' : 'Respondiste todas las reseñas'}</p></div>
+      </div>
+      {open.length > 0 && (
+        <ul className="mt-3 -mx-1.5">
+          {next.map(r => (
+            <li key={r.id}>
+              <button type="button" onClick={() => onReply(r)} aria-label={`Responder a ${r.playerName}, ${r.rating} de 5`}
+                className="group w-full text-left flex items-start gap-3 rounded-xl px-1.5 py-2.5 min-h-12 transition-colors hover:bg-sunken active:scale-[.99]">
+                <Avatar name={r.playerName} size={36} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-2"><span className="font-semibold truncate">{r.playerName}</span><Stars n={r.rating} /></span>
+                  <span className="block text-sm text-muted line-clamp-2">{r.text || 'Sin comentario, solo calificó.'}</span>
+                </span>
+                <ArrowRight size={16} aria-hidden="true" className="flex-none mt-1 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
+              </button>
+            </li>))}
+        </ul>)}
+      {open.length > next.length && <p className="text-xs text-muted mt-2 tnum">y {pl(open.length - next.length, 'más', 'más')} sin responder</p>}
+    </section>
+  )
+}
+
 function ReviewCard({ r, editing, text, setText, onEdit, onCancel, onSave }) {
   const sid = useId()
   const hint = r.rating >= 4 ? SUGGEST.good : SUGGEST.bad
   const unanswered = !r.reply
   const t = text.trim()
   return (
-    <article className="rounded-2xl bg-surface border border-line border-l-[3px] shadow-[var(--sh-1)] p-4 sm:p-5 card-lift" style={{ borderLeftColor: ACCENT(r.rating) }} aria-label={`Reseña de ${r.playerName}, ${r.rating} de 5`}>
+    <article id={`rev-${r.id}`} className="dx-review rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-4 pl-5 sm:p-5 sm:pl-6 scroll-mt-6" style={{ '--accent': ACCENT(r.rating) }} aria-label={`Reseña de ${r.playerName}, ${r.rating} de 5`}>
       <div className="flex items-start gap-3">
         <Avatar name={r.playerName} size={44} />
         <div className="min-w-0 flex-1">
@@ -149,6 +181,7 @@ export default function OwnerReviews() {
   const [tag, setTag] = useState(null)
   const [edit, setEdit] = useState(null)
   const [text, setText] = useState('')
+  const asideRef = useStickyTop()
   const list = useMemo(() => (complex ? state.reviews.filter(r => r.complexId === complex.id && !r.hidden).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []), [state.reviews, complex])
   const r0 = complex ? ratingOf(state, complex.id) : { avg: 0, count: 0 }
   const tags = useMemo(() => tagCounts(list), [list])
@@ -156,6 +189,10 @@ export default function OwnerReviews() {
   const counts = { all: list.length, open: list.filter(r => !r.reply).length, low: list.filter(r => r.rating <= 3).length }
   const filtered = tab !== 'all' || star != null || tag != null
   const reset = () => { setTab('all'); setStar(null); setTag(null) }
+  const reply = r => {
+    setTab('all'); setStar(null); setTag(null); setEdit(r.id); setText(r.reply?.text || '')
+    setTimeout(() => document.getElementById(`rev-${r.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120)
+  }
   const save = r => {
     const t = text.trim()
     update(s => { const x = s.reviews.find(v => v.id === r.id); if (t) { x.reply = { text: t, at: new Date().toISOString() }; notify(s, { userId: x.playerId, type: 'review_reply', title: 'El complejo te respondió', text: `${complex?.name || 'El complejo'} respondió tu reseña.`, complexId: x.complexId, link: `/complejo/${complex?.slug}` }) } else delete x.reply })
@@ -180,41 +217,45 @@ export default function OwnerReviews() {
           </div>
         </Reveal>
       ) : (
-        <div className="grid gap-4 lg:gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] xl:items-start">
-          <aside className="space-y-4 xl:sticky xl:top-6" aria-label="Resumen de reseñas">
-            <Reveal><Summary list={list} avg={r0.avg} star={star} onStar={s => setStar(s)} onOpen={() => { setTab('open'); document.getElementById('lista')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }} /></Reveal>
-            <Reveal><Mentions tags={tags} tag={tag} onTag={setTag} className={cn(!tags.total && 'hidden xl:block')} /></Reveal>
-          </aside>
+        <div className="@container dx-wide">
+          <div className="grid gap-4 @4xl:gap-6 @4xl:grid-cols-[minmax(300px,24rem)_minmax(0,1fr)] @4xl:items-start">
+            <aside ref={asideRef} className="space-y-4 @4xl:sticky" aria-label="Resumen de reseñas">
+              <Reveal className="@container"><Summary list={list} avg={r0.avg} star={star} onStar={s => setStar(s)} onOpen={() => { setTab('open'); document.getElementById('lista')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }} /></Reveal>
+              {tags.total > 0 && <Reveal><Mentions tags={tags} tag={tag} onTag={setTag} /></Reveal>}
+              <Reveal className="hidden @4xl:block"><Priority list={list} onReply={reply} /></Reveal>
+            </aside>
 
-          <section id="lista" aria-label="Reseñas" className="min-w-0 scroll-mt-4">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <Segmented className="w-full sm:w-auto sm:min-w-[26rem]" value={tab} onChange={setTab} label="Filtro" options={tabs} />
-              <p className="text-sm text-muted tnum" aria-live="polite">{filtered ? `Mostrando ${shown.length} de ${list.length}` : pl(list.length, 'reseña', 'reseñas')}</p>
-            </div>
-            {(star != null || tag != null) && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {star != null && <button type="button" className="chip" onClick={() => setStar(null)} aria-label={`Quitar filtro de ${star} estrellas`}><Star size={14} className="fill-current text-warn" aria-hidden="true" />{pl(star, 'estrella', 'estrellas')}<X size={14} aria-hidden="true" /></button>}
-                {tag != null && <button type="button" className="chip" onClick={() => setTag(null)} aria-label={`Quitar filtro ${tag}`}>{tag}<X size={14} aria-hidden="true" /></button>}
-              </div>)}
+            <section id="lista" aria-label="Reseñas" className="@container min-w-0 scroll-mt-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <Segmented className="w-full @lg:w-auto @lg:min-w-[26rem]" value={tab} onChange={setTab} label="Filtro" options={tabs} />
+                <p className="text-sm text-muted tnum" aria-live="polite">{filtered ? `Mostrando ${shown.length} de ${list.length}` : pl(list.length, 'reseña', 'reseñas')}</p>
+              </div>
+              {(star != null || tag != null) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {star != null && <button type="button" className="chip" onClick={() => setStar(null)} aria-label={`Quitar filtro de ${star} estrellas`}><Star size={14} className="fill-current text-warn" aria-hidden="true" />{pl(star, 'estrella', 'estrellas')}<X size={14} aria-hidden="true" /></button>}
+                  {tag != null && <button type="button" className="chip" onClick={() => setTag(null)} aria-label={`Quitar filtro ${tag}`}>{tag}<X size={14} aria-hidden="true" /></button>}
+                </div>)}
 
-            {shown.length === 0 ? (
-              <Reveal className="mt-4">
-                <div className="rounded-2xl bg-surface border border-dashed border-strong px-6 py-12 text-center">
-                  <span className="mx-auto mb-4 grid place-items-center size-14 rounded-2xl bg-brand-soft text-brand">{tab === 'open' && star == null && tag == null ? <CheckCheck size={28} aria-hidden="true" /> : <Search size={26} aria-hidden="true" />}</span>
-                  <p className="font-semibold text-lg">{tab === 'open' && star == null && tag == null ? '¡Estás al día!' : 'No hay reseñas con este filtro'}</p>
-                  <p className="text-sm text-muted mt-1 max-w-xs mx-auto">{tab === 'open' && star == null && tag == null ? 'Respondiste todas las reseñas. Los jugadores lo valoran.' : 'Probá con otra combinación o mirá todas.'}</p>
-                  {filtered && <div className="mt-4 flex justify-center"><Button variant="secondary" onClick={reset}>Ver todas</Button></div>}
-                </div>
-              </Reveal>
-            ) : (
-              <Stagger key={`${tab}|${star}|${tag}`} className="space-y-3 mt-4">
-                {shown.map(r => (
-                  <Item key={r.id}>
-                    <ReviewCard r={r} editing={edit === r.id} text={text} setText={setText} onEdit={() => { setEdit(r.id); setText(r.reply?.text || '') }} onCancel={() => setEdit(null)} onSave={() => save(r)} />
-                  </Item>))}
-              </Stagger>)}
-          </section>
-        </div>))}
+              {shown.length === 0 ? (
+                <Reveal className="mt-4">
+                  <div className="rounded-2xl bg-surface border border-dashed border-strong px-6 py-12 text-center">
+                    <span className="mx-auto mb-4 grid place-items-center size-14 rounded-2xl bg-brand-soft text-brand">{tab === 'open' && star == null && tag == null ? <CheckCheck size={28} aria-hidden="true" /> : <Search size={26} aria-hidden="true" />}</span>
+                    <p className="font-semibold text-lg">{tab === 'open' && star == null && tag == null ? '¡Estás al día!' : 'No hay reseñas con este filtro'}</p>
+                    <p className="text-sm text-muted mt-1 max-w-xs mx-auto">{tab === 'open' && star == null && tag == null ? 'Respondiste todas las reseñas. Los jugadores lo valoran.' : 'Probá con otra combinación o mirá todas.'}</p>
+                    {filtered && <div className="mt-4 flex justify-center"><Button variant="secondary" onClick={reset}>Ver todas</Button></div>}
+                  </div>
+                </Reveal>
+              ) : (
+                <Stagger key={`${tab}|${star}|${tag}`} className="grid gap-3 @3xl:grid-cols-2 @3xl:items-start mt-4">
+                  {shown.map(r => (
+                    <Item key={r.id} className={edit === r.id ? '@3xl:col-span-2' : undefined}>
+                      <ReviewCard r={r} editing={edit === r.id} text={text} setText={setText} onEdit={() => { setEdit(r.id); setText(r.reply?.text || '') }} onCancel={() => setEdit(null)} onSave={() => save(r)} />
+                    </Item>))}
+                </Stagger>)}
+            </section>
+          </div>
+        </div>
+      ))}
     </OwnerPage>
   )
 }

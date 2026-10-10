@@ -54,6 +54,31 @@ function PrefRow({ icon: I, label, hint, checked, onChange, disabled }) {
   )
 }
 
+/* Ayuda y legales. */
+function HelpPanel({ user }) {
+  const row = 'flex items-center gap-3 min-h-12 -mx-2 px-2 rounded-xl font-medium hover:bg-sunken transition-colors'
+  return (
+    <Panel icon={LifeBuoy} title="Ayuda y legales" sub="Estamos para darte una mano.">
+      <div className="-mt-1 space-y-1">
+        <a href={waLink(SUPPORT_WA, `Hola, necesito ayuda con La Fija. Soy ${user.name}.`)} target="_blank" rel="noreferrer" className={row}><LifeBuoy size={18} className="text-brand" aria-hidden="true" /><span className="flex-1">Escribir a soporte</span><ChevronRight size={18} className="text-faint" aria-hidden="true" /></a>
+        <Link to="/terminos" className={row}><FileText size={18} className="text-brand" aria-hidden="true" /><span className="flex-1">Términos y condiciones</span><ChevronRight size={18} className="text-faint" aria-hidden="true" /></Link>
+        <Link to="/privacidad" className={row}><ShieldCheck size={18} className="text-brand" aria-hidden="true" /><span className="flex-1">Política de privacidad</span><ChevronRight size={18} className="text-faint" aria-hidden="true" /></Link>
+      </div>
+    </Panel>
+  )
+}
+
+/* Cerrar sesión. */
+function SessionPanel({ onSignOut }) {
+  return (
+    <section className="pm-card p-5 lg:p-6 flex flex-wrap items-center gap-4" aria-label="Sesión">
+      <span className="pm-ico is-danger"><LogOut size={20} aria-hidden="true" /></span>
+      <div className="min-w-0 flex-1 basis-40"><h2 className="display text-xl font-bold leading-tight">Sesión</h2><p className="text-sm text-muted">Salí de tu cuenta en este dispositivo.</p></div>
+      <Button variant="secondary" onClick={onSignOut}><LogOut size={18} aria-hidden="true" />Cerrar sesión</Button>
+    </section>
+  )
+}
+
 export function Account({ theme, onSignOut }) {
   const { state, user, update } = useStore()
   const [big, setBig] = useBigText()
@@ -83,7 +108,7 @@ export function Account({ theme, onSignOut }) {
       <Content className="max-w-[1480px]">
         <Stagger className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start">
           {/* ---------- Izquierda: quién sos ---------- */}
-          <div className="space-y-4 min-w-0">
+          <div className="flex flex-col gap-4 min-w-0">
             <Item className="hero p-5 lg:p-6">
               <div className="flex items-center gap-4">
                 <span className="size-[72px] rounded-3xl grid place-items-center bg-white/20 border border-white/30 backdrop-blur display text-3xl font-bold flex-none" aria-hidden="true">{initials(user.name)}</span>
@@ -140,16 +165,19 @@ export function Account({ theme, onSignOut }) {
             {user.role === 'owner' && (
               <Item>
                 <Panel icon={Store} title="Atajos" sub="Lo que más usás de tu complejo.">
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 lg:max-xl:grid-cols-1 gap-2.5">
                     {[[Store, 'Mi complejo', '/dueno/complejo'], [ClipboardList, 'Reservas', '/dueno/reservas'], [MessageSquareText, 'Reseñas', '/dueno/resenas'], [BarChart3, 'Estadísticas', '/dueno/estadisticas']].map(([I, label, to]) => (
                       <Link key={to} to={to} className="flex items-center gap-2.5 rounded-2xl border border-line bg-surface min-h-14 px-3.5 font-semibold card-lift"><span className="pm-ico !size-9 !rounded-xl"><I size={18} aria-hidden="true" /></span>{label}</Link>))}
                   </div>
                 </Panel>
               </Item>)}
+
+            {!isPlayer && <Item className="hidden lg:block"><HelpPanel user={user} /></Item>}
+            <Item className={isPlayer ? 'hidden lg:block xl:hidden' : 'hidden xl:block'}><SessionPanel onSignOut={onSignOut} /></Item>
           </div>
 
           {/* ---------- Derecha: tus datos y ajustes ---------- */}
-          <div className="space-y-4 min-w-0">
+          <div className="flex flex-col gap-4 min-w-0">
             <Item>
               <Panel icon={UserRound} title="Datos personales" sub="Así te ve el complejo cuando reservás.">
                 <form onSubmit={save} className="space-y-4" noValidate>
@@ -178,23 +206,9 @@ export function Account({ theme, onSignOut }) {
               </Panel>
             </Item>
 
-            <Item>
-              <Panel icon={LifeBuoy} title="Ayuda y legales" sub="Estamos para darte una mano.">
-                <div className="-mt-1 space-y-1">
-                  <a href={waLink(SUPPORT_WA, `Hola, necesito ayuda con La Fija. Soy ${user.name}.`)} target="_blank" rel="noreferrer" className="flex items-center gap-3 min-h-12 -mx-2 px-2 rounded-xl font-medium hover:bg-sunken transition-colors"><LifeBuoy size={18} className="text-brand" aria-hidden="true" /><span className="flex-1">Escribir a soporte</span><ChevronRight size={18} className="text-faint" aria-hidden="true" /></a>
-                  <Link to="/terminos" className="flex items-center gap-3 min-h-12 -mx-2 px-2 rounded-xl font-medium hover:bg-sunken transition-colors"><FileText size={18} className="text-brand" aria-hidden="true" /><span className="flex-1">Términos y condiciones</span><ChevronRight size={18} className="text-faint" aria-hidden="true" /></Link>
-                  <Link to="/privacidad" className="flex items-center gap-3 min-h-12 -mx-2 px-2 rounded-xl font-medium hover:bg-sunken transition-colors"><ShieldCheck size={18} className="text-brand" aria-hidden="true" /><span className="flex-1">Política de privacidad</span><ChevronRight size={18} className="text-faint" aria-hidden="true" /></Link>
-                </div>
-              </Panel>
-            </Item>
-
-            <Item>
-              <section className="pm-card p-5 lg:p-6 flex flex-wrap items-center gap-4" aria-label="Sesión">
-                <span className="pm-ico is-danger"><LogOut size={20} aria-hidden="true" /></span>
-                <div className="min-w-0 flex-1 basis-40"><h2 className="display text-xl font-bold leading-tight">Sesión</h2><p className="text-sm text-muted">Salí de tu cuenta en este dispositivo.</p></div>
-                <Button variant="secondary" onClick={onSignOut}><LogOut size={18} aria-hidden="true" />Cerrar sesión</Button>
-              </section>
-            </Item>
+            {/* Ayuda y sesión: se reparten entre las dos columnas para que queden parejas (cada panel se muestra una sola vez por ancho). */}
+            <Item className={isPlayer ? undefined : 'lg:hidden'}><HelpPanel user={user} /></Item>
+            <Item className={isPlayer ? 'lg:max-xl:hidden' : 'xl:hidden'}><SessionPanel onSignOut={onSignOut} /></Item>
           </div>
         </Stagger>
       </Content>

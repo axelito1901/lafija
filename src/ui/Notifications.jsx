@@ -4,7 +4,7 @@ import { useStore } from '../lib/store'
 import { effStatus, getComplex, getCourt, isUpcoming, bookingStart } from '../lib/domain'
 import { addDays, cn, todayISO } from '../lib/format'
 import { navigate } from '../lib/router'
-import { Button, Empty, IconButton, Sheet } from './kit'
+import { Button, Empty, IconButton, Segmented, Sheet } from './kit'
 
 const TYPES = {
   booking_new: { icon: CalendarPlus, tone: 'bg-brand-soft text-brand' },
@@ -71,7 +71,7 @@ export function BellButton() {
     <>
       <IconButton label={unread ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'} onClick={() => setOpen(true)} className="relative">
         <Bell size={22} />
-        {unread > 0 && <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-[var(--brand-ink)] text-[11px] font-semibold grid place-items-center tnum ring-2 ring-[var(--bg)]">{unread > 9 ? '9+' : unread}</span>}
+        {unread > 0 && <span className="ui-badge absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[image:var(--grad-brand)] text-[var(--on-grad)] text-[11px] font-semibold grid place-items-center tnum">{unread > 9 ? '9+' : unread}</span>}
       </IconButton>
       {open && <NotificationsSheet onClose={() => setOpen(false)} />}
     </>
@@ -80,14 +80,15 @@ export function BellButton() {
 
 function Item({ n, onClick }) {
   const T = TYPES[n.type] || TYPES.reminder
+  const unread = n.read === false
   return (
-    <button type="button" className="row !items-start !py-3" onClick={onClick}>
-      <span className={cn('size-10 rounded-full grid place-items-center flex-none', T.tone)}><T.icon size={20} aria-hidden="true" /></span>
+    <button type="button" className={cn('row !items-start !py-3.5', unread && 'bg-[color-mix(in_srgb,var(--brand)_5%,var(--surface))]')} onClick={onClick}>
+      <span className={cn('size-10 rounded-xl grid place-items-center flex-none shadow-[inset_0_0_0_1px_color-mix(in_srgb,currentColor_14%,transparent)]', T.tone)}><T.icon size={20} aria-hidden="true" /></span>
       <span className="flex-1 min-w-0">
-        <span className="flex items-baseline justify-between gap-2"><span className={cn('block truncate', n.read === false ? 'font-semibold' : 'font-medium')}>{n.title}</span>{!n.live && <span className="text-xs text-muted flex-none">{ago(n.createdAt)}</span>}</span>
+        <span className="flex items-baseline justify-between gap-2"><span className={cn('block truncate', unread ? 'font-semibold' : 'font-medium')}>{n.title}</span>{!n.live && <span className="text-xs text-muted flex-none tnum">{ago(n.createdAt)}</span>}</span>
         <span className="block text-sm text-muted">{n.text}</span>
       </span>
-      {n.read === false && <span className="size-2.5 rounded-full bg-brand flex-none mt-2" aria-label="Sin leer" />}
+      {unread && <span className="size-2.5 rounded-full bg-[image:var(--grad-brand)] flex-none mt-2" aria-label="Sin leer" />}
     </button>
   )
 }
@@ -95,10 +96,12 @@ function Item({ n, onClick }) {
 function NotificationsSheet({ onClose }) {
   const { user, update } = useStore()
   const { stored, live } = useItems()
+  const [only, setOnly] = useState('all')
   const unread = stored.filter(n => !n.read).length
   const t = todayISO(), y = addDays(t, -1)
-  const day = iso => { const d = iso.slice(0, 10); const loc = new Date(iso); const l = `${loc.getFullYear()}-${String(loc.getMonth() + 1).padStart(2, '0')}-${String(loc.getDate()).padStart(2, '0')}`; return l === t ? 'Hoy' : l === y ? 'Ayer' : 'Anteriores' }
-  const groups = ['Hoy', 'Ayer', 'Anteriores'].map(g => [g, stored.filter(n => day(n.createdAt) === g)]).filter(([, l]) => l.length)
+  const day = iso => { const loc = new Date(iso); const l = `${loc.getFullYear()}-${String(loc.getMonth() + 1).padStart(2, '0')}-${String(loc.getDate()).padStart(2, '0')}`; return l === t ? 'Hoy' : l === y ? 'Ayer' : 'Anteriores' }
+  const shown = only === 'unread' ? stored.filter(n => !n.read) : stored
+  const groups = ['Hoy', 'Ayer', 'Anteriores'].map(g => [g, shown.filter(n => day(n.createdAt) === g)]).filter(([, l]) => l.length)
   const open = n => {
     if (!n.live) update(s => { const x = s.notifications.find(y2 => y2.id === n.id); if (x) x.read = true })
     onClose()
@@ -107,12 +110,15 @@ function NotificationsSheet({ onClose }) {
     else if (user.role === 'owner') navigate(`/dueno/agenda${n.date ? `?fecha=${n.date}` : ''}`)
     else if (user.role === 'player') navigate('/reservas')
   }
+  const head = t2 => <h3 className="ui-eyebrow mb-2.5">{t2}</h3>
   return (
-    <Sheet open onClose={onClose} title="Notificaciones" wide
+    <Sheet open onClose={onClose} title="Notificaciones" wide side
       footer={unread > 0 ? <Button variant="secondary" onClick={() => update(s => { (s.notifications || []).forEach(n => { if (n.userId === user.id) n.read = true }) })}>Marcar todas como leídas</Button> : null}>
-      {stored.length === 0 && live.length === 0 && <Empty title="No tenés avisos" text="Acá vas a ver reservas, pagos y recordatorios." />}
-      {live.length > 0 && <section className="mb-5"><h3 className="text-sm font-semibold text-muted mb-2">Para tener en cuenta</h3><div className="list">{live.map(n => <Item key={n.id} n={n} onClick={() => open(n)} />)}</div></section>}
-      {groups.map(([g, list]) => <section key={g} className="mb-5 last:mb-0"><h3 className="text-sm font-semibold text-muted mb-2">{g}</h3><div className="list">{list.map(n => <Item key={n.id} n={n} onClick={() => open(n)} />)}</div></section>)}
+      {stored.length === 0 && live.length === 0 && <Empty icon={Bell} title="No tenés avisos" text="Acá vas a ver reservas, pagos y recordatorios." />}
+      {stored.length > 0 && <Segmented className="mb-4" label="Mostrar" value={only} onChange={setOnly} options={[{ value: 'all', label: 'Todas' }, { value: 'unread', label: unread ? `Sin leer (${unread})` : 'Sin leer' }]} />}
+      {live.length > 0 && <section className="mb-5">{head('Para tener en cuenta')}<div className="list">{live.map(n => <Item key={n.id} n={n} onClick={() => open(n)} />)}</div></section>}
+      {only === 'unread' && stored.length > 0 && shown.length === 0 && <p className="text-muted text-center py-8">Estás al día. No tenés avisos sin leer.</p>}
+      {groups.map(([g, list]) => <section key={g} className="mb-5 last:mb-0">{head(g)}<div className="list">{list.map(n => <Item key={n.id} n={n} onClick={() => open(n)} />)}</div></section>)}
     </Sheet>
   )
 }

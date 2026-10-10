@@ -21,6 +21,11 @@ export function Logo({ className }) {
   )
 }
 
+/* Marca en un cuadradito con degradado (sidebar, pantalla de carga). */
+export function LogoTile({ size = 38, className }) {
+  return <span className={cn('ui-logo-tile', className)} style={{ width: size, height: size }} aria-hidden="true"><LogoMark size={Math.round(size * 0.58)} /></span>
+}
+
 /* ---------- Botones ---------- */
 export const Button = forwardRef(function Button({ variant = 'primary', size, loading, disabled, className, children, type = 'button', as: As, ...rest }, ref) {
   const Comp = As || 'button'
@@ -93,26 +98,26 @@ export const Skeleton = ({ className }) => <div className={cn('skel', className)
 export function Empty({ title, text, action, className, icon: Icon }) {
   return (
     <div className={cn('text-center py-12 px-6', className)}>
-      {Icon && <span className="mx-auto mb-4 grid place-items-center size-16 rounded-2xl bg-brand-soft text-brand float-y"><Icon size={30} strokeWidth={1.75} aria-hidden="true" /></span>}
-      <p className="font-semibold text-base">{title}</p>
-      {text && <p className="text-muted text-sm mt-1 max-w-xs mx-auto">{text}</p>}
-      {action && <div className="mt-4 flex justify-center">{action}</div>}
+      {Icon && <span className="ui-empty-ico float-y"><span><Icon size={28} strokeWidth={1.75} aria-hidden="true" /></span></span>}
+      <p className="display font-bold text-xl tracking-tight">{title}</p>
+      {text && <p className="text-muted text-sm mt-1.5 max-w-xs mx-auto">{text}</p>}
+      {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>
   )
 }
 export function ErrorState({ title = 'Algo salió mal', text = 'Probá de nuevo en unos segundos.', onRetry }) {
   return (
     <div className="text-center py-12 px-6" role="alert">
-      <AlertCircle className="mx-auto text-danger" size={28} />
-      <p className="font-semibold mt-3">{title}</p>
-      <p className="text-muted text-sm mt-1">{text}</p>
-      {onRetry && <div className="mt-4 flex justify-center"><Button variant="secondary" onClick={onRetry}>Reintentar</Button></div>}
+      <span className="ui-empty-ico is-danger"><span><AlertCircle size={28} strokeWidth={1.75} aria-hidden="true" /></span></span>
+      <p className="display font-bold text-xl tracking-tight">{title}</p>
+      <p className="text-muted text-sm mt-1.5 max-w-xs mx-auto">{text}</p>
+      {onRetry && <div className="mt-5 flex justify-center"><Button variant="secondary" onClick={onRetry}>Reintentar</Button></div>}
     </div>
   )
 }
 export function ListSkeleton({ rows = 4 }) {
   return <div className="list" aria-busy="true" aria-label="Cargando">{Array.from({ length: rows }, (_, i) => (
-    <div key={i} className="row"><div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-3 w-1/3" /></div><Skeleton className="h-4 w-16" /></div>
+    <div key={i} className="row"><Skeleton className="size-10 !rounded-full flex-none" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-3 w-1/3" /></div><Skeleton className="h-4 w-16" /></div>
   ))}</div>
 }
 
@@ -128,45 +133,53 @@ export function Rating({ value, count, className }) {
 export const Stars = ({ n }) => (
   <span className="inline-flex gap-0.5" role="img" aria-label={`${n} de 5`}>{[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} className={i <= n ? 'fill-current text-warn' : 'text-strong'} />)}</span>
 )
-export const Avatar = ({ name, size = 40 }) => (
-  <span className="inline-grid place-items-center rounded-full bg-brand-soft text-brand font-semibold flex-none text-sm" style={{ width: size, height: size }} aria-hidden="true">{initials(name)}</span>
+export const Avatar = ({ name, size = 40, tone }) => (
+  <span className={cn('inline-grid place-items-center rounded-full bg-brand-soft text-brand font-semibold flex-none text-sm shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--brand)_16%,transparent)]', tone === 'grad' && 'ui-avatar-grad')}
+    style={{ width: size, height: size, fontSize: size >= 56 ? Math.round(size * 0.36) : undefined }} aria-hidden="true">{initials(name)}</span>
 )
 
 /* ---------- Estructura de pantalla ---------- */
 export const HeaderExtra = createContext(null)
-export function PageHeader({ title, sub, back, actions, logo }) {
+/* Rótulo chico sobre el título en PC (por ejemplo "Panel del dueño"). Lo da App según el rol. */
+export const HeaderMeta = createContext('')
+export function PageHeader({ title, sub, back, actions, logo, eyebrow }) {
   const extra = useContext(HeaderExtra)
+  const meta = useContext(HeaderMeta)
+  const kicker = eyebrow ?? meta
   return (
     <header className="app-bar">
-      <div className="flex items-center gap-2 min-h-14 px-4 md:px-6 lg:px-8 lg:pt-8 lg:pb-2 max-w-[1120px] mx-auto">
+      <div className={cn('ui-bar-in', logo && 'is-logo')}>
         {back === 'history'
-          ? <button type="button" className="icon-btn -ml-3" aria-label="Volver" onClick={() => (window.history.length > 1 ? window.history.back() : navigate('/'))}><ArrowLeft size={22} /></button>
-          : back && <Link to={back} className="icon-btn -ml-3" aria-label="Volver"><ArrowLeft size={22} /></Link>}
+          ? <button type="button" className="ui-bar-back" aria-label="Volver" onClick={() => (window.history.length > 1 ? window.history.back() : navigate('/'))}><ArrowLeft size={22} /></button>
+          : back && <Link to={back} className="ui-bar-back" aria-label="Volver"><ArrowLeft size={22} /></Link>}
         <div className="flex-1 min-w-0">
-          {logo ? <Logo /> : <h1 className="text-xl lg:text-2xl font-semibold tracking-tight truncate">{title}</h1>}
-          {sub && <p className="text-sm text-muted truncate lg:mt-0.5">{sub}</p>}
+          {logo ? <Logo className="lg:hidden" /> : <>
+            {kicker && <p className="ui-eyebrow has-bar is-brand is-lg mb-3">{kicker}</p>}
+            <h1 className="ui-title truncate">{title}</h1>
+          </>}
+          {sub && <p className="ui-sub truncate">{sub}</p>}
         </div>
-        {(actions || extra) && <div className="flex items-center gap-1 flex-none">{actions}{extra}</div>}
+        {(actions || extra) && <div className="ui-bar-actions">{actions}{extra && <div className="ui-tools">{extra}</div>}</div>}
       </div>
     </header>
   )
 }
-export const Content = ({ className, children }) => <div className={cn('px-4 md:px-6 lg:px-8 py-4 lg:py-6 mx-auto', !/(^|\s)max-w-/.test(className || '') && 'max-w-[1120px]', className)}>{children}</div>
+export const Content = ({ className, children }) => <div className={cn('px-4 md:px-6 lg:px-8 py-4 lg:py-6 mx-auto', !/(^|\s)max-w-/.test(className || '') && 'max-w-[1120px] min-[1600px]:max-w-[1360px]', className)}>{children}</div>
 export function Section({ title, action, children, className }) {
   return (
     <section className={cn('mt-8 first:mt-0', className)}>
-      {(title || action) && <div className="flex items-center justify-between gap-3 mb-3 min-h-8"><h2 className="text-base font-semibold">{title}</h2>{action}</div>}
+      {(title || action) && <div className="flex items-center justify-between gap-3 mb-3 lg:mb-4 min-h-8"><h2 className="text-base lg:text-xl font-semibold tracking-tight">{title}</h2>{action}</div>}
       {children}
     </section>
   )
 }
 export function Stat({ label, value, note }) {
-  return <div className="min-w-0"><div className="text-sm text-muted">{label}</div><div className="text-xl lg:text-2xl font-semibold tnum tracking-tight mt-0.5 truncate"><CountUp value={value} /></div>{note && <div className="text-sm text-muted">{note}</div>}</div>
+  return <div className="min-w-0"><div className="ui-kpi-label">{label}</div><div className="display text-2xl lg:text-3xl font-bold tnum tracking-tight leading-tight mt-1 truncate"><CountUp value={value} /></div>{note && <div className="text-sm text-muted">{note}</div>}</div>
 }
 
 /* ---------- Sheet / diálogo ---------- */
 let locks = 0
-export function Sheet({ open, onClose, title, children, footer, wide, busy }) {
+export function Sheet({ open, onClose, title, children, footer, wide, side, busy }) {
   const ref = useRef(null)
   const back = useRef(null)
   const titleId = useId()
@@ -196,7 +209,7 @@ export function Sheet({ open, onClose, title, children, footer, wide, busy }) {
   return createPortal(
     <>
       <div className="overlay" onClick={() => !busy && onClose()} />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cn('sheet', wide && 'wide')}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cn('sheet', wide && 'wide', side && 'side')}>
         <div className="sheet-grip" />
         <div className="sheet-head">
           <h2 id={titleId} className="text-lg font-semibold truncate">{title}</h2>

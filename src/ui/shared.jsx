@@ -7,6 +7,9 @@ import { Avatar, Button, Rating, Status } from './kit'
 import { Cover } from './Cover'
 import { VerifiedBadge } from './trust'
 
+/* Día que llega por el link (?fecha=): sólo vale si tiene forma de fecha y no pasó. */
+export const futureDay = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') && d >= todayISO() ? d : '')
+
 /* Datos derivados de un complejo para listas, tarjetas y mapa */
 export function complexView(state, c, origin) {
   const d = origin ? distanceKm(origin, c) : null
@@ -55,8 +58,8 @@ export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date, ro
         <div className={cn('mt-auto', row && 'xl:flex xl:items-end xl:justify-between xl:gap-4 xl:pt-3')}>
           {slots ? (slots.length ? (
             <div className="mt-3 xl:mt-0 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1.5 inline-flex items-center gap-1.5"><Clock3 size={13} aria-hidden="true" />Libres {date === todayISO() ? 'hoy' : relativeDay(date).toLowerCase()}</p>
-              <div className="flex flex-wrap gap-1.5">{slots.slice(0, 4).map(s => <Link key={s.t} to={`/complejo/${c.slug}/reservar?fecha=${date}&cancha=${s.courtId}&hora=${s.t}`} className="chip !min-h-11 !px-3 xl:!px-2.5 tnum pointer-fine:!min-h-10">{s.t}</Link>)}</div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1.5 inline-flex items-center gap-1.5"><Clock3 size={13} aria-hidden="true" />Libres {date === todayISO() ? 'hoy' : relativeDay(date).toLowerCase()}{free > slots.length && <span className="tnum normal-case tracking-normal text-brand font-semibold">· {free} en total</span>}</p>
+              <div className="flex flex-wrap gap-1.5">{slots.slice(0, 4).map((s, i) => <Link key={s.t} to={`/complejo/${c.slug}/reservar?fecha=${date}&cancha=${s.courtId}&hora=${s.t}`} className={cn('chip !min-h-11 !px-3 xl:!px-2.5 tnum pointer-fine:!min-h-10', row && i === 3 && 'xl:max-2xl:hidden')}>{s.t}</Link>)}</div>
             </div>) : <p className="text-sm text-muted mt-3 xl:mt-0 inline-flex items-center gap-1.5 xl:pb-2.5"><Clock3 size={14} className="flex-none" aria-hidden="true" />Sin horarios libres {date === todayISO() ? 'hoy' : 'ese día'}</p>)
             : free != null && <p className={cn('text-sm mt-2 xl:mt-0 xl:pb-2.5', free ? 'text-brand font-medium' : 'text-muted')}>{free ? `${free} ${free === 1 ? 'horario libre' : 'horarios libres'}` : 'Sin horarios libres'}</p>}
           <div className={cn('pt-3', row && 'xl:pt-0 xl:flex-none')}>

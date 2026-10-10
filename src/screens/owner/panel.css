@@ -1,0 +1,167 @@
+/* Dueño: Inicio, Reservas, Clientes, Finanzas, Promociones, Más y Agenda. Prefijo ow-.
+   Todo con variables del tema: sirve en claro y oscuro. */
+
+/* El encabezado de la app mide 1120px; en PC lo alineamos con el contenido ancho de estas pantallas. */
+@media (min-width: 1024px) { body:has(.ow-wide) .app-bar > div { max-width: min(100%, 1536px); } }
+
+/* ---------- Piezas básicas ---------- */
+.ow-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--sh-1); }
+.ow-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ow-ico { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--brand-soft); color: var(--brand); }
+.ow-ico.warn { background: var(--warn-soft); color: var(--warn); }
+.ow-ico.danger { background: var(--danger-soft); color: var(--danger); }
+.ow-ico.info { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
+.ow-ico.grad { background: var(--grad-brand); color: var(--on-grad); box-shadow: 0 8px 16px -8px color-mix(in srgb, var(--brand) 80%, transparent); }
+.ow-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--brand-soft); color: var(--brand); }
+.ow-pill.warn { background: var(--warn-soft); color: var(--warn); }
+.ow-pill.danger { background: var(--danger-soft); color: var(--danger); }
+.ow-pill.info { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
+.ow-pill.muted { background: var(--sunken); color: var(--muted); }
+.ow-bar { height: 8px; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.ow-bar > i { display: block; height: 100%; border-radius: inherit; background: var(--grad-brand); }
+.ow-bar.warn > i { background: var(--warn); }
+
+/* Héroe sin las líneas de cancha del centro (tapaban el texto): un brillo arriba a la derecha y los arcos del córner abajo a la izquierda. */
+.hero.ow-hero::before {
+  opacity: .2;
+  background:
+    radial-gradient(90% 70% at 100% 0%, #fff 0, transparent 55%),
+    radial-gradient(circle at 0% 100%, transparent 0 74px, #fff 74px 76px, transparent 76px 118px, #fff 118px 119px, transparent 119px);
+}
+
+/* Fila tocable dentro de una tarjeta (Atención, menús) */
+.ow-rowbtn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 16px; text-align: left; transition: background-color 150ms; -webkit-tap-highlight-color: transparent; }
+.ow-rowbtn:hover { background: var(--sunken); }
+.ow-rowbtn:active { background: var(--sunken); }
+.ow-rowbtn:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ow-rowbtn .ow-go { transition: transform 200ms cubic-bezier(.2, .8, .3, 1); }
+.ow-rowbtn:hover .ow-go { transform: translateX(3px); }
+
+/* Acciones rápidas del inicio */
+.ow-act { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 20px; min-height: 104px; padding: 16px; border-radius: 20px; text-align: left; font-weight: 600; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1); transition: box-shadow 220ms, border-color 150ms; -webkit-tap-highlight-color: transparent; }
+.ow-act:hover { box-shadow: var(--sh-2); border-color: var(--line-strong); }
+.ow-act:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.ow-act.main { color: var(--on-grad); border-color: transparent; background: var(--grad-brand); box-shadow: 0 14px 26px -12px color-mix(in srgb, var(--brand) 80%, transparent); }
+.ow-act.main:hover { filter: brightness(1.07); }
+
+/* Demanda por horario: la barra actual se marca con un aro dorado */
+.ow-bars { display: flex; align-items: flex-end; gap: 4px; height: 112px; }
+@media (min-width: 1024px) { .ow-bars { gap: 6px; height: 136px; } }
+
+/* ---------- Barras de filtros: se reacomodan según el ancho de la columna principal ---------- */
+.ow-fbar { container-type: inline-size; }
+.ow-filters { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "seg" "q" "sel"; }
+.ow-filters > .f-seg { grid-area: seg; } .ow-filters > .f-q { grid-area: q; } .ow-filters > .f-sel { grid-area: sel; }
+@media (min-width: 640px) { .ow-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "seg seg" "q sel"; } }
+@media (min-width: 1024px) { .ow-filters { grid-template-columns: 300px minmax(0, 1fr); grid-template-areas: "seg sel" "q q"; } }
+@container (min-width: 700px) { @media (min-width: 1024px) { .ow-filters { grid-template-columns: 300px minmax(0, 1fr) 190px; grid-template-areas: "seg q sel"; } } }
+.ow-filters2 { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 700px) { @media (min-width: 1024px) { .ow-filters2 { grid-template-columns: auto minmax(0, 320px); justify-content: space-between; align-items: center; } } }
+
+/* Resumen en una tira: el número se achica solo si la tira es angosta */
+.ow-strip { container-type: inline-size; }
+.ow-strip-v { font-size: clamp(1.05rem, 3.4cqw, 1.5rem); }
+
+/* ---------- Tablas (Reservas, Clientes, Finanzas) ----------
+   Las columnas se acomodan según el ancho de la propia tabla, no de la pantalla. */
+.ow-table { container-type: inline-size; container-name: ow-table; overflow: hidden; }
+.ow-th, .ow-tr { display: grid; align-items: center; column-gap: 14px; padding-inline: 18px; }
+.ow-th { display: none; min-height: 42px; background: var(--sunken); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.ow-group { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 18px; font-size: 13px; font-weight: 600; color: var(--muted); background: color-mix(in srgb, var(--sunken) 55%, var(--surface)); border-top: 1px solid var(--line); }
+.ow-group:first-child { border-top: 0; }
+.ow-tr { position: relative; width: 100%; min-height: 68px; padding-block: 10px; text-align: left; border-top: 1px solid var(--line); transition: background-color 150ms; -webkit-tap-highlight-color: transparent; }
+.ow-tr::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent, transparent); transition: top 200ms, bottom 200ms; }
+.ow-tr.is-btn:hover { background: var(--sunken); }
+.ow-tr.is-btn:hover::before { top: 6px; bottom: 6px; }
+button.ow-tr:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ow-tr.is-btn.is-on, .ow-tr.is-btn.is-on:hover { background: var(--brand-soft); }
+.ow-tr .c-go { color: var(--faint); transition: transform 200ms cubic-bezier(.2, .8, .3, 1); }
+.ow-tr.is-btn:hover .c-go { transform: translateX(3px); color: var(--ink); }
+.ow-tr > *, .ow-th > * { min-width: 0; }
+.c-who { grid-area: who; display: flex; align-items: center; gap: 12px; }
+.c-when { grid-area: when; } .c-court { grid-area: court; } .c-status { grid-area: status; }
+.c-amount { grid-area: amount; text-align: right; } .c-go { grid-area: go; justify-self: end; }
+.c-cnt { grid-area: cnt; } .c-last { grid-area: last; } .c-act { grid-area: act; justify-self: end; }
+.c-meth { grid-area: meth; }
+.ow-w { display: none; }
+
+/* Reservas: estrecho = cliente / hora + importe / cancha + estado; ancho = una fila con cinco columnas */
+.ow-bk { grid-template-columns: minmax(0, 1fr) 72px 136px 20px; grid-template-areas: "who when amount go" "who court status go"; row-gap: 2px; }
+.ow-tr.ow-bk .c-status { justify-self: end; } .ow-tr.ow-bk .c-court { font-size: 14px; color: var(--muted); }
+@container ow-table (min-width: 680px) {
+  .ow-th { display: grid; }
+  .ow-bk { grid-template-columns: minmax(0, 1fr) 56px 84px 140px 104px 20px; grid-template-areas: "who when court status amount go"; row-gap: 0; }
+  .ow-tr.ow-bk .c-status { justify-self: start; } .ow-tr.ow-bk .c-court { font-size: 16px; color: var(--ink); }
+}
+
+/* Clientes: estrecho = cliente / generado + última vez / acción; ancho = una fila con seis columnas */
+.ow-cl { grid-template-columns: minmax(0, 1fr) 176px minmax(28px, auto); grid-template-areas: "who amount act" "who last act"; row-gap: 2px; }
+.ow-tr.ow-cl .c-last { text-align: right; font-size: 14px; color: var(--muted); }
+.ow-cl .c-cnt, .ow-cl .c-next { display: none; }
+@container ow-table (min-width: 680px) {
+  .ow-th { display: grid; }
+  .ow-cl { grid-template-columns: minmax(0, 1fr) 64px 104px 112px 100px minmax(28px, auto); grid-template-areas: "who cnt last next amount act"; row-gap: 0; column-gap: 12px; }
+  .ow-cl .c-cnt, .ow-cl .c-next { display: block; }
+  .ow-tr.ow-cl .c-last { text-align: left; font-size: 16px; color: var(--ink); }
+  .ow-cl .ow-nonly { display: none; }
+  .ow-cl.is-lost { grid-template-columns: minmax(0, 1fr) 132px 100px auto; grid-template-areas: "who last amount act"; }
+  .ow-cl.is-lost .c-cnt, .ow-cl.is-lost .c-next { display: none; }
+}
+.c-next { grid-area: next; }
+
+/* Finanzas: movimientos */
+.ow-fin { grid-template-columns: minmax(0, 1fr) auto 20px; grid-template-areas: "who amount go" "who meth go"; row-gap: 2px; }
+.ow-fin .c-when { display: none; }
+.ow-tr.ow-fin .c-meth { text-align: right; font-size: 14px; color: var(--muted); }
+@container ow-table (min-width: 640px) {
+  .ow-th { display: grid; }
+  .ow-fin { grid-template-columns: minmax(0, 1.6fr) 124px 150px 112px 20px; grid-template-areas: "who when meth amount go"; row-gap: 0; }
+  .ow-fin .c-when { display: block; }
+  .ow-fin .ow-nonly { display: none; }
+  .ow-tr.ow-fin .c-meth { text-align: left; font-size: 16px; color: var(--ink); }
+}
+
+/* ---------- Promociones: ticket con muesca ---------- */
+.ow-promo { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1); transition: transform 240ms cubic-bezier(.2, .8, .3, 1), box-shadow 240ms, border-color 150ms; }
+.ow-promo:hover { transform: translateY(-3px); box-shadow: var(--sh-2); border-color: var(--line-strong); }
+.ow-promo-top { position: relative; isolation: isolate; overflow: hidden; border-radius: 21px 21px 0 0; padding: 18px 18px 22px; color: var(--on-grad); background: var(--grad-brand); }
+.ow-promo-top::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .2; pointer-events: none; background:
+  radial-gradient(110% 80% at 100% 0%, #fff 0, transparent 52%),
+  radial-gradient(circle at 12% 120%, transparent 0 56px, #fff 56px 58px, transparent 58px); }
+.ow-promo.off .ow-promo-top { color: var(--muted); background: var(--sunken); }
+.ow-promo.off .ow-promo-top::before { opacity: .5; background: radial-gradient(circle at 12% 120%, transparent 0 56px, var(--line-strong) 56px 58px, transparent 58px); }
+.ow-promo.dead .ow-promo-top { color: var(--muted); background: color-mix(in srgb, var(--danger) 8%, var(--sunken)); }
+.ow-promo-cut { position: relative; height: 0; border-top: 2px dashed var(--line-strong); margin-inline: 14px; }
+.ow-promo-cut::before, .ow-promo-cut::after { content: ""; position: absolute; top: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); box-shadow: var(--sh-1) inset; }
+.ow-promo-cut::before { left: -25px; clip-path: inset(0 0 0 50%); }
+.ow-promo-cut::after { right: -25px; clip-path: inset(0 50% 0 0); }
+.ow-promo-big { font-family: var(--font-display); font-weight: 800; line-height: .9; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.ow-slot { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--sunken); font-variant-numeric: tabular-nums; }
+.ow-idea { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 72px; padding: 12px 14px; text-align: left; border-radius: 16px; border: 1px dashed var(--line-strong); transition: border-color 150ms, background-color 150ms, transform 200ms cubic-bezier(.2, .8, .3, 1); -webkit-tap-highlight-color: transparent; }
+.ow-idea:hover { border-color: var(--brand); background: var(--brand-soft); transform: translateY(-1px); }
+.ow-idea:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ---------- Más: accesos ---------- */
+.ow-menu { display: grid; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--sh-1); }
+.ow-menu > * + * { border-top: 1px solid var(--line); }
+@media (max-width: 639px) { .ow-menu { margin-inline: -16px; border-inline: 0; border-radius: 0; box-shadow: none; } }
+.ow-link { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 12px 16px; text-align: left; transition: background-color 150ms, transform 220ms cubic-bezier(.2, .8, .3, 1), box-shadow 220ms, border-color 150ms; -webkit-tap-highlight-color: transparent; }
+.ow-link:hover { background: var(--sunken); }
+.ow-link:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ow-link .ow-ico { transition: transform 260ms cubic-bezier(.2, .8, .3, 1.4), background-color 150ms, color 150ms; }
+@media (min-width: 1024px) {
+  .ow-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; background: transparent; border: 0; border-radius: 0; overflow: visible; box-shadow: none; }
+  .ow-menu > * + * { border-top: 0; }
+  .ow-link { min-height: 84px; padding: 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1); }
+  .ow-link:hover { background: var(--surface); transform: translateY(-2px); box-shadow: var(--sh-2); border-color: var(--line-strong); }
+  .ow-link:hover .ow-ico { background: var(--grad-brand); color: var(--on-grad); transform: scale(1.06) rotate(-4deg); }
+  .ow-link:focus-visible { outline-offset: 2px; }
+}
+
+/* Perfil de la pantalla Más */
+.ow-hero-glass { background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .26); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-radius: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ow-promo, .ow-idea, .ow-link, .ow-rowbtn .ow-go, .ow-tr::before, .ow-tr .c-go { transition: none; }
+  .ow-promo:hover, .ow-link:hover, .ow-idea:hover { transform: none; }
+}

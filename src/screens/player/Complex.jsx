@@ -1,17 +1,17 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { Banknote, BriefcaseMedical, Clock3, Coffee, Flame, Heart, Lightbulb, MapPin, MessageCircle, Navigation, Phone, ShieldCheck, ShowerHead, Shirt, Star, Tag, Umbrella, Wifi, CircleParking, ArrowRight } from 'lucide-react'
+import { Banknote, BriefcaseMedical, Clock3, Coffee, Flame, Heart, Lightbulb, MapPin, MessageCircle, Navigation, Phone, Share2, ShieldCheck, ShowerHead, Shirt, Star, Tag, Umbrella, Wifi, CircleParking, ArrowRight } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { REVIEW_TAGS, cancelPolicyText, courtsOf, depositFor, favsOf, freeSlots, getComplex, nextTimes, promoLabel, promoWhen, publicComplexes, ratingLabel, ratingOf, toggleFav } from '../../lib/domain'
 import { isApproved } from '../../lib/domain'
 import { addDays, cn, dateShort, distanceKm, kmLabel, mapsLink, money, plural, relativeDay, telLink, todayISO, waLink } from '../../lib/format'
 import { Link, navigate, useRoute } from '../../lib/router'
-import { Avatar, Button, Content, Empty, IconButton, PageHeader, Rating, Skeleton, Stars } from '../../ui/kit'
+import { Avatar, Button, Content, Empty, IconButton, PageHeader, Rating, Skeleton, Stars, useToast } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
 import { Gallery, GalleryMosaic } from '../../ui/Gallery'
 import { ReviewSummary, TrustPanel, VerifiedBadge } from '../../ui/trust'
 import { CountUp, Reveal } from '../../ui/motion'
 const MiniMap = lazy(() => import('../../ui/MapView').then(m => ({ default: m.MiniMap })))
-import { DateStrip, complexView } from '../../ui/shared'
+import { DateStrip, complexView, futureDay } from '../../ui/shared'
 import './jugador.css'
 
 const SERVICE_ICON = { Vestuarios: Shirt, Duchas: ShowerHead, Estacionamiento: CircleParking, Buffet: Coffee, Parrilla: Flame, 'Wi-Fi': Wifi, 'Alquiler de pecheras': Shirt, Botiquín: BriefcaseMedical }
@@ -38,8 +38,9 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
   const { state, user, update, loading } = useStore()
   const { query } = useRoute()
   const complex = state && getComplex(state, id)
-  const [dateSel, setDate] = useState(() => (query.fecha >= todayISO() ? query.fecha : ''))
+  const [dateSel, setDate] = useState(() => futureDay(query.fecha))
   const [allReviews, setAllReviews] = useState(false)
+  const toast = useToast()
   const now = new Date()
 
   const courts = useMemo(() => (complex ? courtsOf(state, complex.id).filter(c => c.status !== 'inactive') : []), [state, complex])
@@ -68,6 +69,12 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
   const photos = [complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)
   const shown = reviews.slice(0, allReviews ? 50 : 4)
   const wizard = (q = '') => `/complejo/${complex.slug}/reservar${q}`
+  // Compartir: el menú del celular si existe; si no, copia el link al portapapeles.
+  const share = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#/complejo/${complex.slug}`
+    try { if (navigator.share) { await navigator.share({ title: complex.name, text: `Mirá ${complex.name} en La Fija`, url }); return } } catch (e) { if (e?.name === 'AbortError') return }
+    try { await navigator.clipboard.writeText(url); toast('Link copiado. Pasáselo al grupo.') } catch { toast('No pudimos copiar el link.', 'error') }
+  }
   // Otros complejos cerca de éste: sale de las coordenadas reales, sin cargar nada a mano.
   const others = preview ? [] : publicComplexes(state).filter(c => c.id !== complex.id)
     .map(c => ({ ...complexView(state, c, null), km: distanceKm(complex, c) })).filter(c => c.km != null)
@@ -80,7 +87,7 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
       {preview && <div className="bg-brand-soft text-brand text-sm font-medium text-center py-2 px-4">Así ven tu complejo los jugadores. Los cambios se guardan en Mi complejo.</div>}
       <Content className={cn('max-w-[1480px]', canBook && 'pb-28 lg:pb-6')}>
         <Gallery photos={photos} seed={complex.id} alt={`Foto de ${complex.name}`} className="lg:hidden aspect-[4/3] sm:aspect-[16/9] -mx-4 sm:mx-0 sm:rounded-3xl overflow-hidden shadow-[var(--sh-2)]" />
-        <GalleryMosaic photos={photos} seed={complex.id} alt={`Foto de ${complex.name}`} className="hidden lg:block h-[340px] xl:h-[400px] 2xl:h-[460px]" />
+        <GalleryMosaic photos={photos} seed={complex.id} alt={`Foto de ${complex.name}`} className="hidden lg:block h-[clamp(280px,40dvh,340px)] xl:h-[clamp(300px,44dvh,400px)] 2xl:h-[clamp(340px,48dvh,460px)]" />
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-y-4 lg:gap-y-9 mt-4 lg:mt-8 xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_440px] xl:gap-x-12 xl:items-start">
           <div className="contents xl:flex xl:flex-col xl:gap-9 xl:min-w-0 xl:col-start-1 xl:row-start-1">
@@ -89,6 +96,7 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-3xl lg:text-5xl lg:font-bold leading-tight min-w-0 flex items-center gap-2">{complex.name}{complex.verified && <VerifiedBadge label={false} className="[&>svg]:size-6 lg:[&>svg]:size-8" />}</h2>
                 <Rating value={rating.avg} count={rating.count} className="mt-2 flex-none lg:hidden" />
+                <Button variant="secondary" size="sm" className="hidden lg:inline-flex flex-none !min-h-11 mt-1" onClick={share} aria-label={`Compartir ${complex.name}`}><Share2 size={16} aria-hidden="true" />Compartir</Button>
               </div>
               <div className="hidden lg:flex items-center gap-3 mt-2 text-muted flex-wrap">
                 {rating.count > 0 && <span className="inline-flex items-center gap-1.5 text-ink font-semibold"><Star size={18} className="fill-[var(--gold)] text-[var(--gold)]" aria-hidden="true" /><span className="tnum">{rating.avg.toFixed(1).replace('.', ',')}</span><span className="text-muted font-normal tnum">({plural(rating.count, 'reseña', 'reseñas')})</span></span>}
@@ -199,7 +207,7 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
                   </div>
                 </>
               )}
-              {reviews.length > 4 && !allReviews && <Button variant="ghost" className="mt-2" onClick={() => setAllReviews(true)}>Ver las {reviews.length} reseñas</Button>}
+              {reviews.length > 4 && !allReviews && <Button variant="secondary" className="mt-3 w-full lg:w-auto" onClick={() => setAllReviews(true)}>Ver las {reviews.length} reseñas</Button>}
             </section>
           </div>
 

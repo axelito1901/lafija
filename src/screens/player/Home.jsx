@@ -310,8 +310,8 @@ function FullHome() {
                 <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{c.name}</span><span className="block text-sm text-muted truncate">{c.city} · {c.distanceLabel}</span></span>
                 <span className="text-brand font-semibold flex-none">Reservar</span><ChevronRight size={18} className="text-brand flex-none -mr-1" />
               </Link>))}</div>
-            <div className="hidden xl:grid grid-cols-3 gap-3">{yours.map(c => (
-              <Link key={c.id} to={`/complejo/${c.slug}/reservar${lastCourt[c.id] ? `?cancha=${lastCourt[c.id]}` : ''}`} aria-label={`Reservar en ${c.name}`} className="group relative block aspect-[4/5] rounded-2xl overflow-hidden border border-line shadow-[var(--sh-1)] pj-lift">
+            <div className={cn('hidden xl:grid gap-3', ['', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3'][yours.length])}>{yours.map(c => (
+              <Link key={c.id} to={`/complejo/${c.slug}/reservar${lastCourt[c.id] ? `?cancha=${lastCourt[c.id]}` : ''}`} aria-label={`Reservar en ${c.name}`} className={cn('group relative block rounded-2xl overflow-hidden border border-line shadow-[var(--sh-1)] pj-lift', ['', 'aspect-[16/8]', 'aspect-[4/3]', 'aspect-[4/5]'][yours.length])}>
                 <Cover src={c.coverUrl} seed={c.id} className="absolute inset-0 [&>img]:transition-transform [&>img]:duration-700 group-hover:[&>img]:scale-110" />
                 <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
                 <span className="absolute inset-x-3 bottom-3 text-white">

@@ -1,12 +1,12 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { PageFade } from './ui/motion'
-import { CalendarCheck, CalendarDays, ClipboardList, CircleUser, Ellipsis, Heart, House, LayoutGrid, Search as SearchIcon, Store, Tags, Users, Wallet, Building2, UserRound, Star, BarChart3, Flag } from 'lucide-react'
+import { CalendarCheck, CalendarDays, ClipboardList, CircleUser, Compass, Ellipsis, Heart, House, LayoutGrid, Search as SearchIcon, Store, Tags, Users, Wallet, Building2, UserRound, Star, BarChart3, Flag } from 'lucide-react'
 import { useStore } from './lib/store'
 import { useTheme } from './lib/theme'
 import { homeFor } from './lib/roles'
 import { match, navigate, useRoute } from './lib/router'
 import { getComplex } from './lib/domain'
-import { Button, Content, Empty, ErrorState, HeaderExtra, Logo, PageHeader, Skeleton, useToast } from './ui/kit'
+import { Button, Content, Empty, ErrorState, HeaderExtra, HeaderMeta, Logo, LogoTile, PageHeader, Skeleton, useToast } from './ui/kit'
 import { BellButton, useUnread } from './ui/Notifications'
 import { showLocal } from './lib/push'
 import { Shell } from './ui/Shell'
@@ -30,25 +30,33 @@ const Settings = L(owner, 'Settings'), OwnerReviews = L(owner, 'OwnerReviews'), 
 const AdminHome = L(admin, 'AdminHome'), AdminComplexes = L(admin, 'AdminComplexes'), AdminUsers = L(admin, 'AdminUsers'), AdminBookings = L(admin, 'AdminBookings'), AdminReviews = L(admin, 'AdminReviews'), AdminReports = L(admin, 'AdminReports'), Revenue = L(admin, 'Revenue')
 
 const PageSkeleton = () => (
-  <div className="px-4 md:px-6 lg:px-8 py-6 max-w-[1120px] mx-auto space-y-4" aria-busy="true" aria-label="Cargando">
-    <Skeleton className="h-7 w-48" /><Skeleton className="h-24 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" />
+  <div aria-busy="true" aria-label="Cargando">
+    <div className="ui-bar-in"><div className="flex-1 space-y-3"><Skeleton className="h-3 w-28 hidden lg:block" /><Skeleton className="h-7 lg:h-10 w-48 lg:w-80" /></div></div>
+    <div className="px-4 md:px-6 lg:px-8 py-4 lg:py-6 max-w-[1120px] min-[1600px]:max-w-[1360px] mx-auto space-y-4 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:items-start">
+      <div className="space-y-4"><Skeleton className="h-24 lg:h-56 w-full !rounded-2xl" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full hidden lg:block" /></div>
+      <div className="hidden lg:block space-y-4"><Skeleton className="h-64 w-full !rounded-2xl" /><Skeleton className="h-32 w-full !rounded-2xl" /></div>
+    </div>
   </div>
 )
 
 const NAV = {
   player: {
     mobile: [{ to: '/', label: 'Inicio', icon: House, exact: true }, { to: '/buscar', label: 'Buscar', icon: SearchIcon }, { to: '/reservas', label: 'Reservas', icon: CalendarCheck }, { to: '/favoritos', label: 'Favoritos', icon: Heart }, { to: '/cuenta', label: 'Cuenta', icon: CircleUser }],
+    desktop: [{ to: '/', label: 'Inicio', icon: House, exact: true, group: 'Jugar' }, { to: '/buscar', label: 'Buscar', icon: SearchIcon, group: 'Jugar' }, { to: '/reservas', label: 'Reservas', icon: CalendarCheck, group: 'Mis cosas' }, { to: '/favoritos', label: 'Favoritos', icon: Heart, group: 'Mis cosas' }, { to: '/cuenta', label: 'Cuenta', icon: CircleUser, group: 'Mis cosas' }],
   },
   owner: {
     mobile: [{ to: '/dueno', label: 'Inicio', icon: House, exact: true }, { to: '/dueno/agenda', label: 'Agenda', icon: CalendarDays }, { to: '/dueno/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/dueno/canchas', label: 'Canchas', icon: LayoutGrid }, { to: '/dueno/mas', label: 'Más', icon: Ellipsis, also: ['/dueno/clientes', '/dueno/promociones', '/dueno/finanzas', '/dueno/estadisticas', '/dueno/resenas', '/dueno/complejo', '/dueno/cuenta'] }],
-    desktop: [{ to: '/dueno', label: 'Inicio', icon: House, exact: true }, { to: '/dueno/agenda', label: 'Agenda', icon: CalendarDays }, { to: '/dueno/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/dueno/canchas', label: 'Canchas', icon: LayoutGrid }, { to: '/dueno/clientes', label: 'Clientes', icon: Users }, { to: '/dueno/promociones', label: 'Promociones', icon: Tags }, { to: '/dueno/finanzas', label: 'Finanzas', icon: Wallet }, { to: '/dueno/estadisticas', label: 'Estadísticas', icon: BarChart3 }, { to: '/dueno/resenas', label: 'Reseñas', icon: Star }, { to: '/dueno/complejo', label: 'Mi complejo', icon: Store }, { to: '/dueno/cuenta', label: 'Cuenta', icon: UserRound }],
+    desktop: [{ to: '/dueno', label: 'Inicio', icon: House, exact: true, group: 'Día a día' }, { to: '/dueno/agenda', label: 'Agenda', icon: CalendarDays, group: 'Día a día' }, { to: '/dueno/reservas', label: 'Reservas', icon: ClipboardList, group: 'Día a día' }, { to: '/dueno/canchas', label: 'Canchas', icon: LayoutGrid, group: 'Día a día' }, { to: '/dueno/clientes', label: 'Clientes', icon: Users, group: 'Negocio' }, { to: '/dueno/promociones', label: 'Promociones', icon: Tags, group: 'Negocio' }, { to: '/dueno/finanzas', label: 'Finanzas', icon: Wallet, group: 'Negocio' }, { to: '/dueno/estadisticas', label: 'Estadísticas', icon: BarChart3, group: 'Negocio' }, { to: '/dueno/resenas', label: 'Reseñas', icon: Star, group: 'Negocio' }, { to: '/dueno/complejo', label: 'Mi complejo', icon: Store, group: 'Ajustes' }, { to: '/dueno/cuenta', label: 'Cuenta', icon: UserRound, group: 'Ajustes' }],
   },
   admin: {
     mobile: [{ to: '/admin', label: 'Inicio', icon: House, exact: true }, { to: '/admin/complejos', label: 'Complejos', icon: Building2 }, { to: '/admin/usuarios', label: 'Usuarios', icon: Users }, { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/admin/resenas', label: 'Reseñas', icon: Star }],
-    desktop: [{ to: '/admin', label: 'Inicio', icon: House, exact: true }, { to: '/admin/complejos', label: 'Complejos', icon: Building2 }, { to: '/admin/usuarios', label: 'Usuarios', icon: Users }, { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList }, { to: '/admin/resenas', label: 'Reseñas', icon: Star }, { to: '/admin/ingresos', label: 'Ingresos', icon: Wallet }, { to: '/admin/reportes', label: 'Problemas', icon: Flag }],
+    desktop: [{ to: '/admin', label: 'Inicio', icon: House, exact: true, group: 'Plataforma' }, { to: '/admin/complejos', label: 'Complejos', icon: Building2, group: 'Plataforma' }, { to: '/admin/usuarios', label: 'Usuarios', icon: Users, group: 'Plataforma' }, { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList, group: 'Plataforma' }, { to: '/admin/resenas', label: 'Reseñas', icon: Star, group: 'Control' }, { to: '/admin/ingresos', label: 'Ingresos', icon: Wallet, group: 'Control' }, { to: '/admin/reportes', label: 'Problemas', icon: Flag, group: 'Control' }],
   },
 }
 for (const k of Object.keys(NAV)) NAV[k].desktop ||= NAV[k].mobile
+
+/* Rótulo chico sobre el título de página (sólo se ve en PC). */
+const EYEBROW = { player: 'Jugador', owner: 'Panel del dueño', admin: 'Administración' }
 
 class Boundary extends Component {
   state = { err: null }
@@ -57,8 +65,8 @@ class Boundary extends Component {
   render() { return this.state.err ? <ErrorState title="Algo salió mal" text="Recargá la página. Tus datos no se perdieron." onRetry={() => location.reload()} /> : this.props.children }
 }
 
-const Splash = () => <div className="min-h-dvh grid place-items-center"><div className="w-48 space-y-4 text-center"><Logo className="justify-center" /><Skeleton className="h-2 w-full" /></div></div>
-const NotFound = ({ role }) => <><PageHeader title="Página no encontrada" /><Content><Empty title="No encontramos esa página" action={<Button onClick={() => navigate(homeFor(role))}>Ir al inicio</Button>} /></Content></>
+const Splash = () => <div className="min-h-dvh grid place-items-center" role="status" aria-label="Cargando"><div className="text-center"><LogoTile size={56} className="mx-auto mb-4 float-y" /><Logo className="justify-center" /><div className="ui-loadbar" /></div></div>
+const NotFound = ({ role }) => <><PageHeader title="Página no encontrada" /><Content><Empty icon={Compass} title="No encontramos esa página" text="Puede que el enlace esté viejo o que la página ya no exista." action={<Button onClick={() => navigate(homeFor(role))}>Ir al inicio</Button>} /></Content></>
 
 function renderRoute(role, path, theme, signOut) {
   let m
@@ -153,12 +161,14 @@ export default function App() {
   if (!isPublic && area !== user.role) return <Splash />
 
   return (
-    <HeaderExtra.Provider value={<><HelpButton onReplayIntro={() => { navigate(homeFor(user.role)); setIntro(true) }} /><BellButton /></>}>
-      <Shell nav={NAV[user.role]} user={user} path={path} theme={theme} onSignOut={signOut}>
-        <PageFade k={path}><Boundary key={path}><Suspense fallback={<PageSkeleton />}>{renderRoute(user.role, path, theme, signOut)}</Suspense></Boundary></PageFade>
-      </Shell>
-      <NotificationToaster />
-      {TOURS[user.role] && path === homeFor(user.role) && (intro || !localStorage.getItem(tourKey(user.role))) && <Tour key={String(intro)} role={user.role} onDone={() => { setIntro(false); setTick(t => t + 1) }} />}
-    </HeaderExtra.Provider>
+    <HeaderMeta.Provider value={EYEBROW[user.role] || ''}>
+      <HeaderExtra.Provider value={<><HelpButton onReplayIntro={() => { navigate(homeFor(user.role)); setIntro(true) }} /><BellButton /></>}>
+        <Shell nav={NAV[user.role]} user={user} path={path} theme={theme} onSignOut={signOut}>
+          <PageFade k={path}><Boundary key={path}><Suspense fallback={<PageSkeleton />}>{renderRoute(user.role, path, theme, signOut)}</Suspense></Boundary></PageFade>
+        </Shell>
+        <NotificationToaster />
+        {TOURS[user.role] && path === homeFor(user.role) && (intro || !localStorage.getItem(tourKey(user.role))) && <Tour key={String(intro)} role={user.role} onDone={() => { setIntro(false); setTick(t => t + 1) }} />}
+      </HeaderExtra.Provider>
+    </HeaderMeta.Provider>
   )
 }

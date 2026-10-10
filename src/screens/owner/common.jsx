@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Check, ChevronDown, Flag, HandCoins, MessageCircle, Mic, Phone, Plus, Repeat2 } from 'lucide-react'
 import { listen, parseDictation, speechSupported } from '../../lib/voice'
 import { useStore } from '../../lib/store'
@@ -9,6 +9,20 @@ import { Button, Content, Empty, Field, Input, MoneyInput, PageHeader, Segmented
 import { BookingStatus } from '../../ui/shared'
 import { DateField } from '../../ui/DateField'
 import { MessageSheet } from '../../ui/MessageSheet'
+import './panel.css'
+
+/* Media query reactiva (para elegir entre un panel lateral en PC y un Sheet en pantallas chicas). */
+export function useMedia(query) {
+  const get = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches
+  const [on, setOn] = useState(get)
+  useEffect(() => {
+    if (!window.matchMedia) return
+    const mq = window.matchMedia(query), f = () => setOn(mq.matches)
+    f(); mq.addEventListener('change', f)
+    return () => mq.removeEventListener('change', f)
+  }, [query])
+  return on
+}
 
 /* ---------- Complejo seleccionado (compartido entre pantallas) ---------- */
 const KEY = 'lafija-owner-complex'
@@ -81,7 +95,7 @@ export function OwnerPage({ title, sub, actions, children, wide }) {
   return (
     <>
       <PageHeader title={title} sub={sub} actions={actions} />
-      <Content className={wide ? '' : ''}>
+      <Content className={wide ? 'max-w-[1536px] ow-wide' : ''}>
         {!complex
           ? <Empty title="Todavía no tenés complejos" text="Creá el primero para cargar canchas y recibir reservas." action={<Button onClick={() => setCreating(true)}><Plus size={18} />Crear complejo</Button>} />
           : <><ComplexSwitch />{complex.approval === 'pending' && <div className="mb-5 rounded-lg bg-warn-soft text-warn px-4 py-3"><p className="font-semibold">Tu complejo está en revisión</p><p className="text-sm">Lo revisamos en 24 a 48 horas. Mientras tanto podés cargar canchas, precios y fotos: los jugadores lo van a ver cuando esté aprobado.</p></div>}

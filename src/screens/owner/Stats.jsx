@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, Ban, CalendarCheck, CalendarDays, CalendarRange, CircleDollarSign, Clock3, Download, Flame, Goal, Hourglass, Lightbulb, Percent, Receipt, Sparkles, TrendingDown, TrendingUp, Trophy, UserX, Wallet } from 'lucide-react'
 import { CountUp, Item, Reveal, Stagger } from '../../ui/motion'
-import { AreaChart, Columns, Delta, HBar, HeatGrid, Kpi, Ring, Spark } from '../../ui/dash'
+import { AreaChart, Columns, Delta, HBar, HeatGrid, Kpi, Ring, Spark, useStickyTop } from '../../ui/dash'
 import { useStore } from '../../lib/store'
 import { activeCourts, effStatus, ownerStats, weekdayOf } from '../../lib/domain'
 import { addDays, cn, dateShort, dayNum, money, monthShort, slotsFor, todayISO, weekdayShort } from '../../lib/format'
@@ -123,7 +123,7 @@ function Insight({ tone, icon: I, title, text, cta }) {
 function Card({ id, icon: I, title, sub, right, children, className }) {
   return (
     <Reveal className={cn('h-full', className)}>
-      <section aria-labelledby={id} className="h-full rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-4 sm:p-5 min-w-0">
+      <section aria-labelledby={id} className="@container h-full rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] p-4 sm:p-5 min-w-0">
         <header className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0 flex items-center gap-3">
             {I && <span className="size-10 rounded-xl grid place-items-center flex-none bg-brand-soft text-brand"><I size={20} aria-hidden="true" /></span>}
@@ -157,6 +157,7 @@ export default function Stats() {
   const [pickD, setPickD] = useState(null)
   const [pickH, setPickH] = useState(null)
   const [cell, setCell] = useState(null)
+  const asideRef = useStickyTop()
   const data = useMemo(() => (complex ? build(state, complex, days) : null), [state, complex, days])
   if (!data) return <OwnerPage title="Estadísticas" wide />
   const { st, prev, hasPrev, slots, cells, used, total, series, courtRows, range } = data
@@ -193,7 +194,7 @@ export default function Stats() {
 
   return (
     <OwnerPage title="Estadísticas" sub={sub} wide>
-      <div className="@container space-y-4 @4xl:space-y-6">
+      <div className="@container dx-wide space-y-4 @4xl:space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <Segmented className="w-full @md:w-80 [&>button]:min-h-11" value={days} onChange={v => { setDays(v); setPickD(null); setPickH(null); setCell(null) }} label="Período" options={PERIODS} />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -221,17 +222,18 @@ export default function Stats() {
             </div>
           </Item>
           <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-3 @4xl:gap-4 @4xl:col-span-8">
-            <Item className="col-span-2"><Kpi big className="h-full" icon={CircleDollarSign} label="Ingresos" value={money(st.income)} delta={dlt(st.income, prev.income)} spark={<Spark height={56} data={series.map(s => s.v)} />} /></Item>
-            <Item><Kpi className="h-full" icon={CalendarCheck} label="Reservas" value={st.bookingsN} delta={dlt(st.bookingsN, prev.bookingsN)} spark={<Spark data={series.map(s => s.n)} />} /></Item>
-            <Item><Kpi className="h-full" icon={Receipt} label="Ticket promedio" value={money(st.ticket)} delta={dlt(st.ticket, prev.ticket)} /></Item>
+            <Item className="col-span-2"><Kpi big className="h-full" icon={CircleDollarSign} label="Ingresos" value={money(st.income)} delta={dlt(st.income, prev.income)} spark={<Spark height={48} data={series.map(s => s.v)} />} /></Item>
+            <Item><Kpi className="h-full" icon={CalendarCheck} label="Reservas" value={st.bookingsN} delta={dlt(st.bookingsN, prev.bookingsN)} spark={<Spark height={36} data={series.map(s => s.n)} />} /></Item>
+            <Item><Kpi className="h-full" icon={Receipt} label="Ticket promedio" value={money(st.ticket)} delta={dlt(st.ticket, prev.ticket)} hint="Cobrado por reserva" /></Item>
             <Item><Kpi className="h-full" icon={UserX} label="No vinieron" value={st.noShows} tone={st.noShows ? 'warn' : 'brand'} delta={dlt(st.noShows, prev.noShows, 'down', '')} /></Item>
             <Item><Kpi className="h-full" icon={Ban} label="Cancelaciones" value={st.cancels} tone={st.cancels ? 'warn' : 'brand'} delta={dlt(st.cancels, prev.cancels, 'down', '')} /></Item>
             <Item className="col-span-2"><Kpi className="h-full" icon={Wallet} label="Sin cobrar" value={money(st.lost)} tone={st.lost ? 'warn' : 'brand'} hint={st.lost ? 'Por turnos que no vinieron: una seña ayuda a evitarlo' : 'Nadie faltó sin pagar'} /></Item>
           </div>
         </Stagger>
 
+        <div className="grid gap-4 @4xl:gap-6">
         <div className="grid gap-4 @4xl:gap-6 @4xl:grid-cols-[minmax(0,1fr)_21rem] @7xl:grid-cols-[minmax(0,1fr)_24rem] @4xl:items-start">
-          <aside aria-labelledby="ins" className="@4xl:col-start-2 @4xl:row-start-1 @4xl:sticky @4xl:top-6 @4xl:max-h-[calc(100dvh-3rem)] @4xl:overflow-y-auto dx-scroll overscroll-contain rounded-2xl bg-surface border border-line shadow-[var(--sh-2)]">
+          <aside ref={asideRef} aria-labelledby="ins" className="@4xl:col-start-2 @4xl:row-start-1 @4xl:sticky rounded-2xl bg-surface border border-line shadow-[var(--sh-2)]">
             <div className="flex items-center gap-3 p-4 sm:p-5 bg-[linear-gradient(135deg,var(--brand-soft),transparent_70%)]">
               <span className="size-10 rounded-xl grid place-items-center flex-none bg-[image:var(--grad-brand)] text-[var(--on-grad)] shadow-[var(--sh-1)]"><Sparkles size={20} aria-hidden="true" /></span>
               <div className="min-w-0 flex-1"><h2 id="ins" className="text-lg leading-tight">Insights</h2><p className="text-sm text-muted">Qué mirar y qué hacer</p></div>
@@ -287,44 +289,46 @@ export default function Stats() {
               </dl>
             </Card>
 
-            <div className="grid gap-4 @4xl:gap-6 @xl:grid-cols-2">
-              <Card id="byday" icon={CalendarDays} title="Por día" sub="Ocupación según el día de la semana" right={topDay?.pct > 0 && <Peak>{DAY[topDay.d]} · {topDay.pct}%</Peak>}>
-                <Columns height={150} selected={pickD} onSelect={setPickD} items={st.days.map(d => ({ key: String(d.d), v: d.pct, hot: d.d === topDay?.d && d.pct > 0, aria: `${DAY[d.d]}: ${d.pct}%` }))} labelFor={x => DAY[Number(x.key)]} />
-                <p className="text-sm text-muted mt-3 tnum min-h-5" aria-live="polite">{pickD != null ? <><strong className="text-ink">{cap(DAYS_LONG[Number(pickD)])}</strong>: {st.days.find(d => String(d.d) === pickD)?.pct}% de ocupación</> : 'Tocá una columna para ver el porcentaje'}</p>
-              </Card>
-              <Card id="byhour" icon={Clock3} title="Por horario" sub="Ocupación según la hora de inicio" right={st.top[0]?.pct > 0 && <Peak>{st.top[0].t} · {st.top[0].pct}%</Peak>}>
-                <Columns height={150} selected={pickH} onSelect={setPickH} items={st.hours.map(h => ({ key: h.t, v: h.pct, hot: topHours.has(h.t) && h.pct > 0, aria: `${h.t}: ${h.pct}%` }))} labelFor={x => x.key.slice(0, 2)} />
-                <p className="text-sm text-muted mt-3 tnum min-h-5" aria-live="polite">{pickH != null ? <><strong className="text-ink">{pickH}</strong>: {st.hours.find(h => h.t === pickH)?.pct}% de ocupación</> : 'Tocá una columna para ver el porcentaje'}</p>
-              </Card>
-            </div>
-
-            {courtRows.length > 1 && (
-              <Card id="courts" icon={Goal} title="Por cancha" sub="Cuál se usa más y cuánto deja">
-                <ul className="grid gap-2.5">
-                  {courtRows.map((c, i) => {
-                    const top = c.pct === topCourtPct && c.pct > 0
-                    return (
-                      <li key={c.court.id} className="rounded-xl bg-sunken px-3.5 py-3 grid gap-x-5 gap-y-1.5 @xl:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,11rem)] @xl:items-center">
-                        <div className="min-w-0">
-                          <p className="font-semibold flex items-center gap-2 min-w-0"><span className="truncate">{c.court.name}</span>{top && <span className="rounded-full bg-brand-soft text-brand text-[11px] font-semibold px-2 py-0.5 flex-none">Más usada</span>}</p>
-                          <p className="text-sm text-muted truncate">{[c.court.sport, c.court.surface, c.court.covered && 'Techada'].filter(Boolean).join(' · ')}</p>
-                        </div>
-                        <HBar pct={c.pct} i={i} />
-                        <p className="@xl:text-right text-sm tnum"><span className="font-semibold">{money(c.income)}</span><span className="text-muted"> · {pl(c.n, 'reserva', 'reservas')}</span></p>
-                      </li>)
-                  })}
-                </ul>
-              </Card>)}
-
-            <Card id="rank" icon={Trophy} title="Ranking" sub="Dónde se llena y dónde hay lugar para crecer">
-              <div className="grid gap-x-8 gap-y-5 @xl:grid-cols-2">
-                <Rank title="Horarios más fuertes" icon={Flame} items={st.top.map(h => ({ k: h.t, pct: h.pct }))} />
-                <Rank title="Horarios con oportunidad" icon={TrendingDown} tone="warn" items={st.bottom.map(h => ({ k: h.t, pct: h.pct }))} />
-                <Rank title="Días más fuertes" icon={CalendarDays} items={st.strongDays.map(d => ({ k: DAY[d.d], pct: d.pct }))} />
-                <Rank title="Días más flojos" icon={CalendarDays} tone="warn" items={st.weakDays.map(d => ({ k: DAY[d.d], pct: d.pct }))} />
-              </div>
-            </Card>
           </div>
+        </div>
+
+        <div className="grid gap-4 @4xl:gap-6 @4xl:grid-cols-2">
+          <Card id="byday" icon={CalendarDays} title="Por día" sub="Ocupación según el día de la semana" right={topDay?.pct > 0 && <Peak>{DAY[topDay.d]} · {topDay.pct}%</Peak>}>
+            <Columns height={150} selected={pickD} onSelect={setPickD} items={st.days.map(d => ({ key: String(d.d), v: d.pct, hot: d.d === topDay?.d && d.pct > 0, aria: `${DAY[d.d]}: ${d.pct}%` }))} labelFor={x => DAY[Number(x.key)]} />
+            <p className="text-sm text-muted mt-3 tnum min-h-5" aria-live="polite">{pickD != null ? <><strong className="text-ink">{cap(DAYS_LONG[Number(pickD)])}</strong>: {st.days.find(d => String(d.d) === pickD)?.pct}% de ocupación</> : 'Tocá una columna para ver el porcentaje'}</p>
+          </Card>
+          <Card id="byhour" icon={Clock3} title="Por horario" sub="Ocupación según la hora de inicio" right={st.top[0]?.pct > 0 && <Peak>{st.top[0].t} · {st.top[0].pct}%</Peak>}>
+            <Columns height={150} selected={pickH} onSelect={setPickH} items={st.hours.map(h => ({ key: h.t, v: h.pct, hot: topHours.has(h.t) && h.pct > 0, aria: `${h.t}: ${h.pct}%` }))} labelFor={x => x.key.slice(0, 2)} />
+            <p className="text-sm text-muted mt-3 tnum min-h-5" aria-live="polite">{pickH != null ? <><strong className="text-ink">{pickH}</strong>: {st.hours.find(h => h.t === pickH)?.pct}% de ocupación</> : 'Tocá una columna para ver el porcentaje'}</p>
+          </Card>
+
+          {courtRows.length > 1 && (
+            <Card id="courts" icon={Goal} title="Por cancha" sub="Cuál se usa más y cuánto deja">
+              <ul className="divide-y divide-line -mt-1">
+                {courtRows.map((c, i) => {
+                  const top = c.pct === topCourtPct && c.pct > 0
+                  return (
+                    <li key={c.court.id} className="py-3.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 @2xl:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,11rem)] @2xl:gap-x-6">
+                      <div className="min-w-0">
+                        <p className="font-semibold flex items-center gap-2 min-w-0"><span className="truncate">{c.court.name}</span>{top && <span className="rounded-full bg-brand-soft text-brand text-[11px] font-semibold px-2 py-0.5 flex-none">Más usada</span>}</p>
+                        <p className="text-sm text-muted truncate">{[c.court.sport, c.court.surface, c.court.covered && 'Techada'].filter(Boolean).join(' · ')}</p>
+                      </div>
+                      <HBar pct={c.pct} i={i} className="col-span-2 order-last @2xl:col-span-1 @2xl:order-none" />
+                      <p className="text-right text-sm tnum"><span className="block @2xl:inline font-semibold">{money(c.income)}</span><span className="block @2xl:inline text-muted"><span className="hidden @2xl:inline"> · </span>{pl(c.n, 'reserva', 'reservas')}</span></p>
+                    </li>)
+                })}
+              </ul>
+            </Card>)}
+
+          <Card id="rank" icon={Trophy} title="Ranking" sub="Dónde se llena y dónde hay lugar para crecer" className={courtRows.length > 1 ? undefined : '@4xl:col-span-2'}>
+            <div className="grid gap-x-8 gap-y-5 @sm:grid-cols-2">
+              <Rank title="Horarios más fuertes" icon={Flame} items={st.top.map(h => ({ k: h.t, pct: h.pct }))} />
+              <Rank title="Horarios con oportunidad" icon={TrendingDown} tone="warn" items={st.bottom.map(h => ({ k: h.t, pct: h.pct }))} />
+              <Rank title="Días más fuertes" icon={CalendarDays} items={st.strongDays.map(d => ({ k: DAY[d.d], pct: d.pct }))} />
+              <Rank title="Días más flojos" icon={CalendarDays} tone="warn" items={st.weakDays.map(d => ({ k: DAY[d.d], pct: d.pct }))} />
+            </div>
+          </Card>
+        </div>
         </div>
 
         <p className="hint">Ocupación = turnos reservados sobre turnos disponibles, en los últimos {st.counted} días (sin contar hoy){st.since ? `, desde la primera reserva (${st.since.split('-').reverse().join('/')})` : ''}.</p>

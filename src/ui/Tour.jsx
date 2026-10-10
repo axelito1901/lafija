@@ -73,7 +73,7 @@ export function Tour({ role, onDone }) {
 
   if (step.welcome) return createPortal(
     <motion.div className="fixed inset-0 z-[80] grid place-items-center p-5 bg-[rgba(6,10,7,.72)] backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Bienvenida" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <motion.div initial={{ y: 30, scale: .94, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 24 }} className="w-full max-w-[380px] bg-surface rounded-3xl overflow-hidden shadow-2xl">
+      <motion.div initial={{ y: 30, scale: .94, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 24 }} className="w-full max-w-[380px] sm:max-w-[440px] bg-surface rounded-3xl overflow-hidden shadow-[var(--sh-3)] border border-line">
         <div className="hero !rounded-none px-6 pt-8 pb-7 text-center">
           <motion.span initial={{ rotate: -20, scale: .5 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: 'spring', delay: .15, stiffness: 300, damping: 14 }} className="mx-auto grid place-items-center size-16 rounded-2xl bg-white/20 backdrop-blur"><LogoMark size={36} /></motion.span>
           <h2 className="display text-3xl font-bold mt-4 leading-tight">{step.title}</h2>
@@ -86,7 +86,7 @@ export function Tour({ role, onDone }) {
                 <button type="button" aria-pressed={!easy} onClick={() => setEasy(false)} className={`rounded-xl border p-3 text-center ${!easy ? 'border-brand bg-brand-soft font-semibold' : 'border-strong'}`}><span className="block text-base">Aa</span><span className="block text-sm">Normal</span></button>
                 <button type="button" aria-pressed={easy} onClick={() => setEasy(true)} className={`rounded-xl border p-3 text-center ${easy ? 'border-brand bg-brand-soft font-semibold' : 'border-strong'}`}><span className="block text-2xl leading-none">Aa</span><span className="block text-sm">Letra grande y simple</span></button>
               </div>
-            </div>)}<div className="mt-4">{dots}</div>{actions}</div>
+            </div>)}<div className="mt-4">{dots}</div>{actions}<p className="hidden lg:block text-xs text-faint text-center mt-4">Podés usar las flechas del teclado para moverte y Esc para salir.</p></div>
       </motion.div>
     </motion.div>, document.body)
 
@@ -104,9 +104,10 @@ export function Tour({ role, onDone }) {
         <span className="absolute inset-0 rounded-2xl tour-pulse" />
       </div>
       <AnimatePresence mode="wait">
-        <motion.div key={i} initial={{ opacity: 0, y: below ? -8 : 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: .2 }} className="absolute bg-surface rounded-2xl p-5 shadow-2xl" style={{ top, left, width: cardW }}>
+        <motion.div key={i} initial={{ opacity: 0, y: below ? -8 : 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: .2 }} className="absolute bg-surface rounded-2xl p-5 shadow-[var(--sh-3)] border border-line" style={{ top, left, width: cardW }}>
+          <span className="absolute inset-x-0 -top-px h-[3px] rounded-t-2xl bg-[image:var(--grad-brand)]" aria-hidden="true" />
           <span className="absolute size-3 bg-surface rotate-45 rounded-sm" style={{ left: cx - 6, [below ? 'top' : 'bottom']: -5 }} aria-hidden="true" />
-          <div className="flex items-center justify-between"><p className="text-sm font-semibold text-brand">Paso {i} de {steps.length - 1}</p>{dots}</div>
+          <div className="flex items-center justify-between"><p className="ui-eyebrow is-brand">Paso {i} de {steps.length - 1}</p>{dots}</div>
           <h2 className="text-xl mt-2 display font-bold">{step.title}</h2>
           <p className="text-muted mt-1">{step.text}</p>
           {actions}

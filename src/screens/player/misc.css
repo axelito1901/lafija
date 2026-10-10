@@ -124,6 +124,11 @@ button.pm-day:active { transform: scale(.92); }
 @media (min-width: 1700px) { .pm-fav-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .pm-xl-only { display: block; } }
 /* Casillero de "sumar otra cancha": ocupa lo que falta para cerrar la fila (--rN = sobrante con N columnas). */
 .pm-add { display: none; }
+.pm-add-link { position: relative; overflow: hidden; isolation: isolate; height: 100%; min-height: 14rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; border-radius: 22px; border: 2px dashed var(--line-strong); transition: border-color 150ms, background-color 150ms; }
+/* Brillo suave de marca desde arriba, sin líneas que pasen por el texto. */
+.pm-add-link::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(70% 60% at 50% 0%, color-mix(in srgb, var(--brand) 11%, transparent), transparent 75%); }
+.pm-add-link:hover { border-color: var(--brand); background: var(--brand-soft); }
+.pm-add-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 @media (min-width: 640px) and (max-width: 1023px) { .pm-add { display: block; } .pm-add[data-r2="0"] { display: none; } }
 @media (min-width: 1024px) and (max-width: 1699px) { .pm-add { display: block; } .pm-add[data-r3="0"] { display: none; } .pm-add[data-r3="2"] { grid-column: span 2; } }
 @media (min-width: 1700px) { .pm-add { display: block; } .pm-add[data-r4="0"] { display: none; } .pm-add[data-r4="2"] { grid-column: span 2; } .pm-add[data-r4="3"] { grid-column: span 3; } }
@@ -138,3 +143,8 @@ button.pm-day:active { transform: scale(.92); }
 .pm-badge-t { display: block; max-width: 100%; font-size: 14px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
 /* Con la columna angosta (1024 a 1279) los títulos largos ("Madrugador") necesitan un poco menos de letra. */
 @media (min-width: 1024px) and (max-width: 1279px) { .pm-badge { padding-inline: 2px; } .pm-badge-t { font-size: 12.5px; } }
+
+/* Táctil: botones chicos y pestañas con 44px de alto para tocarlos sin errar. */
+@media (pointer: coarse) {
+  .pm-wide .btn-sm, .pm-wide .seg > button { min-height: 44px; }
+}

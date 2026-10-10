@@ -1,0 +1,18 @@
+/* Páginas legales (Términos y Privacidad): tarjetas, índice y reglas de impresión. Todo con variables del tema. */
+.lg-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--sh-1); }
+
+/* El texto del documento no se pasa de ~70 caracteres por línea aunque la columna sea más ancha */
+.lg-doc article p { text-wrap: pretty; }
+
+/* Hasta en la versión impresa se lee bien: sin menús, sin degradados, texto negro */
+@media print {
+  body:has(.lg-doc) :is(.app-bar, .bottom-nav, .toast-wrap) { display: none !important; }
+  body:has(.lg-doc) aside:not(.lg-rail) { display: none !important; }
+  body:has(.lg-doc) .lg-toc, body:has(.lg-doc) .lg-rail, body:has(.lg-doc) .lg-foot { display: none !important; }
+  body:has(.lg-doc) main { padding: 0 !important; }
+  body:has(.lg-doc) .min-h-dvh { padding-left: 0 !important; }
+  .lg-doc .hero { color: #000; background: none; box-shadow: none; border: 1px solid #999; }
+  .lg-doc .hero::before, .lg-doc .hero::after { display: none; }
+  .lg-doc section { break-inside: avoid; box-shadow: none; opacity: 1 !important; transform: none !important; }
+  .lg-doc, .lg-doc p, .lg-doc h1, .lg-doc h2 { color: #000 !important; }
+}

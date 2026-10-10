@@ -23,10 +23,17 @@ export function Reveal({ children, className, y = 16 }) {
   return <motion.div className={className} initial={reduce ? false : { opacity: 0, y }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={spring}>{children}</motion.div>
 }
 
-/* Transición entre pantallas. */
+/* Micro-interacción: se levanta al pasar el mouse y se hunde al tocar. Para tarjetas clickeables. */
+export function Lift({ children, className, as = 'div', y = -3, ...p }) {
+  const reduce = useReducedMotion()
+  const M = motion[as]
+  return <M className={className} whileHover={reduce ? undefined : { y }} whileTap={reduce ? undefined : { scale: 0.985 }} transition={spring} {...p}>{children}</M>
+}
+
+/* Transición entre pantallas: sube apenas y aparece (sin desenfoque, para no costar en pantallas grandes). */
 export function PageFade({ children, k }) {
   const reduce = useReducedMotion()
-  return <motion.div key={k} initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}>{children}</motion.div>
+  return <motion.div key={k} initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}>{children}</motion.div>
 }
 
 /* Número que cuenta hasta su valor. Acepta "$ 12.500" y conserva el formato. */
