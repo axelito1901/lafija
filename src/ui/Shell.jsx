@@ -1,4 +1,4 @@
-import { LogOut, Moon, Search, Sparkles, Store, Sun, Check } from 'lucide-react'
+import { LogOut, Moon, Search, Sparkles, Store, Sun, Check, ChevronRight } from 'lucide-react'
 import { LayoutGroup, m as motion } from 'motion/react'
 import { Link } from '../lib/router'
 import { useStore } from '../lib/store'
@@ -7,6 +7,7 @@ import { relativeDay } from '../lib/format'
 import { Avatar, LogoTile } from './kit'
 
 const ROLE = { player: 'Jugador', owner: 'Dueño', admin: 'Administrador' }
+const ACCOUNT = { player: '/cuenta', owner: '/dueno/cuenta', admin: '/admin' }
 
 const tourId = i => `nav-${i.label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '-')}`
 
@@ -76,10 +77,10 @@ function SideContext({ user }) {
     const approved = isApproved(c)
     const live = approved && c.active && c.public
     return (
-      <Link to="/dueno/complejo" className="ui-ctx" aria-label={`Mi complejo: ${c.name}`}>
-        <span className="ui-ctx-k">{live ? <span className="ui-live" aria-hidden="true" /> : <Store size={14} aria-hidden="true" />}Tu complejo</span>
+      <Link to="/dueno/complejo" className="ui-ctx" aria-label={`Mi complejo: ${c.name}${mine.length > 1 ? `. Tenés ${mine.length} complejos` : ''}`}>
+        <span className="ui-ctx-k">{live ? <span className="ui-live" aria-hidden="true" /> : <Store size={14} aria-hidden="true" />}Tu complejo{mine.length > 1 ? ` · ${mine.length}` : ''}</span>
         <p className="ui-ctx-v truncate">{c.name}</p>
-        <p className="ui-ctx-s">{!approved ? (c.approval === 'rejected' ? 'No aprobado' : 'En revisión') : live ? 'Visible para jugadores' : 'Oculto'}{mine.length > 1 ? ` · ${mine.length} complejos` : ''}</p>
+        <p className="ui-ctx-s truncate">{!approved ? (c.approval === 'rejected' ? 'No aprobado' : 'En revisión') : live ? 'Visible para jugadores' : 'Oculto'}</p>
       </Link>
     )
   }
@@ -100,7 +101,7 @@ export function Shell({ nav, user, path, theme, onSignOut, sidebarTop, children 
   const groups = groupsOf(nav.desktop)
   return (
     <div className="min-h-dvh lg:pl-[var(--side-w)]">
-      <button type="button" className="ui-skip" onClick={() => document.getElementById('main')?.focus()}>Saltar al contenido</button>
+      <button type="button" className="ui-skip" onClick={() => document.getElementById('main')?.focus()}>Ir al contenido</button>
       <aside className="ui-side" aria-label="Menú lateral">
         <Link to={nav.desktop[0].to} className="ui-side-brand" aria-label="La Fija, inicio"><LogoTile /><span className="ui-logo-word">La Fija</span></Link>
         <div className="ui-side-scroll">
@@ -126,10 +127,11 @@ export function Shell({ nav, user, path, theme, onSignOut, sidebarTop, children 
           </LayoutGroup></nav>
         </div>
         <div className="ui-side-foot">
-          <div className="ui-user">
+          <Link to={ACCOUNT[user.role]} className="ui-user" aria-label={`${user.name}, ${ROLE[user.role]}. Ir a mi cuenta`}>
             <span className="relative flex-none"><Avatar name={user.name} size={40} tone="grad" /><span className="ui-online" aria-hidden="true" /></span>
             <div className="min-w-0"><div className="text-sm font-semibold truncate">{user.name}</div><div className="text-xs text-muted">{ROLE[user.role]}</div></div>
-          </div>
+            <ChevronRight size={16} className="ui-user-go" aria-hidden="true" />
+          </Link>
           <div className="ui-side-foot-btns">
             <button type="button" className="ui-side-btn" onClick={theme.toggle} aria-label={theme.dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>{theme.dark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}{theme.dark ? 'Claro' : 'Oscuro'}</button>
             <button type="button" className="ui-side-btn" onClick={onSignOut} aria-label="Cerrar sesión"><LogOut size={16} aria-hidden="true" />Salir</button>

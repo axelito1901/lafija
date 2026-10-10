@@ -164,7 +164,7 @@ export function PageHeader({ title, sub, back, actions, logo, eyebrow }) {
     </header>
   )
 }
-export const Content = ({ className, children }) => <div className={cn('px-4 md:px-6 lg:px-8 py-4 lg:py-6 mx-auto', !/(^|\s)max-w-/.test(className || '') && 'max-w-[1120px] min-[1600px]:max-w-[1360px]', className)}>{children}</div>
+export const Content = ({ className, children }) => <div className={cn('px-4 md:px-6 lg:px-8 py-4 lg:py-6 mx-auto', !/(^|\s)max-w-/.test(className || '') && 'max-w-[1480px]', className)}>{children}</div>
 export function Section({ title, action, children, className }) {
   return (
     <section className={cn('mt-8 first:mt-0', className)}>

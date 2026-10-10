@@ -32,7 +32,7 @@ const AdminHome = L(admin, 'AdminHome'), AdminComplexes = L(admin, 'AdminComplex
 const PageSkeleton = () => (
   <div aria-busy="true" aria-label="Cargando">
     <div className="ui-bar-in"><div className="flex-1 space-y-3"><Skeleton className="h-3 w-28 hidden lg:block" /><Skeleton className="h-7 lg:h-10 w-48 lg:w-80" /></div></div>
-    <div className="px-4 md:px-6 lg:px-8 py-4 lg:py-6 max-w-[1120px] min-[1600px]:max-w-[1360px] mx-auto space-y-4 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:items-start">
+    <div className="px-4 md:px-6 lg:px-8 py-4 lg:py-6 max-w-[1480px] mx-auto space-y-4 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:items-start">
       <div className="space-y-4"><Skeleton className="h-24 lg:h-56 w-full !rounded-2xl" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full hidden lg:block" /></div>
       <div className="hidden lg:block space-y-4"><Skeleton className="h-64 w-full !rounded-2xl" /><Skeleton className="h-32 w-full !rounded-2xl" /></div>
     </div>
