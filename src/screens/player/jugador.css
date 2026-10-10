@@ -42,3 +42,23 @@
 
 /* Tarjeta que se levanta al pasar el mouse, sólo en PC (lg) */
 @media (min-width: 1024px) { .pj-lg-lift { transition: transform 240ms cubic-bezier(.2,.8,.3,1), box-shadow 240ms, border-color 160ms; } .pj-lg-lift:hover { transform: translateY(-2px); box-shadow: var(--sh-2); border-color: var(--line-strong); } }
+
+/* Panel de filtros de Buscar: un toque de marca arriba, sólo en PC */
+@media (min-width: 1024px) { .pj-lg-panel { background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 5%, var(--surface)), var(--surface) 70%); } }
+
+/* Invitación al mapa (Inicio, PC): cuadrícula de calles falsa con precios reales flotando */
+.pj-mapcta { position: relative; flex-direction: column; overflow: hidden; border-radius: 20px; border: 1px solid var(--line); box-shadow: var(--sh-1); transition: box-shadow 240ms, transform 240ms cubic-bezier(.2,.8,.3,1), border-color 160ms;
+  background:
+    linear-gradient(115deg, transparent 0 46%, color-mix(in srgb, var(--brand) 14%, transparent) 46% 48.5%, transparent 48.5% 100%),
+    linear-gradient(28deg, transparent 0 60%, color-mix(in srgb, var(--brand) 10%, transparent) 60% 62%, transparent 62% 100%),
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 44px 44px,
+    color-mix(in srgb, var(--brand) 5%, var(--sunken)); }
+.pj-mapcta:hover { box-shadow: var(--sh-2); transform: translateY(-2px); border-color: var(--line-strong); }
+.pj-mapcta-pins { position: absolute; inset: 0 0 92px 0; pointer-events: none; }
+.pj-pin { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; min-height: 30px; padding: 0 11px; border-radius: 999px; background: var(--surface); color: var(--ink); border: 2px solid var(--surface); box-shadow: 0 6px 16px -4px rgba(10, 20, 14, .35), 0 0 0 1px var(--line); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; animation: pj-bob 3.4s ease-in-out infinite; }
+.pj-pin::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 9px; height: 9px; background: var(--surface); transform: translateX(-50%) rotate(45deg); border-radius: 0 0 3px 0; box-shadow: 2px 2px 0 0 var(--line); }
+.pj-pin:first-child { background: var(--grad-brand); color: var(--on-grad); border-color: var(--surface); }
+.pj-pin:first-child::after { background: #0e6a34; box-shadow: none; }
+@keyframes pj-bob { 50% { transform: translate(-50%, calc(-50% - 5px)); } }
+@media (prefers-reduced-motion: reduce) { .pj-pin { animation: none; } .pj-mapcta:hover { transform: none; } }

@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { m as motion } from 'motion/react'
-import { BellRing, CalendarCheck, CalendarPlus, CalendarX, ChevronRight, Clock, Goal, Hourglass, MapPin, Repeat, Search, Star, Ticket, Wallet, X } from 'lucide-react'
+import { BellRing, CalendarCheck, CalendarPlus, CalendarX, ChevronRight, Clock, Goal, Hourglass, MapPin, Repeat, Search, Sparkles, Star, Ticket, Wallet, X } from 'lucide-react'
 import { addDays, cn, dateLong, dateShort, fromISO, mapsLink, mondayOf, money, monthStart, plural, relativeDay, slotEnd, toISO, todayISO } from '../../lib/format'
 import { CountUp, Item, Stagger, spring } from '../../ui/motion'
 import { useStore } from '../../lib/store'
-import { STATUS, balanceOf, bookingStart, effStatus, getComplex, getCourt, isUpcoming, leaveWaitlist, paymentLabel, playedBookings, playerStats, rebookLink, rebookTarget, reviewOf } from '../../lib/domain'
+import { STATUS, balanceOf, bookingStart, effStatus, getComplex, getCourt, isUpcoming, leaveWaitlist, paymentLabel, playedBookings, playerStats, publicComplexes, ratingLabel, rebookLink, rebookTarget, reviewOf } from '../../lib/domain'
 import { downloadICS } from '../../lib/calendar'
-import { navigate, useRoute } from '../../lib/router'
+import { useOrigin } from '../../lib/origin'
+import { Link, navigate, useRoute } from '../../lib/router'
 import { Button, Content, Empty, IconButton, PageHeader, Segmented, useToast } from '../../ui/kit'
-import { BookingCard } from '../../ui/shared'
+import { BookingCard, complexView } from '../../ui/shared'
 import { Cover } from '../../ui/Cover'
 import { BookingDetail, RateCard, ReviewSheet } from './flow'
 import './misc.css'
@@ -102,14 +103,14 @@ function NextTicket({ b, state, onOpen, onCalendar }) {
 /* Sin partidos a la vista: un empujón para reservar. */
 function NoNext({ lastPlayed, state }) {
   return (
-    <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={spring} aria-label="Sin partidos próximos" className="pm-card-soft relative overflow-hidden p-7 xl:p-8 flex items-center gap-6">
+    <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={spring} aria-label="Sin partidos próximos" className="pm-card-soft relative overflow-hidden p-7 xl:p-8 flex flex-wrap items-center gap-x-6 gap-y-5">
       <span className="pm-ico is-grad !size-[72px] !rounded-3xl pm-heart-float relative"><Goal size={34} aria-hidden="true" /></span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-[15rem] flex-1">
         <p className="pm-eyebrow text-brand">Sin partidos a la vista</p>
         <p className="display text-3xl font-bold leading-tight mt-1">¿Armamos el próximo?</p>
         <p className="text-muted mt-1">Elegí cancha y horario en menos de un minuto.</p>
       </div>
-      <div className="flex flex-wrap gap-2 justify-end flex-none">
+      <div className="flex flex-wrap gap-2 flex-none">
         <Button onClick={() => navigate('/buscar')}><Search size={18} aria-hidden="true" />Buscar cancha</Button>
         {lastPlayed && <Button variant="secondary" onClick={() => navigate(rebookLink(state, lastPlayed))}><Repeat size={18} aria-hidden="true" />Repetir el último</Button>}
       </div>
@@ -229,6 +230,58 @@ function WaitCard({ w, state, update }) {
   )
 }
 
+/* Hueco que queda en la grilla de dos columnas (pantallas grandes): invita a sumar otro partido. */
+function MoreTile() {
+  return (
+    <button type="button" onClick={() => navigate('/buscar')} className="pm-more group" aria-label="Buscar otra cancha para sumar un partido">
+      <span className="pm-ico is-sunken mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90"><CalendarPlus size={20} aria-hidden="true" /></span>
+      <span className="block display text-xl font-bold">¿Sumás otro partido?</span>
+      <span className="block text-sm text-muted max-w-[16rem]">Elegí cancha y horario en un minuto.</span>
+      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand min-h-9">Buscar cancha<ChevronRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
+    </button>
+  )
+}
+
+/* Primera vez, sin ninguna reserva: cómo funciona (sólo PC, donde sobra lugar). */
+function FirstSteps() {
+  const steps = [[Search, 'Elegí cancha', 'Filtrá por zona, horario y tipo de fútbol.'], [Wallet, 'Reservá con seña', 'Pagás una parte y el resto en la cancha.'], [Goal, 'Salí a jugar', 'Te avisamos antes y después calificás el partido.']]
+  return (
+    <ol className="hidden lg:grid grid-cols-3 gap-4 list-none p-0 m-0" aria-label="Cómo funciona">
+      {steps.map(([I, t, d], i) => (
+        <motion.li key={t} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .12 + i * .07 }} className="pm-card p-5 relative overflow-hidden">
+          <span className="display absolute -right-1 -top-3 text-8xl font-bold leading-none text-[var(--sunken)] select-none" aria-hidden="true">{i + 1}</span>
+          <span className="pm-ico is-grad relative"><I size={20} aria-hidden="true" /></span>
+          <p className="display text-xl font-bold mt-4 relative">{t}</p>
+          <p className="text-sm text-muted mt-1 relative">{d}</p>
+        </motion.li>))}
+    </ol>
+  )
+}
+
+/* Primera vez: las mejor puntuadas, para no dejar la columna vacía (sólo PC). */
+function StartList({ state }) {
+  const { origin } = useOrigin()
+  const top = useMemo(() => publicComplexes(state).map(c => complexView(state, c, origin)).sort((a, b) => (b.rating || 0) - (a.rating || 0) || (a.distance ?? 1e9) - (b.distance ?? 1e9)).slice(0, 3), [state, origin])
+  if (!top.length) return null
+  return (
+    <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .3 }} className="hidden lg:block pm-card p-5 mt-4" aria-label="Canchas para empezar">
+      <header className="flex items-center gap-3 mb-3">
+        <span className="pm-ico is-sunken"><Sparkles size={20} aria-hidden="true" /></span>
+        <div className="min-w-0 flex-1"><h2 className="display text-xl font-bold leading-tight">Canchas para empezar</h2><p className="text-sm text-muted">Las mejor puntuadas por otros jugadores.</p></div>
+        <Link to="/buscar" className="text-sm font-semibold text-brand min-h-11 inline-flex items-center flex-none">Ver todas</Link>
+      </header>
+      <div className="grid gap-1">{top.map(c => (
+        <Link key={c.id} to={`/complejo/${c.slug}`} className="flex items-center gap-3.5 rounded-2xl p-2 -mx-2 min-h-[68px] transition-colors hover:bg-sunken group" aria-label={`${c.name}, ${c.city}${c.ratingCount > 0 ? `, puntaje ${ratingLabel(c.rating)}` : ''}`}>
+          <Cover src={c.coverUrl} seed={c.id} className="size-[52px] rounded-xl flex-none" />
+          <span className="min-w-0 flex-1"><span className="block font-semibold truncate">{c.name}</span><span className="block text-sm text-muted truncate">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</span></span>
+          {c.ratingCount > 0 && <span className="inline-flex items-center gap-1 text-sm font-semibold tnum flex-none"><Star size={14} className="fill-[var(--gold)] text-[var(--gold)]" aria-hidden="true" />{ratingLabel(c.rating)}</span>}
+          <ChevronRight size={18} className="text-faint flex-none transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        </Link>))}
+      </div>
+    </motion.section>
+  )
+}
+
 /* ---------- Agrupar la lista ---------- */
 function group(list, tab) {
   const today = todayISO(), weekEnd = addDays(mondayOf(today), 6), out = []
@@ -285,9 +338,13 @@ export function PlayerBookings() {
     setDay(iso); setTab(marks[iso]?.next ? 'next' : 'past')
     setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
   }
+  // La última tanda de próximas cierra con un casillero "sumá otro partido" cuando queda un hueco (grilla de dos columnas).
+  const closesWithTile = gi => tab === 'next' && !day && gi === groups.length - 1
+  // Sin próximas, en PC mostramos lo último que jugaste en vez de dejar la columna vacía.
+  const peek = tab === 'next' && !day && next.length === 0 ? past.filter(b => effStatus(b, now) === 'completed').slice(0, 2) : []
   const options = [{ value: 'next', label: `Próximas (${next.length})` }, { value: 'past', label: `Historial (${past.length})` }, ...(waits.length ? [{ value: 'wait', label: `En espera (${waits.length})` }] : [])]
-  const actionsFor = (b, done, rv) => {
-    if (tab === 'past') return done && <>
+  const actionsFor = (b, done, rv, inPast = tab === 'past') => {
+    if (inPast) return done && <>
       {rv ? <span className="inline-flex items-center gap-1 text-sm font-semibold text-muted flex-1"><Star size={16} className="fill-[var(--gold)] text-[var(--gold)]" />Calificaste {rv.rating}/5</span> : <Button size="sm" variant="secondary" onClick={() => { setStars(0); setReview(b) }}><Star size={16} />Calificar</Button>}
       <Button size="sm" className={rv ? '' : 'ml-auto'} onClick={() => navigate(rebookLink(state, b))}>Volver a jugar</Button></>
     const c = getComplex(state, b.complexId)
@@ -298,9 +355,9 @@ export function PlayerBookings() {
     </>
   }
   return (
-    <>
+    <div className="pm-wide contents">
       <PageHeader title="Mis reservas" />
-      <Content>
+      <Content className="max-w-[1480px]">
         <div className="pm-bk">
           <div className="pm-bk-hero">
             {featured ? <NextTicket b={featured} state={state} onOpen={() => setOpen(featured.id)} onCalendar={() => addToCalendar(featured)} /> : <NoNext lastPlayed={lastPlayed} state={state} />}
@@ -315,7 +372,7 @@ export function PlayerBookings() {
                 <ChevronRight size={18} className="text-brand flex-none" aria-hidden="true" />
               </button>)}
 
-            <div ref={listRef} className="scroll-mt-20 lg:scroll-mt-6 space-y-4">
+            <div ref={listRef} className={cn('scroll-mt-20 lg:scroll-mt-6 space-y-4', !mine.length && 'lg:hidden')}>
             <Segmented scrollTop={!window.matchMedia('(min-width: 1024px)').matches} value={tab} onChange={v => { setTab(v); setDay(null) }} label="Reservas" options={options} />
             {day && (
               <div className="flex items-center gap-2">
@@ -327,22 +384,31 @@ export function PlayerBookings() {
             <h2 className="sr-only">Reservas</h2>
             <div>
               {tab === 'wait'
-                ? <Stagger key="wait" className="space-y-3">{waits.map(w => <Item key={w.id}><WaitCard w={w} state={state} update={update} /></Item>)}</Stagger>
+                ? <Stagger key="wait" className="pm-list">{waits.map(w => <Item key={w.id}><WaitCard w={w} state={state} update={update} /></Item>)}</Stagger>
                 : list.length === 0
                   ? <div className={cn(tab === 'next' && !day && 'lg:hidden')}><Empty icon={day ? CalendarX : tab === 'next' ? CalendarX : CalendarCheck} title={day ? 'No hay reservas ese día' : tab === 'next' ? 'No tenés reservas próximas' : 'Todavía no jugaste'} text={day ? 'Tocá otro día marcado en el calendario.' : tab === 'next' ? 'Buscá una cancha y reservá un horario.' : 'Cuando juegues, tus partidos aparecen acá.'} action={!day && tab === 'next' && <Button onClick={() => navigate('/buscar')}>Buscar cancha</Button>} /></div>
                   : <Stagger key={`${tab}-${day}`} className="space-y-5">
-                      {groups.map(g => {
+                      {groups.map((g, gi) => {
                         const allHidden = g.items.every(hideOnPc)
+                        const visible = g.items.filter(b => !hideOnPc(b)).length
                         return (
                           <section key={g.label} className={cn(allHidden && 'lg:hidden')} aria-label={g.label}>
                             <h3 className={cn('items-center gap-3 mb-2.5 pm-eyebrow text-muted', multi ? 'flex' : 'hidden', multiPc ? 'lg:flex' : 'lg:hidden')}><span>{g.label}</span><span className="h-px flex-1 bg-line" aria-hidden="true" /><span className="tnum">{g.items.length}</span></h3>
-                            <div className="space-y-3">{g.items.map(b => {
+                            <div className="pm-list">{g.items.map((b, bi) => {
                               const done = tab === 'past' && effStatus(b, now) === 'completed', rv = done && reviewOf(state, b.id)
-                              return <Item key={b.id} className={cn(hideOnPc(b) && 'lg:hidden')}><BookingCard b={b} state={state} onClick={() => setOpen(b.id)} actions={actionsFor(b, done, rv)} /></Item>
-                            })}</div>
+                              return <Item key={b.id} className={cn(hideOnPc(b) && 'lg:hidden', visible % 2 === 1 && !closesWithTile(gi) && bi === g.items.length - 1 && 'pm-span')}><BookingCard b={b} state={state} onClick={() => setOpen(b.id)} actions={actionsFor(b, done, rv)} /></Item>
+                            })}
+                            {closesWithTile(gi) && visible % 2 === 1 && <Item className="pm-fill"><MoreTile /></Item>}
+                            </div>
                           </section>)
                       })}
                     </Stagger>}
+              {peek.length > 0 && (
+                <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .1 }} className="hidden lg:block" aria-label="Lo último que jugaste">
+                  <div className="flex items-center gap-3 mb-2.5"><h3 className="pm-eyebrow text-muted">Lo último que jugaste</h3><span className="h-px flex-1 bg-line" aria-hidden="true" /><button type="button" className="text-sm font-semibold text-brand min-h-11 px-1" onClick={() => setTab('past')}>Ver historial</button></div>
+                  <div className="pm-list">{peek.map((b, i) => <div key={b.id} className={cn(peek.length % 2 === 1 && i === peek.length - 1 && 'pm-span')}><BookingCard b={b} state={state} onClick={() => setOpen(b.id)} actions={actionsFor(b, true, reviewOf(state, b.id), true)} /></div>)}</div>
+                </motion.section>)}
+              {!mine.length && tab === 'next' && <><FirstSteps /><StartList state={state} /></>}
               {tab === 'next' && !day && next.length === 1 && (
                 <div className="hidden lg:flex items-center gap-4 rounded-2xl border border-dashed border-[var(--line-strong)] p-5 mt-1">
                   <span className="pm-ico is-sunken"><CalendarPlus size={20} aria-hidden="true" /></span>
@@ -360,6 +426,6 @@ export function PlayerBookings() {
       </Content>
       {open && <BookingDetail bookingId={open} onClose={() => setOpen('')} onReview={b => { setOpen(''); setReview(b) }} />}
       {review && <ReviewSheet booking={review} initialRating={stars} onClose={() => { setReview(null); setStars(0) }} />}
-    </>
+    </div>
   )
 }

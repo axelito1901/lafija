@@ -1,9 +1,9 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { Banknote, BriefcaseMedical, Clock3, Coffee, Flame, Heart, Lightbulb, MapPin, MessageCircle, Navigation, Phone, ShieldCheck, ShowerHead, Shirt, Star, Tag, Umbrella, Wifi, CircleParking, ArrowRight } from 'lucide-react'
 import { useStore } from '../../lib/store'
-import { REVIEW_TAGS, cancelPolicyText, courtsOf, depositFor, favsOf, freeSlots, getComplex, nextTimes, promoLabel, promoWhen, ratingOf, toggleFav } from '../../lib/domain'
+import { REVIEW_TAGS, cancelPolicyText, courtsOf, depositFor, favsOf, freeSlots, getComplex, nextTimes, promoLabel, promoWhen, publicComplexes, ratingLabel, ratingOf, toggleFav } from '../../lib/domain'
 import { isApproved } from '../../lib/domain'
-import { addDays, cn, dateShort, mapsLink, money, plural, relativeDay, telLink, todayISO, waLink } from '../../lib/format'
+import { addDays, cn, dateShort, distanceKm, kmLabel, mapsLink, money, plural, relativeDay, telLink, todayISO, waLink } from '../../lib/format'
 import { Link, navigate, useRoute } from '../../lib/router'
 import { Avatar, Button, Content, Empty, IconButton, PageHeader, Rating, Skeleton, Stars } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
@@ -11,11 +11,28 @@ import { Gallery, GalleryMosaic } from '../../ui/Gallery'
 import { ReviewSummary, TrustPanel, VerifiedBadge } from '../../ui/trust'
 import { CountUp, Reveal } from '../../ui/motion'
 const MiniMap = lazy(() => import('../../ui/MapView').then(m => ({ default: m.MiniMap })))
-import { DateStrip } from '../../ui/shared'
+import { DateStrip, complexView } from '../../ui/shared'
 import './jugador.css'
 
 const SERVICE_ICON = { Vestuarios: Shirt, Duchas: ShowerHead, Estacionamiento: CircleParking, Buffet: Coffee, Parrilla: Flame, 'Wi-Fi': Wifi, 'Alquiler de pecheras': Shirt, Botiquín: BriefcaseMedical }
 const FACT = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium bg-sunken'
+
+/* Otro complejo cerca de éste (PC). */
+function NearbyCard({ c }) {
+  return (
+    <Link to={`/complejo/${c.slug}`} aria-label={`${c.name}, a ${c.away} de acá`} className="group block rounded-2xl overflow-hidden bg-surface border border-line shadow-[var(--sh-1)] pj-lift">
+      <div className="relative">
+        <Cover src={c.coverUrl} seed={c.id} className="aspect-[16/10] [&>img]:transition-transform [&>img]:duration-700 group-hover:[&>img]:scale-110" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {c.ratingCount > 0 && <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 text-white text-sm font-semibold bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-2.5 py-1"><Star size={13} className="fill-[var(--gold)] text-[var(--gold)]" aria-hidden="true" />{ratingLabel(c.rating)}</span>}
+      </div>
+      <div className="p-4 flex items-end justify-between gap-3">
+        <div className="min-w-0"><p className="display text-xl font-bold leading-tight flex items-center gap-1.5 min-w-0"><span className="truncate">{c.name}</span>{c.verified && <VerifiedBadge label={false} className="flex-none" />}</p><p className="text-sm text-muted truncate inline-flex items-center gap-1 max-w-full"><MapPin size={13} className="flex-none" aria-hidden="true" /><span className="truncate">A {c.away} de acá</span></p></div>
+        {c.fromPrice != null && <div className="flex-none text-right"><p className="text-xs text-muted leading-none">desde</p><p className="display text-lg font-bold tnum leading-tight">{money(c.fromPrice)}</p></div>}
+      </div>
+    </Link>
+  )
+}
 
 export default function ComplexPage({ id, preview = false, inShell = true }) {
   const { state, user, update, loading } = useStore()
@@ -51,6 +68,10 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
   const photos = [complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)
   const shown = reviews.slice(0, allReviews ? 50 : 4)
   const wizard = (q = '') => `/complejo/${complex.slug}/reservar${q}`
+  // Otros complejos cerca de éste: sale de las coordenadas reales, sin cargar nada a mano.
+  const others = preview ? [] : publicComplexes(state).filter(c => c.id !== complex.id)
+    .map(c => ({ ...complexView(state, c, null), km: distanceKm(complex, c) })).filter(c => c.km != null)
+    .sort((a, b) => a.km - b.km).slice(0, 4).map(c => ({ ...c, away: kmLabel(c.km) }))
 
   return (
     <div className="pj-wide contents">
@@ -86,7 +107,7 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
             <section aria-label="Ubicación" className="lg:order-6 pj-lg-card lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
               <div className="lg:p-6 lg:flex lg:flex-col lg:justify-center">
                 <h2 className="hidden lg:block text-2xl font-bold">Dónde queda</h2>
-                <a href={mapsLink(complex)} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 text-muted mt-1 hover:text-ink lg:hidden"><MapPin size={18} className="mt-0.5 flex-none" /><span><span className="underline underline-offset-4 decoration-line">{complex.address}</span></span></a>
+                <a href={mapsLink(complex)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 min-h-11 text-muted hover:text-ink lg:hidden"><MapPin size={18} className="flex-none" aria-hidden="true" /><span><span className="underline underline-offset-4 decoration-line">{complex.address}</span></span></a>
                 <p className="hidden lg:block text-muted mt-2">{complex.address}</p>
                 <Button as="a" variant="secondary" href={mapsLink(complex)} target="_blank" rel="noreferrer" className="hidden lg:inline-flex self-start mt-4"><Navigation size={16} />Cómo llegar</Button>
               </div>
@@ -220,6 +241,16 @@ export default function ComplexPage({ id, preview = false, inShell = true }) {
             </Reveal>
           </aside>
         </div>
+
+        {others.length > 0 && (
+          <section aria-labelledby="cerca" className="hidden lg:block mt-14">
+            <div className="flex items-end justify-between gap-4 mb-4">
+              <div className="min-w-0"><h2 id="cerca" className="text-3xl font-bold">Otros complejos cerca</h2><p className="text-muted mt-0.5">A pocos minutos de {complex.name}.</p></div>
+              <Link to="/buscar" className="btn btn-link flex-none">Ver todos<ArrowRight size={16} aria-hidden="true" /></Link>
+            </div>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">{others.map(c => <NearbyCard key={c.id} c={c} />)}</div>
+          </section>
+        )}
       </Content>
 
       {canBook && (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, m as motion } from 'motion/react'
 import { ArrowRight, Clock3, Compass, Heart, Plus, Search, Sparkles, Star } from 'lucide-react'
-import { cn, todayISO } from '../../lib/format'
+import { todayISO } from '../../lib/format'
 import { CountUp, spring } from '../../ui/motion'
 import { useStore } from '../../lib/store'
 import { favsOf, nextTimes, publicComplexes, toggleFav } from '../../lib/domain'
@@ -11,12 +11,12 @@ import { Button, Chip, Content, Empty, PageHeader } from '../../ui/kit'
 import { ComplexCard, complexView } from '../../ui/shared'
 import './misc.css'
 
-/* Casilleros que faltan para cerrar la fila: invitan a sumar otra cancha y evitan el hueco a la derecha. */
-const SPAN_LG = { 1: 'lg:col-span-1', 2: 'lg:col-span-2' }
+/* Casilleros que faltan para cerrar la fila: invitan a sumar otra cancha y evitan el hueco a la derecha.
+   La cantidad de columnas cambia con el ancho (2, 3 o 4), así que calculamos el sobrante para cada una. */
 function AddTile({ count }) {
-  const lg = count % 3, odd = count % 2 === 1
+  const rest = cols => (cols - (count % cols)) % cols
   return (
-    <motion.div layout className={cn('hidden', odd ? 'sm:block' : 'sm:hidden', lg ? `lg:block ${SPAN_LG[3 - lg]}` : 'lg:hidden')}>
+    <motion.div layout className="pm-add" data-r2={rest(2)} data-r3={rest(3)} data-r4={rest(4)}>
       <Link to="/buscar" className="group h-full min-h-56 rounded-2xl border-2 border-dashed border-[var(--line-strong)] flex flex-col items-center justify-center gap-3 p-6 text-center transition-colors hover:border-brand hover:bg-brand-soft" aria-label="Buscar otra cancha para guardar">
         <span className="pm-ico is-sunken !size-14 !rounded-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90"><Plus size={26} aria-hidden="true" /></span>
         <span><span className="block display text-xl font-bold">Sumá otra cancha</span><span className="block text-sm text-muted mt-0.5 max-w-[16rem]">Guardá tus complejos de siempre y reservá más rápido.</span></span>
@@ -44,13 +44,13 @@ export function PlayerFavorites() {
     if (sort === 'top') l.sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.ratingCount || 0) - (a.ratingCount || 0))
     return l
   }, [sort, favs, withSlots.length]) // eslint-disable-line
-  const suggested = useMemo(() => all.filter(c => !ids.includes(c.id)).sort((a, b) => (b.rating || 0) - (a.rating || 0) || (a.distance ?? 1e9) - (b.distance ?? 1e9)).slice(0, 3), [all, key]) // eslint-disable-line
+  const suggested = useMemo(() => all.filter(c => !ids.includes(c.id)).sort((a, b) => (b.rating || 0) - (a.rating || 0) || (a.distance ?? 1e9) - (b.distance ?? 1e9)).slice(0, 4), [all, key]) // eslint-disable-line
   const card = (c, fav) => <ComplexCard c={c} slots={slotsOf[c.id] || []} date={todayISO()} fav={fav} onFav={() => update(s => toggleFav(s, user.id, c.id))} />
 
   return (
-    <>
+    <div className="pm-wide contents">
       <PageHeader title="Mis favoritos" sub={favs.length ? 'Tocá un horario para reservar' : ''} />
-      <Content>
+      <Content className="max-w-[1480px]">
         {favs.length === 0 ? (
           <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={spring} className="pm-card-soft relative overflow-hidden px-6 py-12 lg:py-16 text-center" aria-label="Sin favoritos">
             <span className="pm-ico is-grad !size-20 !rounded-3xl pm-heart-float relative mx-auto"><i className="pm-pulse-ring" aria-hidden="true" /><Heart size={38} className="fill-current" aria-hidden="true" /></span>
@@ -88,9 +88,9 @@ export function PlayerFavorites() {
               <Link to="/buscar" className="text-sm font-semibold text-brand min-h-11 inline-flex items-center flex-none">Ver todas</Link>
             </div>
             <div className="pm-fav-grid">{suggested.map((c, i) => (
-              <motion.div key={c.id} className={i === 2 ? 'max-lg:hidden' : undefined} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .15 + i * .06 }}>{card(c, false)}</motion.div>))}</div>
+              <motion.div key={c.id} className={i === 2 ? 'max-lg:hidden' : i === 3 ? 'pm-xl-only' : undefined} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .15 + i * .06 }}>{card(c, false)}</motion.div>))}</div>
           </section>)}
       </Content>
-    </>
+    </div>
   )
 }

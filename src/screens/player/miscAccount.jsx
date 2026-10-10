@@ -78,9 +78,9 @@ export function Account({ theme, onSignOut }) {
   }
   const left = lvl.nxt ? lvl.nxt.n - stats.played : 0
   return (
-    <>
+    <div className="pm-wide contents">
       <PageHeader title="Cuenta" />
-      <Content>
+      <Content className="max-w-[1480px]">
         <Stagger className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start">
           {/* ---------- Izquierda: quién sos ---------- */}
           <div className="space-y-4 min-w-0">
@@ -129,7 +129,7 @@ export function Account({ theme, onSignOut }) {
                     <motion.div key={x.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: .1 + i * .04 }}>
                       <button type="button" onClick={() => setBadge(badge?.id === x.id ? null : x)} aria-pressed={badge?.id === x.id} className={cn('pm-badge w-full h-full', !x.earned && 'is-locked')} aria-label={`${x.title}: ${x.text}${x.earned ? '' : ' (sin conseguir)'}`}>
                         <span className="pm-badge-ico">{x.earned ? <I size={26} aria-hidden="true" /> : <Lock size={20} aria-hidden="true" />}</span>
-                        <span className={cn('block text-sm font-semibold leading-tight', !x.earned && 'text-muted')}>{x.title}</span>
+                        <span className={cn('pm-badge-t', !x.earned && 'text-muted')}>{x.title}</span>
                         <span className="hidden sm:block lg:hidden xl:block text-xs text-muted leading-snug">{x.text}</span>
                       </button>
                     </motion.div>) })}</div>
@@ -198,6 +198,6 @@ export function Account({ theme, onSignOut }) {
           </div>
         </Stagger>
       </Content>
-    </>
+    </div>
   )
 }

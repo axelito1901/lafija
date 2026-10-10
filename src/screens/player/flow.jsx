@@ -76,9 +76,11 @@ export function BookSheet({ open, onClose, complex, court, date, time, onDone })
     <Sheet open onClose={onClose} busy={busy} title="Confirmar reserva"
       footer={<><Button variant="secondary" onClick={onClose} disabled={busy}>Volver</Button>
         <Button onClick={go} loading={busy} size="lg" className="!flex-[2]">{busy ? (current === 'onsite' ? 'Reservando…' : 'Procesando pago…') : current === 'onsite' ? 'Reservar' : `${chosen.title} · ${money(chosen.amount)}`}</Button></>}>
+      <div className="flex items-center gap-3 mb-3">
+        <Cover src={complex.coverUrl} seed={complex.id} className="size-14 rounded-xl flex-none" />
+        <div className="min-w-0"><p className="display text-xl font-bold leading-tight truncate">{complex.name}</p><p className="text-sm text-muted truncate">{court.name} · {court.sport}</p></div>
+      </div>
       <dl className="divide-y divide-line border-y border-line">
-        <Line k="Complejo">{complex.name}</Line>
-        <Line k="Cancha">{court.name} · {court.sport}</Line>
         <Line k="Día">{dateLong(date)}</Line>
         <Line k="Horario">{time} a {slotEnd(time, complex.hours.slotMinutes)}</Line>
         {q.discountCents > 0 && <Line k="Precio">{money(q.baseCents)}</Line>}
@@ -334,8 +336,8 @@ export function RateCard({ onRate }) {
       <div className="flex gap-1 mt-2 -ml-2" role="group" aria-label="Calificar">{[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button" aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`} className="icon-btn !size-12 active:scale-90" onClick={() => onRate(b, n)}><Star size={30} className="text-strong hover:text-warn hover:fill-current transition-colors" /></button>))}</div>
       <div className="flex items-center gap-2 mt-1">
-        <Button size="sm" variant="secondary" onClick={() => navigate(rebookLink(state, b))}><Repeat size={16} />Volver a jugar</Button>
-        <Button size="sm" variant="ghost" onClick={skip}>Ahora no</Button>
+        <Button size="sm" variant="secondary" className="!min-h-11" onClick={() => navigate(rebookLink(state, b))}><Repeat size={16} />Volver a jugar</Button>
+        <Button size="sm" variant="ghost" className="!min-h-11" onClick={skip}>Ahora no</Button>
       </div>
     </motion.section>
   )

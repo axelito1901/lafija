@@ -24,37 +24,44 @@ export const BookingStatus = ({ booking }) => {
 export function ComplexCard({ c, free, selected, fav, onFav, id, slots, date, row = false, onHover }) {
   const tags = (c.tags || '').split(' · ').filter(Boolean).slice(0, 4)
   const reserve = `/complejo/${c.slug}/reservar${date ? `?fecha=${date}` : ''}`
+  const noSlots = !!slots && slots.length === 0
+  const detail = `/complejo/${c.slug}` // sin fecha: la ficha abre en el primer día con horarios libres
   return (
     <article id={id} onMouseEnter={onHover ? () => onHover(c.id) : undefined} onMouseLeave={onHover ? () => onHover('') : undefined}
       className={cn('tile', row && 'xl:flex-row', selected && '!border-brand ring-1 ring-brand shadow-[var(--sh-2)]')}>
-      <div className={cn('relative', row && 'xl:w-[230px] 2xl:w-[280px] xl:flex-none xl:min-h-[210px]')}>
+      <div className={cn('relative', row && 'xl:w-[200px] 2xl:w-[236px] xl:flex-none xl:min-h-[196px]')}>
         <Link to={`/complejo/${c.slug}`} tabIndex={-1} aria-hidden="true" className={cn('block relative overflow-hidden group/cover', row && 'xl:absolute xl:inset-0')}>
           <Cover src={c.coverUrl} seed={c.id} className={cn('aspect-[16/9] [&>img]:transition-transform [&>img]:duration-700 group-hover/cover:[&>img]:scale-110', row ? 'xl:aspect-auto xl:h-full' : 'lg:aspect-[2/1]')} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </Link>
-        {c.fromPrice != null && <span className="absolute left-3 bottom-3 text-white font-semibold tnum text-sm bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1">Desde {money(c.fromPrice)}</span>}
-        {c.ratingCount > 0 && <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 text-white text-sm font-semibold bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-2.5 py-1"><Star size={13} className="fill-[var(--gold)] text-[var(--gold)]" />{c.rating.toFixed(1).replace('.', ',')}</span>}
+        {c.fromPrice != null && <span className={cn('absolute left-3 bottom-3 text-white font-semibold tnum text-sm bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1', row && 'xl:hidden')}>Desde {money(c.fromPrice)}</span>}
+        {c.ratingCount > 0 && <span className={cn('absolute right-3 bottom-3 inline-flex items-center gap-1 text-white text-sm font-semibold bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-2.5 py-1', row && 'xl:right-auto xl:left-3')}><Star size={13} className="fill-[var(--gold)] text-[var(--gold)]" aria-hidden="true" />{c.rating.toFixed(1).replace('.', ',')}</span>}
         {onFav && (
           <button type="button" onClick={onFav} aria-pressed={fav} aria-label={fav ? `Quitar ${c.name} de favoritos` : `Guardar ${c.name} en favoritos`}
             className="absolute top-2 right-2 grid place-items-center w-11 h-11 rounded-full bg-black/35 backdrop-blur-md border border-white/25 active:scale-90 hover:bg-black/50 transition-[transform,background-color]">
-            <Heart size={20} className={fav ? 'fill-current text-[#ff6b6b] pop-in' : 'text-white'} />
+            <Heart size={20} className={fav ? 'fill-current text-[#ff6b6b] pop-in' : 'text-white'} aria-hidden="true" />
           </button>
         )}
       </div>
       <div className={cn('flex flex-col flex-1 min-w-0 p-4', row && 'xl:p-5')}>
         <div className="flex items-start justify-between gap-3">
-          <h3 className={cn('font-semibold text-base leading-snug', row && 'xl:font-display xl:text-2xl xl:font-bold xl:leading-tight')}><Link to={`/complejo/${c.slug}`} className="inline-flex items-center gap-1.5 min-h-11 -my-2.5">{c.name}{c.verified && <VerifiedBadge label={false} />}</Link></h3>
+          <div className="min-w-0">
+            <h3 className={cn('font-semibold text-base leading-snug', row && 'xl:font-display xl:text-[26px] xl:font-bold xl:leading-tight')}><Link to={`/complejo/${c.slug}`} className="inline-flex items-center gap-1.5 min-h-11 -my-2.5">{c.name}{c.verified && <VerifiedBadge label={false} />}</Link></h3>
+            <p className="text-sm text-muted truncate mt-0.5 inline-flex items-center gap-1 max-w-full"><MapPin size={14} className="flex-none" aria-hidden="true" /><span className="truncate">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</span></p>
+          </div>
+          {row && c.fromPrice != null && <div className="hidden xl:block flex-none text-right"><p className="text-xs text-muted leading-none">Desde</p><p className="display text-2xl font-bold tnum leading-tight">{money(c.fromPrice)}</p></div>}
         </div>
-        <p className="text-sm text-muted truncate mt-0.5 inline-flex items-center gap-1"><MapPin size={14} className="flex-none" aria-hidden="true" /><span className="truncate">{c.city}{c.distance != null ? ` · ${c.distanceLabel}` : ''}</span></p>
         {tags.length > 0 ? <div className="flex flex-wrap gap-1.5 mt-2">{tags.map(t => <span key={t} className="text-xs font-medium rounded-full px-2.5 py-1 bg-sunken text-muted">{t}</span>)}</div> : <p className="text-sm mt-2">Sin canchas activas</p>}
-        {slots ? (slots.length ? (
-          <div className="mt-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1.5 inline-flex items-center gap-1.5"><Clock3 size={13} aria-hidden="true" />Libres {date === todayISO() ? 'hoy' : relativeDay(date).toLowerCase()}</p>
-            <div className="flex flex-wrap gap-1.5">{slots.slice(0, 4).map(s => <Link key={s.t} to={`/complejo/${c.slug}/reservar?fecha=${date}&cancha=${s.courtId}&hora=${s.t}`} className="chip !min-h-11 !px-3 tnum">{s.t}</Link>)}</div>
-          </div>) : <p className="text-sm text-muted mt-3">Sin horarios libres ese día</p>)
-          : free != null && <p className={cn('text-sm mt-2', free ? 'text-brand font-medium' : 'text-muted')}>{free ? `${free} ${free === 1 ? 'horario libre' : 'horarios libres'}` : 'Sin horarios libres'}</p>}
-        <div className={cn('mt-auto pt-3', row && 'xl:flex xl:justify-end')}>
-          <Button as={Link} to={reserve} variant="secondary" className={cn('w-full mt-3', row && 'xl:w-auto xl:mt-1 xl:!px-5 xl:!bg-[image:var(--grad-brand)] xl:!text-[var(--on-grad)] xl:!border-transparent')}>Reservar{row && <ArrowRight size={16} className="hidden xl:block" aria-hidden="true" />}</Button>
+        <div className={cn('mt-auto', row && 'xl:flex xl:items-end xl:justify-between xl:gap-4 xl:pt-3')}>
+          {slots ? (slots.length ? (
+            <div className="mt-3 xl:mt-0 min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1.5 inline-flex items-center gap-1.5"><Clock3 size={13} aria-hidden="true" />Libres {date === todayISO() ? 'hoy' : relativeDay(date).toLowerCase()}</p>
+              <div className="flex flex-wrap gap-1.5">{slots.slice(0, 4).map(s => <Link key={s.t} to={`/complejo/${c.slug}/reservar?fecha=${date}&cancha=${s.courtId}&hora=${s.t}`} className="chip !min-h-11 !px-3 xl:!px-2.5 tnum pointer-fine:!min-h-10">{s.t}</Link>)}</div>
+            </div>) : <p className="text-sm text-muted mt-3 xl:mt-0 inline-flex items-center gap-1.5 xl:pb-2.5"><Clock3 size={14} className="flex-none" aria-hidden="true" />Sin horarios libres {date === todayISO() ? 'hoy' : 'ese día'}</p>)
+            : free != null && <p className={cn('text-sm mt-2 xl:mt-0 xl:pb-2.5', free ? 'text-brand font-medium' : 'text-muted')}>{free ? `${free} ${free === 1 ? 'horario libre' : 'horarios libres'}` : 'Sin horarios libres'}</p>}
+          <div className={cn('pt-3', row && 'xl:pt-0 xl:flex-none')}>
+            <Button as={Link} to={noSlots ? detail : reserve} variant="secondary" className={cn('w-full mt-3', row && 'xl:w-auto xl:mt-0 xl:!px-5', row && !noSlots && 'xl:!bg-[image:var(--grad-brand)] xl:!text-[var(--on-grad)] xl:!border-transparent')}>{noSlots ? 'Ver otros días' : 'Reservar'}{row && <ArrowRight size={16} className="hidden xl:block" aria-hidden="true" />}</Button>
+          </div>
         </div>
       </div>
     </article>

@@ -1,0 +1,24 @@
+/* Estadísticas y Reseñas del dueño. Todo con variables del tema: sirve en claro y oscuro. */
+
+/* Héroe sin las líneas de cancha del centro (tapaban el anillo y las estrellas):
+   un brillo arriba a la derecha y los arcos del córner abajo a la izquierda. */
+.hero.dx-hero::before {
+  opacity: .2;
+  background:
+    radial-gradient(90% 70% at 100% 0%, #fff 0, transparent 55%),
+    radial-gradient(circle at 0% 100%, transparent 0 74px, #fff 74px 76px, transparent 76px 118px, #fff 118px 119px, transparent 119px);
+}
+
+/* Barra de pendientes de reseñas / insights: se acomoda sola con el alto del panel fijo */
+.dx-scroll { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+/* Tarjeta de reseña: la barra de color de la izquierda se alarga al pasar el mouse */
+.dx-review { position: relative; transition: transform 220ms cubic-bezier(.2,.8,.3,1), box-shadow 220ms, border-color 220ms; }
+.dx-review::before { content: ""; position: absolute; left: -1px; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent, var(--brand)); transition: top 220ms, bottom 220ms; }
+.dx-review:hover { transform: translateY(-2px); box-shadow: var(--sh-2); border-color: var(--line-strong); }
+.dx-review:hover::before, .dx-review:focus-within::before { top: 6px; bottom: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dx-review, .dx-review::before { transition: none; }
+  .dx-review:hover { transform: none; }
+}

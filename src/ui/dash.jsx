@@ -14,8 +14,8 @@ export function Ring({ pct, size = 132, stroke = 12, children }) {
   return (
     <div className="relative grid place-items-center flex-none" style={{ width: size, height: size }} role="img" aria-label={`Ocupación ${pct}%`}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.22)" strokeWidth={stroke} />
-        <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#fff" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeOpacity=".22" strokeWidth={stroke} />
+        <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c}
           initial={{ strokeDashoffset: reduce ? c * (1 - pct / 100) : c }} animate={{ strokeDashoffset: c * (1 - pct / 100) }} transition={{ duration: 1.1, ease: EASE, delay: .15 }} />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">{children}</div>
@@ -74,46 +74,54 @@ export function Spark({ data, height = 40, className }) {
   )
 }
 
-export function Kpi({ icon: I, label, value, tone = 'brand', className, delta, spark, hint }) {
+export function Kpi({ icon: I, label, value, tone = 'brand', className, delta, spark, hint, big }) {
   const tones = { brand: 'bg-brand-soft text-brand', warn: 'bg-warn-soft text-warn', info: 'bg-[color-mix(in_srgb,var(--info)_14%,transparent)] text-info' }
+  const len = String(value).length
+  const size = big ? (len > 11 ? 'text-3xl' : 'text-4xl') : len > 9 ? 'text-xl' : len > 6 ? 'text-2xl' : 'text-3xl'
   return (
     <div className={cn('relative overflow-hidden p-3.5 sm:p-4 rounded-2xl bg-surface border border-line shadow-[var(--sh-1)] min-w-0 card-lift', className)}>
-      {spark && <div className="hidden sm:block absolute right-0 bottom-0 w-[55%] pointer-events-none text-brand opacity-60" aria-hidden="true">{spark}</div>}
+      {spark && <div className={cn('absolute right-0 bottom-0 pointer-events-none text-brand opacity-60', big ? 'w-[58%]' : 'hidden sm:block w-[55%]')} aria-hidden="true">{spark}</div>}
       <div className="relative flex items-start justify-between gap-2">
         <span className={cn('size-9 rounded-xl grid place-items-center flex-none', tones[tone])}><I size={18} aria-hidden="true" /></span>
         {delta}
       </div>
       <div className="relative text-xs font-semibold uppercase tracking-wider text-muted mt-3">{label}</div>
-      <div className={cn('relative display font-bold tnum mt-0.5 whitespace-nowrap leading-tight', String(value).length > 9 ? 'text-xl' : String(value).length > 6 ? 'text-2xl' : 'text-3xl')}><CountUp value={value} /></div>
+      <div className={cn('relative display font-bold tnum mt-0.5 whitespace-nowrap leading-tight', size)}><CountUp value={value} /></div>
       {hint && <div className="relative text-xs text-muted mt-1 truncate">{hint}</div>}
     </div>
   )
 }
 
-/* Barra horizontal que crece al aparecer. */
-export function HBar({ label, pct, strong, i = 0 }) {
-  const tone = pct >= 60 ? 'var(--grad-brand)' : pct >= 25 ? 'color-mix(in srgb, var(--brand) 60%, var(--sunken))' : 'color-mix(in srgb, var(--brand) 38%, var(--sunken))'
+/* Barra horizontal que crece al aparecer. tone: 'brand' (por defecto) o 'warn' para resaltar oportunidades. */
+export function HBar({ label, pct, strong, i = 0, tone = 'brand', labelClass = 'w-14', className }) {
+  const fill = tone === 'warn'
+    ? `linear-gradient(90deg, color-mix(in srgb, var(--gold) 70%, var(--sunken)), var(--gold))`
+    : pct >= 60 ? 'var(--grad-brand)' : pct >= 25 ? 'color-mix(in srgb, var(--brand) 60%, var(--sunken))' : 'color-mix(in srgb, var(--brand) 38%, var(--sunken))'
   return (
-    <div className="flex items-center gap-3 min-h-8">
-      {label && <span className={cn("w-14 flex-none text-sm tnum", strong ? "font-semibold" : "text-muted")}>{label}</span>}
-      <span className="flex-1 h-3 rounded-full bg-sunken overflow-hidden">
-        <motion.span className="block h-full rounded-full" style={{ background: tone }} initial={{ width: 0 }} whileInView={{ width: `${Math.max(pct, 2)}%` }} viewport={{ once: true }} transition={{ duration: .7, delay: Math.min(i * .02, .5), ease: EASE }} />
+    <div className={cn('flex items-center gap-3 min-h-8', className)}>
+      {label && <span className={cn(labelClass, 'flex-none text-sm tnum', strong ? 'font-semibold' : 'text-muted')}>{label}</span>}
+      <span className="flex-1 h-3 rounded-full bg-sunken overflow-hidden" role="img" aria-label={`${label ? `${label}: ` : ''}${pct}%`}>
+        <motion.span className="block h-full rounded-full" style={{ background: fill }} initial={{ width: 0 }} whileInView={{ width: `${Math.max(pct, 2)}%` }} viewport={{ once: true }} transition={{ duration: .7, delay: Math.min(i * .02, .5), ease: EASE }} />
       </span>
       <span className="w-10 text-right text-sm tnum flex-none">{pct}%</span>
     </div>
   )
 }
 
-/* Gráfico de columnas tocable: al tocar una columna muestra su valor. Un item con hot: true se resalta. */
+/* Gráfico de columnas tocable: al tocar una columna muestra su valor (con mouse, también al pasar por encima).
+   Un item con hot: true se resalta. */
 export function Columns({ items, selected, onSelect, labelFor, height = 112 }) {
   const max = Math.max(1, ...items.map(x => Math.max(x.v, x.ghost || 0)))
+  const n = items.length
   return (
     <div>
       <div className="flex items-end gap-[3px]" style={{ height }} role="group" aria-label="Gráfico">
         {items.map((x, i) => {
           const on = selected === x.key
+          const side = n > 8 && i < 2 ? 'left-0' : n > 8 && i > n - 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'
           return (
-            <button key={x.key} type="button" aria-pressed={on} aria-label={x.aria} onClick={() => onSelect?.(on ? null : x.key)} className="relative flex-1 h-full flex items-end min-w-0 group">
+            <button key={x.key} type="button" aria-pressed={on} aria-label={x.aria} onClick={() => onSelect?.(on ? null : x.key)} className="relative flex-1 h-full flex items-end min-w-0 group rounded-t-md focus-visible:outline-offset-1">
+              {x.aria && <span aria-hidden="true" className={cn('pointer-events-none absolute z-10 mb-1.5 rounded-md bg-ink text-bg px-2 py-1 text-[11px] font-semibold whitespace-nowrap tnum opacity-0 transition-opacity duration-150 [@media(hover:hover)]:group-hover:opacity-100 group-focus-visible:opacity-100', side)} style={{ bottom: `${Math.max(x.v ? 4 : 2, (x.v / max) * 100)}%` }}>{x.aria}</span>}
               {x.ghost > 0 && <span className="absolute inset-x-0 border-t-2 border-dashed border-strong" style={{ bottom: `${(x.ghost / max) * 100}%` }} />}
               <motion.span className={cn('w-full rounded-t-md origin-bottom', x.future ? 'bg-sunken' : on ? 'bg-[image:var(--grad-brand)] shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--brand)]' : x.today || x.hot ? 'bg-[image:var(--grad-brand)]' : 'bg-[color-mix(in_srgb,var(--brand)_45%,var(--sunken))] group-hover:bg-[color-mix(in_srgb,var(--brand)_70%,var(--sunken))]')}
                 initial={{ height: 0 }} animate={{ height: `${Math.max(x.v ? 4 : 2, (x.v / max) * 100)}%` }} transition={{ ...spring, delay: Math.min(i * .015, .4) }} />
@@ -133,17 +141,20 @@ function niceMax(v) {
 }
 
 /* Área con línea que se dibuja al entrar. Al pasar el mouse, tocar o usar las flechas muestra el valor.
-   points: [{ v, label, tip }]; format convierte v en texto. */
-export function AreaChart({ points, height = 180, format = String, label = 'Gráfico', className }) {
+   points: [{ v, g?, label, tip }]; format convierte v en texto. g (opcional) es el valor del período anterior:
+   si algún punto lo trae, se dibuja como línea punteada para comparar. En pantallas anchas los ejes van en una columna propia. */
+export function AreaChart({ points, height = 180, format = String, label = 'Gráfico', className, ghostLabel = 'Antes' }) {
   const n = points.length
   const [hov, setHov] = useState(null)
   const box = useRef(null)
   const reduce = useReducedMotion()
   const gid = useId().replace(/:/g, '')
-  const max = niceMax(Math.max(0, ...points.map(p => p.v)))
+  const hasG = points.some(p => p.g != null)
+  const max = niceMax(Math.max(0, ...points.map(p => Math.max(p.v, p.g || 0))))
   const X = i => (n < 2 ? 50 : (i / (n - 1)) * 100)
   const Y = v => 100 - (v / max) * 96
   const line = points.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(2)} ${Y(p.v).toFixed(2)}`).join(' ')
+  const gline = hasG ? points.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(2)} ${Y(p.g || 0).toFixed(2)}`).join(' ') : ''
   const at = e => {
     const r = box.current?.getBoundingClientRect()
     if (!r?.width) return
@@ -155,30 +166,40 @@ export function AreaChart({ points, height = 180, format = String, label = 'Grá
   }
   const ticks = n <= 8 ? points.map((_, i) => i) : [...new Set(Array.from({ length: 5 }, (_, k) => Math.round((k * (n - 1)) / 4)))]
   const p = hov == null ? null : points[hov]
+  const axis = 'absolute left-0 -translate-y-full mb-1 px-1 rounded bg-surface/80 text-[11px] text-muted tnum leading-none sm:left-auto sm:right-full sm:translate-y-[-50%] sm:mb-0 sm:mr-2 sm:px-0 sm:bg-transparent'
   return (
     <div className={cn('relative pt-9', className)}>
-      {p && <div className="ac-tip absolute top-0 z-10 pointer-events-none -translate-x-1/2 rounded-lg bg-ink text-bg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap tnum shadow-[var(--sh-2)]" style={{ left: `${Math.min(88, Math.max(12, X(hov)))}%` }}>{p.tip || p.label} · {format(p.v)}</div>}
-      <div ref={box} className="ac-wrap relative" style={{ height }} tabIndex={0} role="group" aria-label={`${label}. Usá las flechas para recorrer los valores.`}
-        onPointerDown={at} onPointerMove={at} onPointerLeave={e => { if (e.pointerType === 'mouse') setHov(null) }} onKeyDown={onKey} onBlur={() => setHov(null)}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible" aria-hidden="true">
-          {[4, 52].map(y => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="var(--line)" strokeWidth="1" strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />)}
-          <line x1="0" x2="100" y1="100" y2="100" stroke="var(--line-strong)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        </svg>
-        <span className="absolute left-0 top-[4%] -translate-y-full text-[11px] text-muted tnum leading-none mb-1 px-1 rounded bg-surface/80" aria-hidden="true">{format(max)}</span>
-        <span className="absolute left-0 top-[52%] -translate-y-full text-[11px] text-muted tnum leading-none mb-1 px-1 rounded bg-surface/80" aria-hidden="true">{format(max / 2)}</span>
-        <motion.svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible text-brand" aria-hidden="true"
-          initial={reduce ? false : { clipPath: 'inset(-6px 100% -6px -6px)' }} animate={{ clipPath: 'inset(-6px 0% -6px -6px)' }} transition={{ duration: 1, ease: EASE, delay: .1 }}>
-          <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".32" /><stop offset="1" stopColor="currentColor" stopOpacity=".02" /></linearGradient></defs>
-          <path d={`${line} L${X(n - 1).toFixed(2)} 100 L${X(0).toFixed(2)} 100 Z`} fill={`url(#${gid})`} />
-          <path d={line} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        </motion.svg>
-        {p && <>
-          <span className="absolute top-0 bottom-0 w-px bg-strong pointer-events-none" style={{ left: `${X(hov)}%` }} />
-          <span className="absolute size-3 rounded-full bg-brand pointer-events-none -translate-x-1/2 -translate-y-1/2 shadow-[0_0_0_3px_var(--surface)]" style={{ left: `${X(hov)}%`, top: `${Y(p.v)}%` }} />
-        </>}
-      </div>
-      <div className="relative h-5 mt-1.5 text-[11px] text-muted tnum" aria-hidden="true">
-        {ticks.map(i => <span key={i} className="absolute whitespace-nowrap" style={{ left: `${X(i)}%`, transform: `translateX(${i === 0 ? '0' : i === n - 1 ? '-100%' : '-50%'})` }}>{points[i].label}</span>)}
+      <div className="relative sm:ml-14">
+        {p && <div className="ac-tip absolute -top-9 z-10 pointer-events-none -translate-x-1/2 rounded-lg bg-ink text-bg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap tnum shadow-[var(--sh-2)]" style={{ left: `${Math.min(88, Math.max(12, X(hov)))}%` }}>{p.tip || p.label} · {format(p.v)}{hasG && p.g != null && <span className="opacity-70 font-medium"> · {ghostLabel.toLowerCase()} {format(p.g)}</span>}</div>}
+        <div ref={box} className="ac-wrap relative" style={{ height }} tabIndex={0} role="group" aria-label={`${label}. Usá las flechas para recorrer los valores.`}
+          onPointerDown={at} onPointerMove={at} onPointerLeave={e => { if (e.pointerType === 'mouse') setHov(null) }} onKeyDown={onKey} onBlur={() => setHov(null)}>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible" aria-hidden="true">
+            {[4, 52].map(y => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="var(--line)" strokeWidth="1" strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />)}
+            <line x1="0" x2="100" y1="100" y2="100" stroke="var(--line-strong)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          </svg>
+          <span className={cn(axis, 'top-[4%]')} aria-hidden="true">{format(max)}</span>
+          <span className={cn(axis, 'top-[52%]')} aria-hidden="true">{format(max / 2)}</span>
+          <span className="absolute left-0 top-full -translate-y-1/2 hidden sm:block sm:left-auto sm:right-full sm:mr-2 text-[11px] text-muted tnum leading-none" aria-hidden="true">{format(0)}</span>
+          {hasG && (
+            <motion.svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible text-faint" aria-hidden="true"
+              initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .6, delay: .5 }}>
+              <path d={gline} fill="none" stroke="currentColor" strokeWidth="1.75" strokeDasharray="5 5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+            </motion.svg>)}
+          <motion.svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible text-brand" aria-hidden="true"
+            initial={reduce ? false : { clipPath: 'inset(-6px 100% -6px -6px)' }} animate={{ clipPath: 'inset(-6px 0% -6px -6px)' }} transition={{ duration: 1, ease: EASE, delay: .1 }}>
+            <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".32" /><stop offset="1" stopColor="currentColor" stopOpacity=".02" /></linearGradient></defs>
+            <path d={`${line} L${X(n - 1).toFixed(2)} 100 L${X(0).toFixed(2)} 100 Z`} fill={`url(#${gid})`} />
+            <path d={line} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          </motion.svg>
+          {p && <>
+            <span className="absolute top-0 bottom-0 w-px bg-strong pointer-events-none" style={{ left: `${X(hov)}%` }} />
+            {hasG && p.g != null && <span className="absolute size-2.5 rounded-full bg-faint pointer-events-none -translate-x-1/2 -translate-y-1/2 shadow-[0_0_0_2px_var(--surface)]" style={{ left: `${X(hov)}%`, top: `${Y(p.g)}%` }} />}
+            <span className="absolute size-3 rounded-full bg-brand pointer-events-none -translate-x-1/2 -translate-y-1/2 shadow-[0_0_0_3px_var(--surface)]" style={{ left: `${X(hov)}%`, top: `${Y(p.v)}%` }} />
+          </>}
+        </div>
+        <div className="relative h-5 mt-1.5 text-[11px] text-muted tnum" aria-hidden="true">
+          {ticks.map(i => <span key={i} className="absolute whitespace-nowrap" style={{ left: `${X(i)}%`, transform: `translateX(${i === 0 ? '0' : i === n - 1 ? '-100%' : '-50%'})` }}>{points[i].label}</span>)}
+        </div>
       </div>
     </div>
   )

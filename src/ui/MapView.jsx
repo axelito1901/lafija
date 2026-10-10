@@ -109,7 +109,7 @@ export function ComplexMap({ complexes, selectedId, onSelect, onOpen, userPos, o
         <Viewport points={pts} focus={null} />
         {userPos && <Marker position={[userPos.lat, userPos.lng]} icon={meIcon} interactive={false} />}
         {pts.map(c => (
-          <Marker key={c.id} position={[c.lat, c.lng]} icon={iconFor(c, selectedId === c.id)} eventHandlers={{ click: () => onSelect?.(c.id) }}>
+          <Marker key={c.id} position={[c.lat, c.lng]} icon={iconFor(c, selectedId === c.id)} zIndexOffset={selectedId === c.id ? 1000 : 0} eventHandlers={{ click: () => onSelect?.(c.id) }}>
             <Popup closeButton={false} autoPanPadding={[16, 16]} minWidth={220} maxWidth={240}>
               <div className="-m-3 overflow-hidden rounded-2xl">
                 <div className="relative"><Cover src={c.coverUrl} seed={c.id} className="aspect-[16/9]" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

@@ -1,5 +1,8 @@
 /* Jugador: Reservas, Favoritos y Cuenta. Todo con prefijo pm- para no pisar a nadie. */
 
+/* El encabezado de la app mide 1120px; en PC lo alineamos con el contenido ancho de estas pantallas. */
+@media (min-width: 1024px) { .pm-wide .app-bar > div { max-width: 1480px; } }
+
 /* ---------- Grilla de Reservas ---------- */
 .pm-bk { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .pm-bk > .pm-bk-hero { display: none; }
@@ -12,8 +15,22 @@
   .pm-bk > .pm-bk-side { grid-area: side; min-width: 0; }
 }
 @media (min-width: 1280px) {
-  .pm-bk { grid-template-columns: minmax(0, 1fr) 372px; gap: 24px 28px; grid-template-areas: "hero side" "main side"; }
+  .pm-bk { grid-template-columns: minmax(0, 1fr) 372px; grid-template-rows: auto 1fr; gap: 24px 28px; grid-template-areas: "hero side" "main side"; }
 }
+@media (min-width: 1700px) {
+  .pm-bk { grid-template-columns: minmax(0, 1fr) 420px; gap: 28px 32px; }
+}
+/* Lista de reservas: una columna; si la columna principal es ancha (pantallas grandes) pasan a dos. */
+.pm-bk-main { container-type: inline-size; }
+.pm-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: stretch; }
+.pm-list > * { min-width: 0; }
+@container (min-width: 880px) { .pm-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
+.pm-fill { display: none; }
+.pm-span { grid-column: 1 / -1; }
+.pm-more { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 100%; min-height: 160px; padding: 14px 20px; text-align: center; border-radius: 22px; border: 2px dashed var(--line-strong); transition: border-color 150ms, background-color 150ms; }
+.pm-more:hover { border-color: var(--brand); background: var(--brand-soft); }
+.pm-more:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@container (min-width: 880px) { .pm-fill { display: block; } }
 /* El panel lateral acompaña el scroll solo si entra en la pantalla. */
 @media (min-width: 1024px) and (min-height: 780px) {
   .pm-sticky { position: sticky; top: 24px; }
@@ -98,10 +115,18 @@ button.pm-day:active { transform: scale(.92); }
 .pm-pref { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 0; }
 .pm-pref + .pm-pref { border-top: 1px solid var(--line); }
 
-/* Favoritos */
+/* Favoritos: 1 columna en el celular, 2 en tablet, 3 en PC y 4 en pantallas grandes. */
 .pm-fav-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.pm-fav-grid > * { min-width: 0; }
+.pm-xl-only { display: none; }
 @media (min-width: 640px) { .pm-fav-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .pm-fav-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
+@media (min-width: 1700px) { .pm-fav-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .pm-xl-only { display: block; } }
+/* Casillero de "sumar otra cancha": ocupa lo que falta para cerrar la fila (--rN = sobrante con N columnas). */
+.pm-add { display: none; }
+@media (min-width: 640px) and (max-width: 1023px) { .pm-add { display: block; } .pm-add[data-r2="0"] { display: none; } }
+@media (min-width: 1024px) and (max-width: 1699px) { .pm-add { display: block; } .pm-add[data-r3="0"] { display: none; } .pm-add[data-r3="2"] { grid-column: span 2; } }
+@media (min-width: 1700px) { .pm-add { display: block; } .pm-add[data-r4="0"] { display: none; } .pm-add[data-r4="2"] { grid-column: span 2; } .pm-add[data-r4="3"] { grid-column: span 3; } }
 .pm-heart-float { animation: float-y 3.4s ease-in-out infinite; }
 .pm-pulse-ring { position: absolute; inset: 0; border-radius: inherit; border: 2px solid var(--brand); animation: tour-pulse 2.2s ease-out infinite; }
 
@@ -110,3 +135,6 @@ button.pm-day:active { transform: scale(.92); }
   .pm-day, .pm-badge, .pm-tbtn { transition: none; }
 }
 .pm-badge:active { transform: scale(.95); }
+.pm-badge-t { display: block; max-width: 100%; font-size: 14px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+/* Con la columna angosta (1024 a 1279) los títulos largos ("Madrugador") necesitan un poco menos de letra. */
+@media (min-width: 1024px) and (max-width: 1279px) { .pm-badge { padding-inline: 2px; } .pm-badge-t { font-size: 12.5px; } }

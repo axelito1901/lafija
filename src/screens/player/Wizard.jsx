@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, Check, ChevronRight, Clock3, Goal, Lightbulb, Moon, Pencil, ShieldCheck, Star, Sun, Sunrise, Umbrella } from 'lucide-react'
+import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Goal, Lightbulb, Moon, Pencil, ShieldCheck, Star, Sun, Sunrise, Umbrella } from 'lucide-react'
 import { AnimatePresence, m as motion } from 'motion/react'
 import { Cover } from '../../ui/Cover'
 import { WeatherChip } from '../../ui/trust'
@@ -80,6 +80,8 @@ function SummaryPanel({ complex, court, date, time, q, valid, user, onStep, onGo
           <p className="pj-eyebrow">Tu reserva</p>
           <p className="text-sm text-muted tnum" aria-live="polite">{done} de 3 elegidos</p>
         </div>
+        <div className="flex gap-1.5 mt-3" aria-hidden="true">{rows.map(x => (
+          <span key={x.k} className="h-1.5 flex-1 rounded-full bg-strong overflow-hidden"><motion.span className="block h-full rounded-full bg-[image:var(--grad-brand)] origin-left" initial={false} animate={{ scaleX: x.value ? 1 : 0 }} transition={{ type: 'spring', stiffness: 260, damping: 30 }} /></span>))}</div>
         <ul className="mt-2">
           {rows.map((x, i) => (
             <li key={x.k} className={cn(i > 0 && 'border-t border-line')}>
@@ -115,7 +117,7 @@ function SummaryPanel({ complex, court, date, time, q, valid, user, onStep, onGo
           )}
         </AnimatePresence>
 
-        <Button size="lg" className="w-full mt-4" disabled={!valid} onClick={onGo}>{valid ? (user ? 'Continuar' : 'Ingresar para seguir') : missing ? missing.empty : 'Elegí otro horario'}</Button>
+        <Button size="lg" className="w-full mt-4" disabled={!valid} onClick={onGo}>{valid ? (user ? <>Confirmar reserva<ArrowRight size={18} aria-hidden="true" /></> : 'Ingresar para seguir') : missing ? missing.empty : 'Elegí otro horario'}</Button>
         <p className="text-xs text-muted mt-3 flex gap-2"><ShieldCheck size={15} className="flex-none text-brand mt-px" aria-hidden="true" />{cancelPolicyText(complex)}</p>
       </div>
     </motion.aside>
@@ -157,6 +159,9 @@ export default function Wizard({ id, inShell = true }) {
     setBook(true)
   }
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i))
+  // Si hoy ya no queda nada, "Hoy" pasa a ser un casillero más y el calendario ocupa el hueco que deja.
+  const todayOff = freeCount(state, complex, today, now) === 0
+  const otherDay = <div><span className="label">¿Otro día?</span><DateField min={today} value={date && !days.includes(date) ? date : ''} placeholder="Elegir en el calendario" onChange={v => v && pickDate(v)} /></div>
   const q = valid ? quote(state, court, date, time, user?.id) : null
   // Desde el panel de PC: volver a un paso ya elegido (sólo si lo anterior está completo).
   const goStep = i => { if (i === 0 || (i === 1 && date && !single) || (i === 2 && date && court)) setStep(i) }
@@ -165,7 +170,7 @@ export default function Wizard({ id, inShell = true }) {
     <>
       <header className="app-bar">
         <div className="flex items-center gap-2 min-h-14 px-4 md:px-6 lg:px-8 lg:pt-6 max-w-[640px] lg:max-w-[1200px] mx-auto">
-          <button type="button" className="btn btn-ghost btn-sm -ml-2" onClick={back}>← Atrás</button>
+          <button type="button" className="btn btn-ghost btn-sm !min-h-11 -ml-2" onClick={back}>← Atrás</button>
           <div className="flex-1 min-w-0 text-right text-sm text-muted truncate">{complex.name}</div>
         </div>
       </header>
@@ -187,15 +192,16 @@ export default function Wizard({ id, inShell = true }) {
               const [wd, rest] = dateLong(d).split(', ')
               return (
                 <Item key={d} as="button" type="button" disabled={!n} onClick={() => pickDate(d)} aria-pressed={date === d} whileTap={{ scale: .96 }}
-                  className={cn('text-left p-4 rounded-2xl border bg-surface shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:opacity-45 disabled:shadow-none enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand', date === d && d !== today && 'border-brand ring-1 ring-brand', d === today && 'col-span-2 xl:col-span-3 bg-[image:var(--grad-brand)] !border-transparent text-[var(--on-grad)] lg:p-6')}>
+                  className={cn('text-left p-4 rounded-2xl border bg-surface shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:!opacity-45 disabled:shadow-none enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand', date === d && d !== today && 'border-brand ring-1 ring-brand', d === today && n > 0 && 'hero col-span-2 xl:col-span-3 lg:p-6 !border-transparent text-[var(--on-grad)] enabled:hover:!shadow-[0_22px_40px_-16px_color-mix(in_srgb,var(--brand)_80%,transparent)]')}>
                   <span className="block display text-2xl font-bold leading-tight lg:text-3xl">{d === today ? 'Hoy' : d === addDays(today, 1) ? 'Mañana' : wd}</span>
-                  <span className={cn('block text-sm', d === today ? 'opacity-85' : 'text-muted')}>{rest}</span>
-                  <span className={cn('mt-3 inline-flex items-center gap-1 text-sm font-semibold', d === today ? '' : n ? 'text-brand' : 'text-muted')}>{n ? `${n} libres` : 'Sin horarios'}{n > 0 && <ChevronRight size={16} />}</span>
+                  <span className={cn('block text-sm', d === today && n > 0 ? 'opacity-85' : 'text-muted')}>{rest}</span>
+                  <span className={cn('mt-3 inline-flex items-center gap-1 text-sm font-semibold', d === today && n > 0 ? '' : n ? 'text-brand' : 'text-muted')}>{d === today && n > 0 && <span className="live-dot mr-1" aria-hidden="true" />}{n ? `${n} libres` : 'Sin horarios'}{n > 0 && <ChevronRight size={16} aria-hidden="true" />}</span>
                 </Item>
               )
             })}
+            {todayOff && <Item className="xl:col-span-2 self-end">{otherDay}</Item>}
           </Stagger>
-          <div className="mt-5 lg:max-w-sm"><span className="label">¿Otro día?</span><DateField min={today} value={date && !days.includes(date) ? date : ''} placeholder="Elegir en el calendario" onChange={v => v && pickDate(v)} /></div>
+          {!todayOff && <div className="mt-5 lg:max-w-sm">{otherDay}</div>}
         </StepView>}
 
         {step === 1 && <StepView k="c" dir={dir}>
@@ -207,7 +213,7 @@ export default function Wizard({ id, inShell = true }) {
               const photos = [complex.coverUrl, ...(complex.gallery || [])].filter(Boolean)
               return (
                 <Item key={c.id} as="button" type="button" disabled={!n} whileTap={{ scale: .98 }} onClick={() => { setCourtId(c.id); setTime(''); setStep(2) }}
-                  className={cn('w-full text-left rounded-2xl border bg-surface overflow-hidden shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:opacity-50 enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand xl:grid xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]', courtId === c.id ? 'border-brand' : 'border-line')}>
+                  className={cn('w-full text-left rounded-2xl border bg-surface overflow-hidden shadow-[var(--sh-1)] transition-[border-color,box-shadow] disabled:!opacity-50 enabled:hover:shadow-[var(--sh-2)] enabled:hover:border-brand xl:grid xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]', courtId === c.id ? 'border-brand' : 'border-line')}>
                   <span className="relative block xl:min-h-44">
                     <Cover src={c.photo || photos[idx % Math.max(photos.length, 1)]} seed={c.id} className="aspect-[21/9] xl:aspect-auto xl:absolute xl:inset-0" />
                     <span className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
@@ -249,7 +255,7 @@ export default function Wizard({ id, inShell = true }) {
                         </Item>)
                       return (
                         <Item as="button" key={t} type="button" disabled={!free} aria-pressed={time === t} whileTap={{ scale: .94 }} onClick={() => setTime(t)} aria-label={`${t}${free ? `, ${money(quote(state, court, date, t, user?.id).totalCents)}` : ', ocupado'}`}
-                          className={cn('rounded-xl border min-h-16 flex flex-col items-center justify-center transition-[background-color,box-shadow,transform] duration-200 disabled:opacity-35 disabled:cursor-not-allowed',
+                          className={cn('rounded-xl border min-h-16 flex flex-col items-center justify-center transition-[background-color,box-shadow,transform] duration-200 disabled:!opacity-35 disabled:cursor-not-allowed',
                             time === t ? 'bg-[image:var(--grad-brand)] border-transparent text-[var(--on-grad)] shadow-[0_10px_20px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)] scale-[1.04]' : 'bg-surface border-strong hover:bg-sunken')}>
                           <span className="text-lg font-semibold tnum">{t}</span>
                           <span className={cn('text-xs tnum', time !== t && 'text-muted')}>{free ? money(quote(state, court, date, t, user?.id).totalCents) : 'Ocupado'}{free && quote(state, court, date, t, user?.id).discountCents > 0 ? ' · promo' : ''}</span>
@@ -302,7 +308,7 @@ export function PlayToday() {
   return (
     <>
       <PageHeader back="/" title="Jugar hoy" sub="Horarios libres que quedan hoy" />
-      <Content className="max-w-[720px] lg:mx-0">
+      <Content className="max-w-[720px]">
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-1 mb-4" role="group" aria-label="Tipo de cancha">
           <Chip active={!sport} onClick={() => setSport('')}>Todas</Chip>
           {sports.map(s => <Chip key={s} active={sport === s} onClick={() => setSport(s)}>{s}</Chip>)}

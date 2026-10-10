@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, CalendarCheck, ChevronRight, Clock3, Flame, Goal, LifeBuoy, Search, Star, Trophy } from 'lucide-react'
+import { ArrowRight, CalendarCheck, ChevronRight, Clock3, Flame, Goal, LifeBuoy, MapPin, Search, Star, Trophy } from 'lucide-react'
 import { useEasy } from '../../lib/theme'
 import { SUPPORT_WA } from '../../ui/Help'
 import { useStore } from '../../lib/store'
@@ -7,7 +7,7 @@ import { nextTimes, balanceOf, effStatus, favsOf, freeCount, getComplex, getCour
 import { addDays, cn, waLink, dateLong, dateShort, dayNum, money, relativeDay, todayISO, weekdayShort } from '../../lib/format'
 import { useOrigin } from '../../lib/origin'
 import { Link, navigate } from '../../lib/router'
-import { Button, Content, Empty, PageHeader, Section } from '../../ui/kit'
+import { Button, Content, Empty, PageHeader } from '../../ui/kit'
 import { Cover } from '../../ui/Cover'
 import { VerifiedBadge } from '../../ui/trust'
 import { complexView, untilLabel } from '../../ui/shared'
@@ -128,14 +128,38 @@ function Greeting({ first, next, stats, upcoming }) {
 
 /* Progreso hacia el próximo logro. */
 const TARGET = { first: 1, p5: 5, p10: 10, p25: 25 }
-function Pulse({ stats }) {
+/* Tu semana (PC): los siete días, con una marca en los que tenés partido. Sale de tus reservas. */
+function WeekStrip({ mine }) {
+  const today = todayISO()
+  const dow = (new Date(`${today}T12:00:00`).getDay() + 6) % 7
+  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - dow))
+  const live = mine.filter(b => !['cancelled', 'no_show'].includes(effStatus(b)))
+  const n = days.filter(d => live.some(b => b.date === d)).length
+  return (
+    <div className="hidden xl:block mt-5" aria-label="Tu semana">
+      <div className="flex items-center justify-between gap-3 text-sm"><span className="font-semibold">Esta semana</span><span className="text-muted tnum">{n === 0 ? 'Sin partidos todavía' : n === 1 ? '1 día con partido' : `${n} días con partido`}</span></div>
+      <ul className="grid grid-cols-7 gap-1.5 mt-2.5">
+        {days.map(d => {
+          const has = live.some(b => b.date === d), now = d === today
+          return (
+            <li key={d} className="text-center" aria-label={`${weekdayShort(d)} ${dayNum(d)}${has ? ': tenés partido' : ''}`}>
+              <span className={cn('text-xs', now ? 'text-brand font-semibold' : 'text-muted')}>{weekdayShort(d).slice(0, 3)}</span>
+              <span className={cn('mt-1 mx-auto grid place-items-center size-9 rounded-full text-sm font-semibold tnum transition-colors', has ? 'bg-[image:var(--grad-brand)] text-[var(--on-grad)] shadow-[0_6px_14px_-6px_color-mix(in_srgb,var(--brand)_80%,transparent)]' : 'bg-sunken text-muted', now && !has && 'ring-2 ring-brand text-brand bg-surface', now && has && 'ring-2 ring-offset-2 ring-brand ring-offset-[var(--surface)]')}>{dayNum(d)}</span>
+            </li>)
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function Pulse({ stats, mine }) {
   const nb = stats.badges.find(b => !b.earned)
   const target = nb ? TARGET[nb.id] : null
   const pct = target ? Math.min(100, Math.round(stats.played / target * 100)) : 0
   const left = target ? Math.max(0, target - stats.played) : 0
   const nums = [[stats.played, 'Partidos'], [Math.round(stats.hours), 'Horas en cancha'], [stats.thisStreak, 'Semanas en racha']]
   return (
-    <section aria-labelledby="tu-juego" className="pj-panel p-5">
+    <section aria-labelledby="tu-juego" className="pj-panel p-5 xl:flex-1 xl:flex xl:flex-col">
       <div className="flex items-center justify-between gap-3">
         <h2 id="tu-juego" className="text-base font-semibold">Tu juego</h2>
         <Link to="/cuenta" className="text-sm font-semibold text-brand inline-flex items-center gap-1 min-h-11 -my-3">Ver perfil<ChevronRight size={16} aria-hidden="true" /></Link>
@@ -143,7 +167,9 @@ function Pulse({ stats }) {
       <div className="grid grid-cols-3 gap-2 mt-1">
         {nums.map(([n, l]) => <div key={l} className="min-w-0"><p className="display text-4xl font-bold tnum leading-none"><CountUp value={String(n)} /></p><p className="text-sm text-muted mt-1.5 leading-tight">{l}</p></div>)}
       </div>
-      <div className="mt-5 pj-soft p-3.5">
+      <WeekStrip mine={mine} />
+      <div className="mt-5 xl:mt-auto xl:pt-5">
+        <div className="pj-soft p-3.5">
         {nb ? (
           <>
             <div className="flex items-center justify-between gap-3 text-sm"><span className="font-semibold inline-flex items-center gap-1.5"><Trophy size={16} className="text-brand" aria-hidden="true" />Próximo logro: {nb.title}</span>{target && <span className="text-muted tnum">{Math.min(stats.played, target)}/{target}</span>}</div>
@@ -151,6 +177,7 @@ function Pulse({ stats }) {
             <p className="text-sm text-muted mt-2">{target ? (left > 0 ? `Jugá ${left === 1 ? '1 partido más' : `${left} partidos más`} y lo conseguís.` : `${nb.text}.`) : `${nb.text}.`}</p>
           </>
         ) : <p className="text-sm font-semibold inline-flex items-center gap-2"><Trophy size={16} className="text-brand" aria-hidden="true" />¡Tenés todos los logros!</p>}
+        </div>
       </div>
     </section>
   )
@@ -176,6 +203,24 @@ function PopularCard({ c, rank }) {
         </div>
       </div>
     </Link>
+  )
+}
+
+/* Invitación a buscar en el mapa (PC): rellena el hueco bajo la lista con algo útil. Los precios son los reales. */
+const PIN_AT = [['14%', '38%'], ['40%', '72%'], ['66%', '30%'], ['86%', '66%']]
+function MapCta({ near, day }) {
+  return (
+    <button type="button" onClick={() => navigate(`/buscar?fecha=${day}`)} aria-label="Buscar por zona o en el mapa"
+      className="pj-mapcta group hidden lg:flex w-full flex-1 min-h-[136px] xl:min-h-[184px] mt-3 text-left">
+      <span className="pj-mapcta-pins" aria-hidden="true">
+        {near.slice(0, 4).map((x, i) => <span key={x.c.id} className="pj-pin" style={{ left: PIN_AT[i][0], top: PIN_AT[i][1], animationDelay: `${i * 0.35}s` }}>{money(x.c.fromPrice)}</span>)}
+      </span>
+      <span className="relative mt-auto m-3 flex items-center gap-3 rounded-2xl bg-[var(--glass)] backdrop-blur-xl border border-line shadow-[var(--sh-2)] px-4 py-3 self-stretch">
+        <span className="grid place-items-center size-11 rounded-xl bg-[image:var(--grad-brand)] text-[var(--on-grad)] flex-none"><MapPin size={20} aria-hidden="true" /></span>
+        <span className="min-w-0 flex-1"><span className="block font-semibold leading-tight">Buscá por zona o en el mapa</span><span className="block text-sm text-muted">Mirá todos los complejos y sus horarios cerca tuyo.</span></span>
+        <ArrowRight size={20} className="text-brand flex-none transition-transform group-hover:translate-x-1" aria-hidden="true" />
+      </span>
+    </button>
   )
 }
 
@@ -216,12 +261,12 @@ function FullHome() {
       <Content className="max-w-[640px] md:max-w-[1120px] lg:max-w-[1480px]"><Stagger>
         <Item className="lg:hidden"><p className="display text-3xl font-bold mb-4">Hola, {first} <span className="inline-block origin-[70%_70%] animate-[wave_2.2s_ease-in-out_1]">👋</span></p></Item>
         <Item className="hidden lg:block"><Greeting first={first} next={next} stats={stats} upcoming={upcoming} /></Item>
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] 2xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-8 xl:gap-x-10 lg:items-start">
-        <div className="lg:col-start-1 lg:row-start-1">
+        <div className="xl:grid xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] 2xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)] xl:grid-rows-[auto_auto_1fr] xl:gap-x-10">
+        <div className="xl:col-start-1 xl:row-start-1">
         <Item className="empty:hidden mb-5"><RateCard onRate={(b, n) => { setStars(n); setReview(b) }} /></Item>
         <Item className="mb-6">{next ? <Ticket b={next} onOpen={() => setOpen(next.id)} /> : <NoMatch />}</Item>
         </div>
-        <section aria-labelledby="cuando" className="lg:col-start-2 lg:row-start-1 lg:row-span-3">
+        <section aria-labelledby="cuando" className="xl:col-start-2 xl:row-start-1 xl:row-span-3 xl:flex xl:flex-col">
           <h2 id="cuando" className="text-2xl lg:text-3xl">¿Cuándo querés jugar?</h2>
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 mt-3 pb-1" role="group" aria-label="Día" data-tour="buscar">
             {days.map(d => (
@@ -231,44 +276,54 @@ function FullHome() {
                 <span className={cn('text-xs tnum', day !== d && 'text-muted')}>{dayNum(d)}/{Number(d.slice(5, 7))}</span>
               </button>))}
           </div>
-          <div className="mt-4 space-y-3 2xl:space-y-0 2xl:grid 2xl:grid-cols-2 2xl:gap-3">
+          <div className="mt-4 grid gap-3 grid-cols-[minmax(0,1fr)] md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)] 2xl:grid-cols-2">
             {near.length === 0
-              ? <div className="list 2xl:col-span-2"><Empty icon={Clock3} title={day === today ? 'Hoy ya no quedan horarios cerca' : 'No hay horarios libres ese día'} action={<Button variant="secondary" onClick={() => setDay(addDays(day, 1))}>Ver el día siguiente</Button>} /></div>
+              ? <div className="list col-span-full"><Empty icon={Clock3} title={day === today ? 'Hoy ya no quedan horarios cerca' : 'No hay horarios libres ese día'} action={<Button variant="secondary" onClick={() => setDay(addDays(day, 1))}>Ver el día siguiente</Button>} /></div>
               : near.map(({ c, slots, free }, i) => (
-                <Item key={c.id} className={cn('border border-line rounded-2xl bg-surface p-4 shadow-[var(--sh-1)] card-lift', i >= 4 && 'max-2xl:hidden')}>
+                <Item key={c.id} className={cn('min-w-0 border border-line rounded-2xl bg-surface p-4 shadow-[var(--sh-1)] card-lift', i >= 4 && 'max-2xl:hidden')}>
                   <div className="flex items-start gap-3">
-                    <Link to={`/complejo/${c.slug}`} tabIndex={-1} aria-hidden="true" className="flex-none"><Cover src={c.coverUrl} seed={c.id} className="size-16 lg:size-[72px] rounded-xl" /></Link>
+                    <Link to={`/complejo/${c.slug}`} tabIndex={-1} aria-hidden="true" className="flex-none"><Cover src={c.coverUrl} seed={c.id} className="size-16 lg:size-[76px] rounded-xl" /></Link>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <Link to={`/complejo/${c.slug}`} className="font-semibold text-lg leading-tight truncate inline-flex items-center gap-1.5 min-h-11 -my-2.5">{c.name}{c.verified && <VerifiedBadge label={false} />}</Link>
-                        <span className="text-sm text-muted flex-none">{c.distanceLabel}</span>
-                      </div>
+                      <Link to={`/complejo/${c.slug}`} className="display font-bold text-xl leading-tight flex w-fit items-center gap-1.5 min-h-11 -my-2.5 max-w-full"><span className="truncate">{c.name}</span>{c.verified && <VerifiedBadge label={false} className="flex-none" />}</Link>
                       <p className="text-sm text-muted truncate inline-flex items-center gap-2 max-w-full">
                         {c.ratingCount > 0 && <span className="inline-flex items-center gap-1 text-ink font-medium flex-none"><Star size={13} className="fill-[var(--gold)] text-[var(--gold)]" aria-hidden="true" />{ratingLabel(c.rating)}</span>}
-                        <span className="truncate">{(c.tags || '').split(' · ').filter(t => t.startsWith('Fútbol')).join(' · ')}</span>
+                        <span className="truncate">{[(c.tags || '').split(' · ').filter(t => t.startsWith('Fútbol')).join(' · '), c.distanceLabel].filter(Boolean).join(' · ')}</span>
                       </p>
-                      <p className="text-sm text-muted">desde {money(c.fromPrice)} · <span className="text-brand font-medium">{free} {free === 1 ? 'libre' : 'libres'}</span></p>
+                      <p className="text-sm text-brand font-medium">{free} {free === 1 ? 'libre' : 'libres'}</p>
                     </div>
+                    <div className="flex-none text-right"><p className="text-xs text-muted leading-none">desde</p><p className="display text-xl font-bold tnum leading-tight">{money(c.fromPrice)}</p></div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-3">{slots.map(s2 => <Link key={s2.t} to={`/complejo/${c.slug}/reservar?fecha=${day}&cancha=${s2.courtId}&hora=${s2.t}`} className="chip !min-h-11 !px-3.5 tnum">{s2.t}</Link>)}
                     <Link to={`/complejo/${c.slug}/reservar?fecha=${day}`} className="chip !min-h-11 !px-3 !border-transparent !shadow-none text-brand">Más</Link></div>
                 </Item>))}
           </div>
-          <Button variant="secondary" className="w-full mt-3" onClick={() => navigate(`/buscar?fecha=${day}`)}><Search size={18} />Buscar por zona o en el mapa</Button>
+          <Button variant="secondary" className="w-full mt-3 lg:hidden" onClick={() => navigate(`/buscar?fecha=${day}`)}><Search size={18} />Buscar por zona o en el mapa</Button>
+          <MapCta near={near} day={day} />
         </section>
 
         {yours.length > 0 && (
-          <Section title="Tus canchas" className="!mt-10 lg:!mt-2 lg:mb-6 lg:col-start-1 lg:row-start-2">
-            <div className="list">{yours.map(c => (
+          <section aria-labelledby="tus-canchas" className="mt-10 lg:mt-8 xl:mt-2 xl:mb-6 xl:col-start-1 xl:row-start-2">
+            <h2 id="tus-canchas" className="text-base font-semibold lg:text-xl lg:font-bold mb-3">Tus canchas</h2>
+            <div className="list xl:hidden">{yours.map(c => (
               <Link key={c.id} to={`/complejo/${c.slug}/reservar${lastCourt[c.id] ? `?cancha=${lastCourt[c.id]}` : ''}`} className="row">
                 <Cover src={c.coverUrl} seed={c.id} className="size-12 rounded-xl flex-none" />
                 <span className="flex-1 min-w-0"><span className="block font-semibold truncate">{c.name}</span><span className="block text-sm text-muted truncate">{c.city} · {c.distanceLabel}</span></span>
                 <span className="text-brand font-semibold flex-none">Reservar</span><ChevronRight size={18} className="text-brand flex-none -mr-1" />
               </Link>))}</div>
-          </Section>
+            <div className="hidden xl:grid grid-cols-3 gap-3">{yours.map(c => (
+              <Link key={c.id} to={`/complejo/${c.slug}/reservar${lastCourt[c.id] ? `?cancha=${lastCourt[c.id]}` : ''}`} aria-label={`Reservar en ${c.name}`} className="group relative block aspect-[4/5] rounded-2xl overflow-hidden border border-line shadow-[var(--sh-1)] pj-lift">
+                <Cover src={c.coverUrl} seed={c.id} className="absolute inset-0 [&>img]:transition-transform [&>img]:duration-700 group-hover:[&>img]:scale-110" />
+                <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                <span className="absolute inset-x-3 bottom-3 text-white">
+                  <span className="block display text-xl font-bold leading-tight truncate">{c.name}</span>
+                  <span className="block text-xs opacity-85 truncate">{c.city} · {c.distanceLabel}</span>
+                  <span className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur-md border border-white/25 px-3 min-h-9 text-sm font-semibold group-hover:bg-white group-hover:text-black transition-colors">Reservar<ArrowRight size={14} aria-hidden="true" /></span>
+                </span>
+              </Link>))}</div>
+          </section>
         )}
 
-        <div className="mt-8 lg:mt-0 lg:col-start-1 lg:row-start-3"><Item><Pulse stats={stats} /></Item></div>
+        <div className="mt-8 lg:mt-8 xl:mt-0 xl:col-start-1 xl:row-start-3 xl:flex xl:flex-col"><Item className="xl:flex-1 xl:flex xl:flex-col"><Pulse stats={stats} mine={mine} /></Item></div>
       </div>
 
         {popular.length > 0 && (
